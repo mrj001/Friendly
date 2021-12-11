@@ -55,7 +55,17 @@ namespace Friendly.Library
 
          long jul = 1 + rv.Capacity / 2;
          long index;
-         for (long j = 2; j < jul; j ++)
+         long j = 2 * 2;
+
+         // Mark all even numbers as composite.
+         do
+         {
+            rv[j] = true;
+            j += 2;
+         } while (j < jul);
+
+         // Mark all odd numbers as composite.
+         for (j = 3; j < jul; j += 2)
          {
             index = 2 * j;
             while (index <= ul)
