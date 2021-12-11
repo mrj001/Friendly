@@ -65,7 +65,8 @@ namespace Friendly.Library
          } while (j < jul);
 
          // Mark all odd numbers as composite.
-         for (j = 3; j < jul; j += 2)
+         j = 3;
+         while (j < jul)
          {
             index = 2 * j;
             while (index <= ul)
@@ -73,6 +74,12 @@ namespace Friendly.Library
                rv[index] = true;
                index += j;
             }
+
+            // Advance to next prime
+            do
+            {
+               j += 2;
+            } while (j < jul && rv[j]);
          }
 
          return rv;
