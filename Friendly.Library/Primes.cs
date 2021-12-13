@@ -53,7 +53,6 @@ namespace Friendly.Library
          rv[0] = true;
          rv[1] = true;
 
-         long jul = 1 + rv.Capacity / 2;
          long index;
          long j = 2 * 2;
 
@@ -62,11 +61,11 @@ namespace Friendly.Library
          {
             rv[j] = true;
             j += 2;
-         } while (j < jul);
+         } while (j < ul);
 
          // Mark all odd numbers as composite.
          j = 3;
-         while (j < jul)
+         while (j < ul)
          {
             index = 2 * j;
             while (index <= ul)
@@ -79,7 +78,7 @@ namespace Friendly.Library
             do
             {
                j += 2;
-            } while (j < jul && rv[j]);
+            } while (j < ul && rv[j]);
          }
 
          return rv;
