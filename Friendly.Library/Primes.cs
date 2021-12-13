@@ -65,7 +65,7 @@ namespace Friendly.Library
 
          // Mark all odd numbers as composite.
          j = 3;
-         while (j < ul)
+         while (j * j < ul)
          {
             index = 2 * j;
             while (index <= ul)
@@ -78,7 +78,7 @@ namespace Friendly.Library
             do
             {
                j += 2;
-            } while (j < ul && rv[j]);
+            } while (j * j < ul && rv[j]);
          }
 
          return rv;
