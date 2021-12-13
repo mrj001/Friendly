@@ -44,7 +44,9 @@ namespace Test.Library
             rv.Add(false, 49);
             rv.Add(false, 121);
             rv.Add(true, 4999);
+            rv.Add(false, 24287);  // 149 * 163
             rv.Add(true, 25013);
+            rv.Add(false, 25022);
             rv.Add(false, 25023);
 
             return rv;
