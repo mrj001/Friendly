@@ -14,5 +14,28 @@ namespace Friendly.Library
 
          return GCD(b, a % b);
       }
+
+      public static long ModPow(long val, long exponent, long modulus)
+      {
+         long curBitVal = val;
+         long rv = (exponent & 1) == 1 ? val : 1;
+         exponent >>= 1;
+
+         while (exponent != 0)
+         {
+            curBitVal *= curBitVal;
+            curBitVal %= modulus;
+
+            if ((exponent & 1) != 0)
+            {
+               rv *= curBitVal;
+               rv %= modulus;
+            }
+
+            exponent >>= 1;
+         }
+
+         return rv;
+      }
    }
 }
