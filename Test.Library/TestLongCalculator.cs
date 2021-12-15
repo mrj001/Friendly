@@ -6,6 +6,14 @@ namespace Test.Library
 {
    public class TestLongCalculator
    {
+
+      public TestLongCalculator()
+      {
+         // Some tests depend upon the Primes sieve having been run.
+         // We ensure that it is run first by instantiating an instance of TestPrimes
+         TestPrimes throwAway = new TestPrimes();
+      }
+
       public static TheoryData<long, long, long> GCDTestData
       {
          get
@@ -67,6 +75,36 @@ namespace Test.Library
       public void ModPow(long expected, long val, long exponent, long modulus)
       {
          long actual = LongCalculator.ModPow(val, exponent, modulus);
+
+         Assert.Equal(expected, actual);
+      }
+
+      public static TheoryData<bool, long, long> IsQuadraticResidueTestData
+      {
+         get
+         {
+            var rv = new TheoryData<bool, long, long>();
+
+            // Note: all values for p must be less than TestPrimes._upperLimit;
+
+            // From Wikipedia article on Quadratic residues
+            rv.Add(true, 35, 73);
+            rv.Add(false, 22, 73);
+
+            // Confirmed via Wolfram-Alpha
+            rv.Add(false, 45, 25013);
+            rv.Add(true, 47, 25013);   // solutions are 8920 & 16093
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(IsQuadraticResidueTestData))]
+      public void IsQuadraticResidue(bool expected, long a, long p)
+      {
+         Primes.Init(50261);
+         bool actual = LongCalculator.IsQuadraticResidue(a, p);
 
          Assert.Equal(expected, actual);
       }

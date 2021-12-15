@@ -37,5 +37,38 @@ namespace Friendly.Library
 
          return rv;
       }
+      /// <summary>
+      /// Determines if the a is a quadratic residue, modulo the prime p.
+      /// </summary>
+      /// <param name="a">The value to check.</param>
+      /// <param name="p">The modulus, which must be an odd prime.</param>
+      /// <returns>True if a is a quadratic residue mod p; false otherwise.</returns>
+      /// <remarks>
+      /// <para>
+      /// Reference:
+      /// https://exploringnumbertheory.wordpress.com/2013/10/12/eulers-criterion/
+      /// </para>
+      /// </remarks>
+      public static bool IsQuadraticResidue(long a, long p)
+      {
+#if DEBUG
+         if ((p & 1) == 0)
+            throw new ArgumentException($"{nameof(p)} must be an odd number");
+         if (!Primes.IsPrimeFast(p))   // We must use IsPrimeFast to prevent recursion.
+            throw new ArgumentException($"{nameof(p)} must be a prime.");
+         if (GCD(p, a) != 1)
+            throw new ArgumentException($"{nameof(a)} and {nameof(p)} must be relatively prime.");
+#endif
+
+         long exponent = p >> 1;  // (p - 1) / 2
+         long e = ModPow(a, exponent, p);
+
+         if (e == 1)
+            return true;
+         else if (e == p - 1) // e == -1
+            return false;
+         else
+            throw new ApplicationException();
+      }
    }
 }
