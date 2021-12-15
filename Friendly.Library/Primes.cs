@@ -7,6 +7,9 @@ namespace Friendly.Library
    {
       private static BigBitArray _primes;
 
+      /// <summary>
+      /// The non-inclusive limit of the Sieved Primes.
+      /// </summary>
       private static long _upperSieveLimit = 0;
 
       /// <summary>
@@ -19,6 +22,30 @@ namespace Friendly.Library
       {
          _primes = SieveOfEratosthenes(ul);
          _upperSieveLimit = _primes.Capacity;
+      }
+
+      /// <summary>
+      /// Gets the non-inclusive upper limit of the Sieved Primes.
+      /// </summary>
+      public static long SieveLimit
+      {
+         get
+         {
+            return _upperSieveLimit;
+         }
+      }
+
+      /// <summary>
+      /// Determines if the given value is prime, but only if it is below the SieveLimit.
+      /// </summary>
+      /// <param name="n">The value to check for primality.</param>
+      /// <returns>True if the number if prime; false if the number is composite.</returns>
+      /// <remarks>If n >= SieveLimit, an ArgumentException is thrown.</remarks>
+      public static bool IsPrimeFast(long n)
+      {
+         if (n >= _upperSieveLimit)
+            throw new ArgumentException($"{nameof(n)} must be less than SieveLimit ({_upperSieveLimit})");
+         return !_primes[n];
       }
 
       /// <summary>

@@ -51,7 +51,6 @@ namespace Test.Library
 
             return rv;
          }
-
       }
 
       [Theory]
@@ -61,6 +60,54 @@ namespace Test.Library
          bool actual = Primes.IsPrime(value);
 
          Assert.Equal(expected, actual);
+      }
+
+      [Fact]
+      public void SieveLimit()
+      {
+         // The non-inclusive SieveLimit is the next higher multiple of 64.
+         long expected = 64 * ((_upperLimit + 63) / 64);
+         Assert.Equal(expected, Primes.SieveLimit);
+      }
+
+      public static TheoryData<bool, long> IsPrimeFastTestData
+      {
+         get
+         {
+            var rv = new TheoryData<bool, long>();
+
+            rv.Add(true, 2);
+            rv.Add(true, 3);
+            rv.Add(false, 49);
+            rv.Add(false, 121);
+            rv.Add(true, 4999);
+            rv.Add(false, 24287);  // 149 * 163
+            rv.Add(true, 25013);
+            rv.Add(false, 25022);
+            rv.Add(false, 25023);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(IsPrimeFastTestData))]
+      public void IsPrimeFast(bool expected, long value)
+      {
+         bool actual = Primes.IsPrime(value);
+
+         Assert.Equal(expected, actual);
+      }
+
+      [Fact]
+      public void IsPrimeFast_Throws()
+      {
+         long outOfBounds = 64 * ((_upperLimit + 63) / 64);
+
+         // This must not throw
+         bool b = Primes.IsPrimeFast(outOfBounds - 1);
+
+         Assert.Throws<ArgumentException>(() => Primes.IsPrimeFast(outOfBounds));
       }
    }
 }
