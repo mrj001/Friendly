@@ -109,5 +109,41 @@ namespace Test.Library
 
          Assert.Throws<ArgumentException>(() => Primes.IsPrimeFast(outOfBounds));
       }
+
+      public static TheoryData<bool, long> MillerRabinTestData
+      {
+         get
+         {
+            var rv = new TheoryData<bool, long>();
+
+            rv.Add(true, 4999);    // Just a prime number
+            rv.Add(false, 65536);  // a power of two
+            rv.Add(true, 65537);   // a prime that is one greater than a power of two
+            rv.Add(false, 341);    // a Fermat pseudo prime to base 2.
+            rv.Add(false, 29341);  // a Fermat pseudo-prime to bases 2 through 12.
+            rv.Add(false, 1729);   // 1729 == 7*13*9; A Carmichael number
+            rv.Add(false, 2047);   // 2047 == 23 * 89; a strong pseudo-prime to base 2.
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(MillerRabinTestData))]
+      public void MillerRabin(bool expected, long n)
+      {
+         bool actual = Primes.MillerRabin(n);
+
+         Assert.Equal(expected, actual);
+      }
+
+      [Fact]
+      public void MillerRabin_Throws()
+      {
+#if DEBUG
+         // Throws on even argument.
+         Assert.Throws<ArgumentException>(() => Primes.MillerRabin(42));
+#endif
+      }
    }
 }
