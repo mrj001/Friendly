@@ -11,15 +11,9 @@ namespace Test.Library
       // of the given value.
       private const int _upperLimit = 25_023;
 
-      private static bool _isInitialized = false;
-
       public TestPrimes()
       {
-         if (!_isInitialized)
-         {
-            Primes.Init(_upperLimit);
-            _isInitialized = true;
-         }
+         Primes.Init(_upperLimit);
       }
 
       [Fact]
