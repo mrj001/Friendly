@@ -108,5 +108,31 @@ namespace Test.Library
 
          Assert.Equal(expected, actual);
       }
+
+      public static TheoryData<long, long, long> JacobiSymbolTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long, long, long>();
+
+            // These test data were drawn from the examples in the
+            // Jacobi Reference cited in the method under test.
+            rv.Add(1, 1783, 7523);       // example 1
+            rv.Add(1, 756479, 1298351);  // example 2
+            rv.Add(-1, 4852777, 12408107);  // example 3
+            rv.Add(1, 17327467, 48746413);  // example 4
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(JacobiSymbolTestData))]
+      public void JacobiSymbol(long expected, long a, long n)
+      {
+         long actual = LongCalculator.JacobiSymbol(a, n);
+
+         Assert.Equal(expected, actual);
+      }
    }
 }
