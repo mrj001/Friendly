@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Friendly.Library
 {
@@ -68,6 +69,51 @@ namespace Friendly.Library
             return MillerRabin(n);
          }
       }
+
+      #region Enumeration of Primes
+      private class Enumerator : IEnumerator<long>
+      {
+         private long _current = 1;
+
+         private readonly BigBitArray _primes;
+
+         public Enumerator(BigBitArray primes)
+         {
+            _primes = primes;
+         }
+
+         public long Current { get => _current; }
+
+         object IEnumerator.Current => Current;
+
+         public void Dispose()
+         {
+         }
+
+         public bool MoveNext()
+         {
+            do
+               _current++;
+            while (_current < _primes.Capacity && _primes[_current]);
+
+            return _current < _primes.Capacity;
+         }
+
+         public void Reset()
+         {
+            _current = 1;
+         }
+      }
+
+      /// <summary>
+      /// Gets an enumerator over the Sieved Primes.
+      /// </summary>
+      /// <returns></returns>
+      public static IEnumerator<long> GetEnumerator()
+      {
+         return new Enumerator(_primes);
+      }
+      #endregion
 
       // References:
       //  https://en.wikipedia.org/wiki/Miller–Rabin_primality_test

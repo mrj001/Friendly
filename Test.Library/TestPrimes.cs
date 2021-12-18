@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Friendly.Library;
 using Xunit;
 
@@ -10,6 +11,11 @@ namespace Test.Library
       // so we can use this constant in our tests.  This limit is inclusive
       // of the given value.
       private const int _upperLimit = 25_023;
+
+      /// <summary>
+      /// The number of primes equal to or less than _upperLimit.
+      /// </summary>
+      private const int _countOfPrimes = 2763;
 
       public TestPrimes()
       {
@@ -92,6 +98,28 @@ namespace Test.Library
          bool b = Primes.IsPrimeFast(outOfBounds - 1);
 
          Assert.Throws<ArgumentException>(() => Primes.IsPrimeFast(outOfBounds));
+      }
+
+      [Fact]
+      public void GetEnumerator()
+      {
+         IEnumerator<long> enumerator = Primes.GetEnumerator();
+
+         Assert.True(enumerator.MoveNext());
+         long first = enumerator.Current;
+         Assert.Equal(2, first);
+
+         long last = 0;
+         int count = 1;
+         while (enumerator.MoveNext())
+         {
+            last = enumerator.Current;
+            count++;
+         }
+
+         Assert.Equal(_countOfPrimes, count);
+         Assert.Equal(25013, last);
+
       }
 
       public static TheoryData<bool, long> MillerRabinTestData
