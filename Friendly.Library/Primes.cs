@@ -63,7 +63,10 @@ namespace Friendly.Library
          if (n < _upperSieveLimit)
             return !_primes[n];
          else
+         {
+            if ((n & 1) == 0) return false;
             return MillerRabin(n);
+         }
       }
 
       // References:
