@@ -63,7 +63,7 @@ namespace Friendly.Library
          if (n < _upperSieveLimit)
             return !_primes[n];
          else
-            throw new ArgumentOutOfRangeException($"{nameof(n)} exceeds the upper limit of {_upperSieveLimit}");
+            return MillerRabin(n);
       }
 
       // References:

@@ -16,17 +16,6 @@ namespace Test.Library
          Primes.Init(_upperLimit);
       }
 
-      [Fact]
-      public void IsPrime_Throws()
-      {
-#if DEBUG
-         Assert.Throws<ArgumentOutOfRangeException>(() => Primes.IsPrime(-1));
-#endif
-         // Note: _upperLimit is inclusive, so we have to add one to get it
-         // to throw the Exception.
-         Assert.Throws<ArgumentOutOfRangeException>(() => Primes.IsPrime(_upperLimit + 1));
-      }
-
       public static TheoryData<bool, long> IsPrimeTestData
       {
          get
@@ -79,6 +68,7 @@ namespace Test.Library
             rv.Add(true, 25013);
             rv.Add(false, 25022);
             rv.Add(false, 25023);
+            rv.Add(true, 65537);
 
             return rv;
          }
