@@ -134,5 +134,34 @@ namespace Test.Library
 
          Assert.Equal(expected, actual);
       }
+
+      public static TheoryData<long, long> SquareRootTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long, long>();
+
+            rv.Add(65536, 0);
+            rv.Add(766_998_091, 250_000);
+
+            // A 31-bit number squared, plus twice itself.
+            // This should make a 62-bit product which is one less than the
+            // next highest square number.
+            rv.Add(1_296_501_914, 2 * 1_296_501_914L);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(SquareRootTestData))]
+      public void SquareRoot(long expectedRoot, long offset)
+      {
+         long value = expectedRoot * expectedRoot + offset;
+
+         long actualRoot = LongCalculator.SquareRoot(value);
+
+         Assert.Equal(expectedRoot, actualRoot);
+      }
    }
 }
