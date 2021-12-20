@@ -17,10 +17,27 @@ namespace Test.Library
       /// </summary>
       private const int _countOfPrimes = 2763;
 
+      private static bool _initialized = false;
+
       public TestPrimes()
       {
          Primes.Init(_upperLimit);
+         _initialized = true;
       }
+
+      /// <summary>
+      /// Ensures that the Primes class has been initialized consistently for all tests.
+      /// </summary>
+#pragma warning disable xUnit1013 // Public method should be marked as test
+      public static void EnsureInitialized()
+      {
+         if (!_initialized)
+         {
+            Primes.Init(_upperLimit);
+            _initialized = true;
+         }
+      }
+#pragma warning restore xUnit1013 // Public method should be marked as test
 
       public static TheoryData<bool, long> IsPrimeTestData
       {

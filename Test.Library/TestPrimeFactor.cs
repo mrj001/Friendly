@@ -8,8 +8,7 @@ namespace Test.Library
    {
       public TestPrimeFactor()
       {
-         if (Primes.SieveLimit == 0)
-            Primes.Init(32768);
+         TestPrimes.EnsureInitialized();
       }
 
       [Fact]

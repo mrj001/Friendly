@@ -103,7 +103,7 @@ namespace Test.Library
       [MemberData(nameof(IsQuadraticResidueTestData))]
       public void IsQuadraticResidue(bool expected, long a, long p)
       {
-         Primes.Init(50261);
+         TestPrimes.EnsureInitialized();
          bool actual = LongCalculator.IsQuadraticResidue(a, p);
 
          Assert.Equal(expected, actual);
