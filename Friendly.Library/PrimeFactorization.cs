@@ -55,6 +55,20 @@ namespace Friendly.Library
          return new PrimeFactorization(factors);
       }
 
+      public long SumOfFactors
+      {
+         get
+         {
+            long rv = 1;
+
+            foreach (PrimeFactor f in _factors)
+               rv *= (LongCalculator.Pow(f.Factor, f.Exponent + 1) - 1) / (f.Factor - 1);
+
+            return rv;
+         }
+      }
+
+      #region IList<PrimeFactor>
       public PrimeFactor this[int index]
       {
          get => _factors[index];
@@ -116,5 +130,6 @@ namespace Friendly.Library
       {
          throw new NotSupportedException();
       }
+      #endregion
    }
 }

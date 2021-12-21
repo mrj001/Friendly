@@ -54,5 +54,31 @@ namespace Test.Library
 
          Assert.Throws<ApplicationException>(() => PrimeFactorization.Get(n));
       }
+
+      public static TheoryData<long, long> SumOfFactorsTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long, long>();
+
+            rv.Add(18, 10);
+            rv.Add(6045, 1800);
+            rv.Add(56, 28);
+            rv.Add(500, 499);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(SumOfFactorsTestData))]
+      public void SumOfFactors(long expected, long n)
+      {
+         PrimeFactorization tst = PrimeFactorization.Get(n);
+
+         long actual = tst.SumOfFactors;
+
+         Assert.Equal(expected, actual);
+      }
    }
 }
