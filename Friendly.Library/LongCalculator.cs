@@ -37,6 +37,38 @@ namespace Friendly.Library
 
          return rv;
       }
+
+      /// <summary>
+      /// Raises val to the given exponent.
+      /// </summary>
+      /// <param name="val">The base of the exponent.</param>
+      /// <param name="exponent">The exponent.</param>
+      /// <returns>Val to the given exponent</returns>
+      /// <remarks>
+      /// <para>
+      /// A double only has a 53-bit mantissa.  Thus, for values equal to or
+      /// greater than 2**54, exact values cannot be expected.
+      /// </para>
+      /// </remarks>
+      public static long Pow(long val, int exponent)
+      {
+         long curBitVal = val;
+         long rv = (exponent & 1) == 1 ? val : 1;
+         exponent >>= 1;
+
+         while (exponent != 0)
+         {
+            curBitVal *= curBitVal;
+
+            if ((exponent & 1) != 0)
+               rv *= curBitVal;
+
+            exponent >>= 1;
+         }
+
+         return rv;
+      }
+
       /// <summary>
       /// Determines if the a is a quadratic residue, modulo the prime p.
       /// </summary>

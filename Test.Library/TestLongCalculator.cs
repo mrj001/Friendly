@@ -79,6 +79,31 @@ namespace Test.Library
          Assert.Equal(expected, actual);
       }
 
+      public static TheoryData<long, long, int> PowTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long, long, int>();
+
+            rv.Add(8_589_934_592, 2, 33);
+            rv.Add(124_925_014_999, 4999, 3);
+            rv.Add(1, 499, 0);
+            rv.Add(33, 33, 1);
+            rv.Add(1089, 33, 2);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(PowTestData))]
+      public void Pow(long expected, long val, int exponent)
+      {
+         long actual = LongCalculator.Pow(val, exponent);
+
+         Assert.Equal(expected, actual);
+      }
+
       public static TheoryData<bool, long, long> IsQuadraticResidueTestData
       {
          get
