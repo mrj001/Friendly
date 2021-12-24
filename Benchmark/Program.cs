@@ -8,7 +8,7 @@ namespace Benchmark
    {
       public static void Main(string[] args)
       {
-         var summary = BenchmarkRunner.Run<BenchmarkPrimes>();
+         var summary = BenchmarkRunner.Run<BenchmarkPrimeFactorization>();
       }
    }
 }
