@@ -22,14 +22,15 @@ namespace Friendly.Library
       {
          IEnumerator<long> primes = Primes.GetEnumerator();
          long nCopy = n;
-         long prime;
+         long prime, lastPrimeSquared = 0;
          int exponent;
          long quotient, remainder;
          List<PrimeFactor> factors = new List<PrimeFactor>();
 
-         while (primes.MoveNext() && nCopy != 1)
+         while (primes.MoveNext() && nCopy != 1 && lastPrimeSquared < nCopy)
          {
             prime = primes.Current;
+            lastPrimeSquared = prime * prime;
             exponent = 0;
             quotient = Math.DivRem(nCopy, prime, out remainder);
             while (remainder == 0)
