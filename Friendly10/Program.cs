@@ -18,7 +18,7 @@ namespace Friendly10
          Primes.Init(4_294_967_296);
          Console.WriteLine("{0}: Sieving completed", watch.Elapsed.ToString("mm\\:ss\\.fff"));
 
-         long target = 24;   // testing; TODO change to 10.
+         long target = 10;
          Fraction targetAbundancyIndex = AbundancyIndex(target);
 
          ParallelOptions options = new ParallelOptions();
