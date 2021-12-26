@@ -36,7 +36,6 @@ namespace Factorize
          string fmt = $"{{0, {factorWidth}}} {{1, {powerWidth}}}";
          Console.WriteLine(fmt, "Factor", "Power");
          fmt = $"{{0,{factorWidth}:N0}} {{1,{powerWidth}:N0}}";
-         Console.WriteLine(fmt);    // debugging
          foreach (PrimeFactor f in factors)
             Console.WriteLine(fmt, f.Factor, f.Exponent);
       }
