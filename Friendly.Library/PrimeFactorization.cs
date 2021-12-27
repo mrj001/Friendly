@@ -68,8 +68,8 @@ namespace Friendly.Library
          {
             long rv = 1;
 
-            foreach (PrimeFactor f in _factors)
-               rv *= (LongCalculator.Pow(f.Factor, f.Exponent + 1) - 1) / (f.Factor - 1);
+            foreach (IPrimeFactor f in _factors)
+               rv *= (long)((BigInteger.Pow(f.Factor, f.Exponent + 1) - 1) / (f.Factor - 1));
 
             return rv;
          }
