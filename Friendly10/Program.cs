@@ -13,10 +13,11 @@ namespace Friendly10
       static void Main(string[] args)
       {
          Stopwatch watch = Stopwatch.StartNew();
+         string fmtTimeStamp = "d\\.hh\\:mm\\:ss\\.fff";
 
          Console.WriteLine("Sieving");
          Primes.Init(4_294_967_296);
-         Console.WriteLine("{0}: Sieving completed", watch.Elapsed.ToString("mm\\:ss\\.fff"));
+         Console.WriteLine("{0}: Sieving completed", watch.Elapsed.ToString(fmtTimeStamp));
 
          long target = 10;
          Fraction targetAbundancyIndex = AbundancyIndex(target);
@@ -35,7 +36,7 @@ namespace Friendly10
             options, (j, state) =>
             {
             if (j % 10_000 == 0)
-                  Console.WriteLine("{0}: Checking {1:N0}", watch.Elapsed.ToString("hh\\:mm\\:ss\\.fff"), j);
+                  Console.WriteLine("{0}: Checking {1:N0}", watch.Elapsed.ToString(fmtTimeStamp), j);
 
                Fraction abundancyIndex = null;
                try
@@ -44,7 +45,7 @@ namespace Friendly10
                }
                catch (OverflowException ex)
                {
-                  Console.WriteLine("{0}: Integer overflow exception at j == {1:N0}", watch.Elapsed.ToString("hh\\:mm\\:ss\\.fff"), j);
+                  Console.WriteLine("{0}: Integer overflow exception at j == {1:N0}", watch.Elapsed.ToString(fmtTimeStamp), j);
                   Console.WriteLine(ex.StackTrace);
                   state.Break();
                   return;
@@ -52,7 +53,7 @@ namespace Friendly10
 
                if (abundancyIndex == targetAbundancyIndex)
                {
-                  Console.WriteLine("{0}: found it: {1:N0}", watch.Elapsed.ToString("hh\\:mm\\:ss\\.fff"), j);
+                  Console.WriteLine("{0}: found it: {1:N0}", watch.Elapsed.ToString(fmtTimeStamp), j);
                   state.Break();
                   return;
                }
