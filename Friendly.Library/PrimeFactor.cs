@@ -2,7 +2,7 @@
 
 namespace Friendly.Library
 {
-   public class PrimeFactor
+   public class PrimeFactor : IPrimeFactor
    {
       private readonly long _factor;
       private int _exponent;

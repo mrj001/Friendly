@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using Friendly.Library;
+using Moq;
 using Xunit;
 
 namespace Test.Library
@@ -77,6 +79,32 @@ namespace Test.Library
          PrimeFactorization tst = PrimeFactorization.Get(n);
 
          long actual = tst.SumOfFactors;
+
+         Assert.Equal(expected, actual);
+      }
+
+      [Fact]
+      public void SumOfFactors_Large()
+      {
+         long f1 = 5;
+         long f2 = 3_037_000_573;
+         long expected = 1 + f1 + f2 + f1 * f2;
+
+         List<IPrimeFactor> factors = new List<IPrimeFactor>(2);
+
+         Mock<IPrimeFactor> mock = new Mock<IPrimeFactor>(MockBehavior.Strict);
+         mock.Setup(m => m.Factor).Returns(f1);
+         mock.Setup(m => m.Exponent).Returns(1);
+         factors.Add(mock.Object);
+
+         mock = new Mock<IPrimeFactor>(MockBehavior.Strict);
+         mock.Setup(m => m.Factor).Returns(f2);
+         mock.Setup(m => m.Exponent).Returns(1);
+         factors.Add(mock.Object);
+
+         PrimeFactorization factorization = new PrimeFactorization(factors);
+
+         long actual = factorization.SumOfFactors;
 
          Assert.Equal(expected, actual);
       }

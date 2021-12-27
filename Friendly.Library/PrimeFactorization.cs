@@ -1,15 +1,21 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace Friendly.Library
 {
-   public class PrimeFactorization : IList<PrimeFactor>
+   public class PrimeFactorization : IList<IPrimeFactor>
    {
-      private readonly List<PrimeFactor> _factors;
+      private readonly List<IPrimeFactor> _factors;
 
-      private PrimeFactorization(List<PrimeFactor> factors)
+      public PrimeFactorization(List<IPrimeFactor> factors)
       {
+#if DEBUG
+         for (int j = 0; j < factors.Count - 2; j++)
+            if (factors[j + 1].Factor <= factors[j].Factor)
+               throw new ArgumentException("The prime factors must be unique and in increasing order.");
+#endif
          _factors = factors;
       }
 
@@ -25,7 +31,7 @@ namespace Friendly.Library
          long prime, lastPrimeSquared = 0;
          int exponent;
          long quotient, remainder;
-         List<PrimeFactor> factors = new List<PrimeFactor>();
+         List<IPrimeFactor> factors = new List<IPrimeFactor>();
 
          while (primes.MoveNext() && nCopy != 1 && lastPrimeSquared < nCopy)
          {
@@ -69,8 +75,8 @@ namespace Friendly.Library
          }
       }
 
-      #region IList<PrimeFactor>
-      public PrimeFactor this[int index]
+      #region IList<IPrimeFactor>
+      public IPrimeFactor this[int index]
       {
          get => _factors[index];
          set => throw new NotSupportedException();
@@ -80,7 +86,7 @@ namespace Friendly.Library
 
       public bool IsReadOnly { get => true; }
 
-      public void Add(PrimeFactor item)
+      public void Add(IPrimeFactor item)
       {
          throw new NotSupportedException();
       }
@@ -90,18 +96,18 @@ namespace Friendly.Library
          throw new NotSupportedException();
       }
 
-      public bool Contains(PrimeFactor item)
+      public bool Contains(IPrimeFactor item)
       {
          // TODO
          throw new NotImplementedException();
       }
 
-      public void CopyTo(PrimeFactor[] array, int arrayIndex)
+      public void CopyTo(IPrimeFactor[] array, int arrayIndex)
       {
          _factors.CopyTo(array, arrayIndex);
       }
 
-      public IEnumerator<PrimeFactor> GetEnumerator()
+      public IEnumerator<IPrimeFactor> GetEnumerator()
       {
          return _factors.GetEnumerator();
       }
@@ -111,18 +117,18 @@ namespace Friendly.Library
          return _factors.GetEnumerator();
       }
 
-      public int IndexOf(PrimeFactor item)
+      public int IndexOf(IPrimeFactor item)
       {
          // TODO
          throw new NotImplementedException();
       }
 
-      public void Insert(int index, PrimeFactor item)
+      public void Insert(int index, IPrimeFactor item)
       {
          throw new NotSupportedException();
       }
 
-      public bool Remove(PrimeFactor item)
+      public bool Remove(IPrimeFactor item)
       {
          throw new NotSupportedException();
       }
