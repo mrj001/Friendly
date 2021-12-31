@@ -1,12 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
+   <PropertyGroup>
+      <OutputType>Exe</OutputType>
+      <TargetFramework>net5.0</TargetFramework>
+   </PropertyGroup>
+
+   <ItemGroup>
     <ProjectReference Include="..\Friendly.Library\Friendly.Library.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
-  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\**\*" Type="Non-Resx" />
+  </ItemGroup>
 
 </Project>
