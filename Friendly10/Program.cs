@@ -98,7 +98,12 @@ namespace Friendly10
                {
                   Console.WriteLine("{0}: Integer overflow exception at j == {1:N0}", watch.Elapsed.ToString(fmtTimeStamp), j);
                   Console.WriteLine(ex.StackTrace);
-                  state.Break();
+                  state.Stop();
+                  lock (_lockStateSave)
+                  {
+                     SaveState(curLoopIndices);
+                     _lastStateSave = watch.Elapsed;
+                  }
                   return;
                }
 
