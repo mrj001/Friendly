@@ -151,6 +151,7 @@ namespace Test.Library
             rv.Add(false, 29341);  // a Fermat pseudo-prime to bases 2 through 12.
             rv.Add(false, 1729);   // 1729 == 7*13*9; A Carmichael number
             rv.Add(false, 2047);   // 2047 == 23 * 89; a strong pseudo-prime to base 2.
+            rv.Add(true, 4_294_967_371);   // A prime per Wolfram-Alpha
 
             return rv;
          }
