@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace Friendly.Library
 {
@@ -160,8 +161,8 @@ namespace Friendly.Library
          }
 
          int i = 1;
-         long[] x = new long[s + 1];
-         x[0] = LongCalculator.ModPow(a, exp, n);
+         BigInteger[] x = new BigInteger[s + 1];
+         x[0] = BigInteger.ModPow(a, exp, n);
 
          while (exp < n - 1)
          {
