@@ -13,10 +13,12 @@ namespace Test.Library
       // increases its capacity to the next highest multiple of 64 (non-inclusive)
       // Thus, the sieve limit is increased until it is congruent to 63 (mod 64).
       // Numbers between the passed in sieve upper limit and this increased
-      // value were not properly sieved.  These tests catch that.
+      // value were not properly sieved.  The worst case being when the
+      // upper limit of the sieve was set to a multiple of 64.
+      // These tests were created as a result.
 
-      // 2**16 == 65,536
-      private static readonly long _upperLimit = 65_536;
+      // 2**15 == 32,768
+      private static readonly long _upperLimit = 32_768;
 
       public TestPrimes2()
       {
@@ -26,8 +28,8 @@ namespace Test.Library
       [Fact]
       public void IsPrime1()
       {
-         Assert.True(Primes.IsPrime(65_537));
-         Assert.False(Primes.IsPrime(65_538));
+         Assert.True(Primes.IsPrime(32_771));
+         Assert.False(Primes.IsPrime(32_772));
       }
 
       [Fact]
@@ -38,7 +40,7 @@ namespace Test.Library
 
       // According to:
       // http://sweet.ua.pt/tos/primes.html
-      // The number of primes <= 2**16 is 6542
+      // The number of primes <= 2**15 is 3512
       [Fact]
       public void PrimeCount()
       {
@@ -47,7 +49,7 @@ namespace Test.Library
          while (j.MoveNext() && j.Current <= _upperLimit)
             primeCount++;
 
-         Assert.Equal(6542, primeCount);
+         Assert.Equal(3512, primeCount);
       }
    }
 }
