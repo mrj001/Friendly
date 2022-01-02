@@ -192,6 +192,7 @@ namespace Friendly.Library
       private static BigBitArray SieveOfEratosthenes(long ul)
       {
          BigBitArray rv = new BigBitArray(ul + 1);
+         ul = rv.Capacity;
 
          // Seed this with 0 and 1 as composite.
          rv[0] = true;
@@ -212,7 +213,7 @@ namespace Friendly.Library
          while (j * j < ul)
          {
             index = 2 * j;
-            while (index <= ul)
+            while (index < ul)
             {
                rv[index] = true;
                index += j;
