@@ -85,7 +85,7 @@ namespace Friendly10
                   }
                }
 
-               if (j % 10_000 == 0)
+               if (j % 100_000 == 0)
                   Console.WriteLine("{0}: Checking {1:N0} (thread id: {2})", 
                      watch.Elapsed.ToString(fmtTimeStamp), j, Thread.CurrentThread.ManagedThreadId);
 
