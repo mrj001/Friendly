@@ -107,8 +107,8 @@ namespace Friendly.Library
       // Calculation of the Jacobi Symbol is explained here (accessed 2021-12-14):
       //   https://exploringnumbertheory.wordpress.com/2015/11/29/the-jacobi-symbol/
       //
-      // Calculate of the Legendre Symbol is explained here:
-      //   
+      // Calculation of the Legendre Symbol is explained here:
+      //   https://exploringnumbertheory.wordpress.com/2015/11/28/the-legendre-symbol/
       public static long JacobiSymbol(long a, long n)
       {
          // Per Theorem 1 of the Reference.
