@@ -63,6 +63,16 @@ namespace Friendly.Library
                _bits[index / 64] &= ~bit;
          }
       }
+
+      /// <summary>
+      /// Flips the bit at the specified Index.
+      /// </summary>
+      /// <param name="index">The bit to change the value of.</param>
+      public void FlipBit(long index)
+      {
+         ulong bit = 1UL << (int)(index % 64);
+         _bits[index / 64] ^= bit;
+      }
    }
 }
 

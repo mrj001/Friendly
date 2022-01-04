@@ -73,5 +73,25 @@ namespace Test.Library
          if (index > 0) Assert.False(tst[index - 1]);
          if (index < capacity - 1) Assert.False(tst[index + 1]);
       }
+
+      [Fact]
+      public void FlipBit()
+      {
+         int sz = 128;
+         BigBitArray tst = new BigBitArray(sz);
+
+         for (int j = 0; j < sz; j++)
+         {
+            tst.FlipBit(j);
+            for (int k = 0; k < sz; k ++)
+            {
+               if (j == k)
+                  Assert.True(tst[k]);
+               else
+                  Assert.False(tst[k]);
+            }
+            tst.FlipBit(j);
+         }
+      }
    }
 }
