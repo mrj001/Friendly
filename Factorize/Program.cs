@@ -15,7 +15,7 @@ namespace Factorize
             return;
          }
 
-         Primes.Init(4_294_967_296);  // sufficient up to long.MaxValue
+         Primes.Init(1 + LongCalculator.SquareRoot(n));  // sufficient for the given number
          PrimeFactorization factors = PrimeFactorization.Get(n);
 
          // Determine the number of characters needed to display the largest factor
