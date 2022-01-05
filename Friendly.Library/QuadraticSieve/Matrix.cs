@@ -111,5 +111,17 @@ namespace Friendly.Library.QuadraticSieve
          ValidateColumn(columnIndex);
          _rows[rowIndex].FlipBit(columnIndex);
       }
+
+      /// <summary>
+      /// Augments this Matrix by appending the Identity Matrix on its
+      /// right hand side.
+      /// </summary>
+      public void AugmentIdentity()
+      {
+         int oldColumns = Columns;
+         ExpandColumns(Columns + Rows);
+         for (int r = 0, rul = Rows, c = oldColumns; r < rul; r++, c++)
+            this[r, c] = true;
+      }
    }
 }

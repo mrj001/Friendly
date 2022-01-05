@@ -152,5 +152,34 @@ namespace Test.Library.QuadraticSieve
                Assert.False(matrix[r, c]);
             }
       }
+
+      [Fact]
+      public void AugmentIdentity()
+      {
+         Random rnd = new Random(123);
+         int sz = 32;
+         Matrix expectedOld = new Matrix(sz, sz, 0);
+         Matrix actual = new Matrix(sz, sz, sz);
+
+         for (int j = 0; j < 100; j ++)
+         {
+            int r = rnd.Next(sz);
+            int c = rnd.Next(sz);
+            expectedOld.FlipBit(r, c);
+            actual.FlipBit(r, c);
+         }
+
+         actual.AugmentIdentity();
+
+         // Confirm pre-existing part of augmented matrix is unchanged.
+         for (int r = 0; r < sz; r++)
+            for (int c = 0; c < sz; c++)
+               Assert.Equal(expectedOld[r, c], actual[r, c]);
+
+         // Confirm augmented portion of the matrix is the identity
+         for (int r = 0; r < sz; r++)
+            for (int c = 0; c < sz; c++)
+               Assert.Equal(actual[r, c + sz], r == c);
+      }
    }
 }
