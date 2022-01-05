@@ -128,5 +128,46 @@ namespace Test.Library
 
          Assert.Equal(capacity, tst.Capacity);
       }
+
+      [Fact]
+      public void Xor1()
+      {
+         BigBitArray a = new BigBitArray(128);
+         BigBitArray b = new BigBitArray(128);
+
+         // fill a with 1010.....
+         // fill b with 0101....
+         for (int j = 0; j < a.Capacity; j ++)
+         {
+            a[j] = (j & 1) != 0;
+            b[j] = (j & 1) == 0;
+         }
+
+         a.Xor(b);
+
+         // Assert A contains all ones
+         // Assert b is unchanged
+         for (int j = 0; j < a.Capacity; j ++)
+         {
+            Assert.True(a[j]);
+            Assert.Equal(b[j], (j & 1) == 0);
+         }
+      }
+
+      [Fact]
+      public void Xor_self()
+      {
+         BigBitArray a = new BigBitArray(512);
+         Random random = new Random(123);
+
+         for (int j = 0; j < 32; j++)
+            a.FlipBit(random.Next((int)a.Capacity));
+
+         a.Xor(a);
+
+         // Assert that all bits are zero
+         for (int j = 0; j < a.Capacity; j++)
+            Assert.False(a[j]);
+      }
    }
 }

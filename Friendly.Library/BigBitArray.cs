@@ -100,6 +100,17 @@ namespace Friendly.Library
          _capacity = nlongs * 64;
          _bits = newBits;
       }
+
+      /// <summary>
+      /// Updates this Big Bit Array with the Xor of this Big Bit Array with the other.
+      /// </summary>
+      /// <param name="other"></param>
+      public void Xor(BigBitArray other)
+      {
+         long jul = Math.Min(this.Capacity, other.Capacity) / 64;
+         for (long j = 0; j < jul; j++)
+            _bits[j] ^= other._bits[j];
+      }
    }
 }
 
