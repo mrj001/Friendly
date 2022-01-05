@@ -80,19 +80,19 @@ namespace Test.Library.QuadraticSieve
             0b0010100101    // 39368 == 2**3 * 7 * 19 * 37
          };
 
-         (List<long> actualBSmooth, List<BigBitArray> actualExpVectors) = Friendly.Library.QuadraticSieve.QuadraticSieve.FindBSmooth(factorBase, n);
+         (List<long> actualBSmooth, Matrix actualExpVectors) = Friendly.Library.QuadraticSieve.QuadraticSieve.FindBSmooth(factorBase, n);
 
          // Both returned lists are the same length
-         Assert.Equal(actualBSmooth.Count, actualExpVectors.Count);
+         Assert.Equal(actualBSmooth.Count, actualExpVectors.Columns);
 
          Assert.Equal(expectedBSmooth.Count, actualBSmooth.Count);
-         Assert.Equal(expectedExpVectors.Count, actualExpVectors.Count);
+         Assert.Equal(expectedExpVectors.Count, actualExpVectors.Columns);
 
          for (int j = 0; j < expectedBSmooth.Count; j ++)
          {
             Assert.Equal(expectedBSmooth[j], actualBSmooth[j]);
-            for (int k = 0, kbit = 1; k < 32; k ++, kbit <<= 1)
-               Assert.Equal((expectedExpVectors[j] & kbit) != 0, actualExpVectors[j][k]);
+            for (int k = 0, kbit = 1; k < factorBase.Count; k ++, kbit <<= 1)
+               Assert.Equal((expectedExpVectors[j] & kbit) != 0, actualExpVectors[k, j]);
          }
       }
    }

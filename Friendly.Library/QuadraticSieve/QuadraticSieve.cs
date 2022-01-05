@@ -46,7 +46,19 @@ namespace Friendly.Library.QuadraticSieve
          return rv;
       }
 
-      internal static (List<long>, List<BigBitArray>) FindBSmooth(List<long> factorBase, long n)
+      /// <summary>
+      /// Sieves for a list of B-Smooth numbers
+      /// </summary>
+      /// <param name="factorBase">The factor base which defines B-Smooth.</param>
+      /// <param name="n">The number being factored.</param>
+      /// <returns>A Tuple containing the B-Smooth numbers and the Matrix to solve.</returns>
+      /// <remarks>
+      /// <para>
+      /// Each column of the Matrix contains the Exponent Vector for the B-Smooth number at
+      /// the same index.
+      /// </para>
+      /// </remarks>
+      internal static (List<long>, Matrix) FindBSmooth(List<long> factorBase, long n)
       {
          // Choose twice the largest factor as the Sieving Interval
          int fbSize = factorBase.Count;
@@ -134,15 +146,24 @@ namespace Friendly.Library.QuadraticSieve
             }
          }
 
+         // Count the B-Smooth numbers
+         int bSmoothCount = 0;
+         for (int x = 0; x < M; x++)
+            if (Q[x] == 1)
+               bSmoothCount++;
+
          // Collect up the B-Smooth numbers and their Exponent Vectors.
-         List<long> lstBSmooth = new List<long>();
-         List<BigBitArray> expVectors = new List<BigBitArray>();
+         // Each Exponent Vector becomes a column in the output Matrix.
+         List<long> lstBSmooth = new List<long>(bSmoothCount);
+         Matrix expVectors = new Matrix(fbSize, bSmoothCount, fbSize);
          for (int x = 0; x < M; x ++)
          {
             if (Q[x] == 1)
             {
                lstBSmooth.Add((x + rootN) * (x + rootN) - n);
-               expVectors.Add(exponentVectors[x]);
+               int index = lstBSmooth.Count - 1;
+               for (int r = 0; r < fbSize; r++)
+                  expVectors[r, index] = exponentVectors[x][r];
             }
          }
 
