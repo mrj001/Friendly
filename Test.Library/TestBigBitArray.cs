@@ -93,5 +93,40 @@ namespace Test.Library
             tst.FlipBit(j);
          }
       }
+
+      [Fact]
+      public void Expand()
+      {
+         long capacity = 192;
+         BigBitArray tst = new BigBitArray(capacity);
+
+         for (long j = 0; j < capacity; j++)
+            tst[j] = true;
+
+         tst.Expand(capacity + 1);
+
+         // Assert that new capacity is next multiple of 64
+         long expectedCapacity = capacity + 64 - capacity % 64;
+         Assert.Equal(expectedCapacity, tst.Capacity);
+
+         // assert that all previous bits remain one.
+         for (long j = 0; j < capacity; j++)
+            Assert.True(tst[j]);
+
+         // Assert that all newly added bits are zero.
+         for (long j = capacity; j < expectedCapacity; j++)
+            Assert.False(tst[j]);
+      }
+
+      [Fact]
+      public void Expand_No_Shrink()
+      {
+         long capacity = 256;
+         BigBitArray tst = new BigBitArray(capacity);
+
+         tst.Expand(128);
+
+         Assert.Equal(capacity, tst.Capacity);
+      }
    }
 }

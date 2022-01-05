@@ -7,8 +7,8 @@ namespace Friendly.Library
    /// </summary>
    public class BigBitArray
    {
-      private readonly long _capacity;
-      private readonly ulong[] _bits;
+      private long _capacity;
+      private ulong[] _bits;
 
       /// <summary>
       /// Constructs an instance of BigBitArray.
@@ -72,6 +72,33 @@ namespace Friendly.Library
       {
          ulong bit = 1UL << (int)(index % 64);
          _bits[index / 64] ^= bit;
+      }
+
+      /// <summary>
+      /// Expands the number of bits in this Bit Array.
+      /// </summary>
+      /// <param name="newCapacity">The minimum new Capacity.</param>
+      /// <remarks>
+      /// <para>
+      /// If newCapacity is not a multiple of 64, it is increased to the next multiple of 64.
+      /// </para>
+      /// <para>
+      /// All new bits are initially cleared.
+      /// </para>
+      /// </remarks>
+      public void Expand(long newCapacity)
+      {
+         long oldNumLongs = _bits.Length;
+         long nlongs = (newCapacity + 63) / 64;
+         if (nlongs < oldNumLongs)
+            return;
+
+         ulong[] newBits = new ulong[nlongs];
+         for (int j = 0; j < oldNumLongs; j++)
+            newBits[j] = _bits[j];
+
+         _capacity = nlongs * 64;
+         _bits = newBits;
       }
    }
 }
