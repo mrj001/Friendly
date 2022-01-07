@@ -105,7 +105,7 @@ namespace Test.Library.QuadraticSieve
             bit = matrix[0, columnCount - 1];
             bit = matrix[rowCount - 1, columnCount - 1];
          }
-         catch(ArgumentOutOfRangeException)
+         catch (ArgumentOutOfRangeException)
          {
             noThrow = false;
          }
@@ -122,12 +122,12 @@ namespace Test.Library.QuadraticSieve
          Matrix matrix = new Matrix(rowCount, columnCount, 0);
 
          // Set bits one at a time stepping through the matrix.
-         for (int r = 0; r < rowCount; r ++)
-            for (int c = 0; c < columnCount; c ++)
+         for (int r = 0; r < rowCount; r++)
+            for (int c = 0; c < columnCount; c++)
             {
                matrix[r, c] = true;
-               for (int r1 = 0; r1 < rowCount; r1 ++)
-                  for (int c1 = 0; c1 < columnCount; c1 ++)
+               for (int r1 = 0; r1 < rowCount; r1++)
+                  for (int c1 = 0; c1 < columnCount; c1++)
                      Assert.Equal(r1 < r || (r1 == r && c1 <= c), matrix[r1, c1]);
             }
       }
@@ -161,7 +161,7 @@ namespace Test.Library.QuadraticSieve
          Matrix expectedOld = new Matrix(sz, sz, 0);
          Matrix actual = new Matrix(sz, sz, sz);
 
-         for (int j = 0; j < 100; j ++)
+         for (int j = 0; j < 100; j++)
          {
             int r = rnd.Next(sz);
             int c = rnd.Next(sz);
@@ -180,6 +180,64 @@ namespace Test.Library.QuadraticSieve
          for (int r = 0; r < sz; r++)
             for (int c = 0; c < sz; c++)
                Assert.Equal(actual[r, c + sz], r == c);
+      }
+
+      public static TheoryData<byte[,], byte[,]> ReduceTestData
+      {
+         get
+         {
+            var rv = new TheoryData<byte[,], byte[,]>();
+
+            rv.Add(new byte[,]{
+                     { 1,0,0,0,0,0,0,0,0,0,0,1,0,0 },
+                     { 0,1,0,0,0,0,0,0,0,0,0,0,1,0 },
+                     { 0,0,1,0,0,0,1,0,0,0,1,0,0,1 },
+                     { 0,0,0,1,0,0,0,0,0,0,0,0,0,0 },
+                     { 0,0,0,0,1,0,1,0,0,0,1,1,1,1 },
+                     { 0,0,0,0,0,1,0,0,0,0,0,0,0,0 },
+                     { 0,0,0,0,0,0,0,1,0,0,0,1,0,1 },
+                     { 0,0,0,0,0,0,0,0,1,0,0,0,1,0 },
+                     { 0,0,0,0,0,0,0,0,0,1,0,0,0,0 },
+                     { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+                  },
+            new byte[,]
+            {
+                     { 1,1,1,1,1,1,0,0,0,0,0,0,0,0 },
+                     { 0,1,1,1,1,0,0,0,0,0,0,1,0,0 },
+                     { 1,1,0,1,0,0,0,1,1,1,0,0,0,1 },
+                     { 1,0,1,0,0,0,1,1,0,0,1,0,0,0 },
+                     { 1,0,1,0,1,0,0,0,0,0,0,0,1,0 },
+                     { 0,0,0,1,0,0,0,0,0,0,0,0,0,0 },
+                     { 0,1,0,0,0,0,0,0,1,0,0,0,0,0 },
+                     { 1,0,0,0,0,0,0,1,0,0,0,0,0,1 },
+                     { 0,0,0,0,0,0,0,0,0,1,0,0,0,0 },
+                     { 0,0,0,0,0,1,0,0,0,0,0,0,0,0 }
+            });
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(ReduceTestData))]
+      public void Reduce(byte[,] expected, byte[,] input)
+      {
+         // Rationality checks on inputs
+         Assert.Equal(expected.GetLength(0), input.GetLength(0));
+         Assert.Equal(expected.GetLength(1), input.GetLength(1));
+
+         int rows = expected.GetLength(0);
+         int cols = expected.GetLength(1);
+         Matrix matrix = new Matrix(rows, cols, 0);
+         for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+               matrix[r, c] = (input[r, c] != 0);
+
+         matrix.Reduce();
+
+         for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+               Assert.Equal(expected[r, c] != 0, matrix[r, c]);
       }
    }
 }

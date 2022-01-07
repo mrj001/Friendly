@@ -123,5 +123,84 @@ namespace Friendly.Library.QuadraticSieve
          for (int r = 0, rul = Rows, c = oldColumns; r < rul; r++, c++)
             this[r, c] = true;
       }
+
+      /// <summary>
+      /// Performs Gauss-Jordan reduction on the Matrix.
+      /// </summary>
+      public void Reduce()
+      {
+         ReduceForward();
+         ReduceBackward();
+      }
+
+      /// <summary>
+      /// Reduces the matrix to Row Echelon Form
+      /// </summary>
+      private void ReduceForward()
+      {
+         for (int col = 0, jul = Rows, curRow = 0; col < jul; col ++)
+         {
+            if (!this[curRow,col])
+            {
+               // find a row below to swap with.
+               int rw = curRow + 1;
+               while (rw < jul && !this[rw, col])
+                  rw++;
+               if (rw < jul)
+               {
+                  BigBitArray t = _rows[curRow];
+                  _rows[curRow] = _rows[rw];
+                  _rows[rw] = t;
+               }
+               else
+               {
+                  continue;
+               }
+            }
+
+            int k = curRow + 1;
+            while (k < jul)
+            {
+               while (k < jul && !this[k, col])
+                  k++;
+
+               if (k < jul)
+               {
+                  _rows[k].Xor(_rows[curRow]);
+                  k++;
+               }
+            }
+
+            curRow++;
+         }
+      }
+
+      /// <summary>
+      /// Performs backward substitution to achieve Reduced Row Echelon Form.
+      /// </summary>
+      private void ReduceBackward()
+      {
+         int maxCols = Rows;
+
+         for (int row = Rows - 1; row >= 0; row --)
+         {
+            // Find leading non-zero coefficient.  The search starts at the
+            // diagonal.
+            int col = row;
+            while (col < maxCols && !this[row, col])
+               col++;
+            if (col < maxCols)
+            {
+               int rw = row - 1;
+               while (rw >= 0)
+               {
+                  while (rw >= 0 && !this[rw, col])
+                     rw--;
+                  if (rw >= 0)
+                     _rows[rw].Xor(_rows[row]);
+               }
+            }
+         }
+      }
    }
 }
