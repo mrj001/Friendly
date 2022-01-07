@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Friendly.Library;
 using Friendly.Library.QuadraticSieve;
 using Xunit;
@@ -238,6 +239,72 @@ namespace Test.Library.QuadraticSieve
          for (int r = 0; r < rows; r++)
             for (int c = 0; c < cols; c++)
                Assert.Equal(expected[r, c] != 0, matrix[r, c]);
+      }
+
+      public static TheoryData<byte[,]> FindNullVectorsTestData
+      {
+         get
+         {
+            var rv = new TheoryData<byte[,]>();
+
+            rv.Add(new byte[,]
+            {
+                     { 1,1,1,1,1,1,0,0,0,0,0,0,0,0 },
+                     { 0,1,1,1,1,0,0,0,0,0,0,1,0,0 },
+                     { 1,1,0,1,0,0,0,1,1,1,0,0,0,1 },
+                     { 1,0,1,0,0,0,1,1,0,0,1,0,0,0 },
+                     { 1,0,1,0,1,0,0,0,0,0,0,0,1,0 },
+                     { 0,0,0,1,0,0,0,0,0,0,0,0,0,0 },
+                     { 0,1,0,0,0,0,0,0,1,0,0,0,0,0 },
+                     { 1,0,0,0,0,0,0,1,0,0,0,0,0,1 },
+                     { 0,0,0,0,0,0,0,0,0,1,0,0,0,0 },
+                     { 0,0,0,0,0,1,0,0,0,0,0,0,0,0 }
+            });
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(FindNullVectorsTestData))]
+      public void FindNullVectors(byte[,] input)
+      {
+         // Convert the input into a Matrix object.
+         int rows = input.GetLength(0);
+         int cols = input.GetLength(1);
+         Matrix matrix = new Matrix(rows, cols, 0);
+         for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+               matrix[r, c] = (input[r, c] != 0);
+
+         // The Matrix must be reduced before we can call FindNullVectors.
+         matrix.Reduce();
+
+         List<BigBitArray> actual = matrix.FindNullVectors();
+
+         // Confirm that multiplying each returned Vector by the
+         // given Matrix actually yields a Null Vector
+         int vectorCount = 0;
+         foreach (BigBitArray nullVector in actual)
+         {
+            int v;
+            for (int r = 0; r < rows; r ++)
+            {
+               // Check that it yields a null vector against the input
+               v = 0;
+               for (int c = 0; c < cols; c++)
+                  v += input[r, c] * (nullVector[c] ? 1 : 0);
+               Assert.Equal(0, v % 2);
+
+               // Check that it yields a null vector against the reduced matrix.
+               v = 0;
+               for (int c = 0; c < cols; c++)
+                  v += matrix[r, c] && nullVector[c] ? 1 : 0;
+               Assert.Equal(0, v % 2);
+            }
+
+            vectorCount++;
+         }
       }
    }
 }

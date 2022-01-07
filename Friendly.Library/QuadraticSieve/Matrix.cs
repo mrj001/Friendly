@@ -12,6 +12,8 @@ namespace Friendly.Library.QuadraticSieve
       private readonly List<BigBitArray> _rows;
       private int _columns;
 
+      private bool _rref = false;
+
       /// <summary>
       /// Constructs a new Matrix object.
       /// </summary>
@@ -131,6 +133,7 @@ namespace Friendly.Library.QuadraticSieve
       {
          ReduceForward();
          ReduceBackward();
+         _rref = true;
       }
 
       /// <summary>
@@ -201,6 +204,52 @@ namespace Friendly.Library.QuadraticSieve
                }
             }
          }
+      }
+
+
+      /// <summary>
+      /// 
+      /// </summary>
+      /// <returns>A list of vectors satisfying the equation Ax = 0, where A represents this Matrix.</returns>
+      /// <remarks>This Matrix must already have been reduced to Reduced Row Echelon Form.</remarks>
+      public List<BigBitArray> FindNullVectors()
+      {
+         Assertions.True(_rref);
+
+         int curPivotRow = 0;
+         int curPivotCol = 0;
+         List<int> freeIndices = new List<int>();
+         List<BigBitArray> nullVectors = new List<BigBitArray>();
+
+         while (curPivotRow < Rows)
+         {
+            while (curPivotCol < Columns && !this[curPivotRow, curPivotCol])
+            {
+               int freeIndex = 0;
+               BigBitArray nullVector = new BigBitArray(Columns);
+
+               // Proceed down this column, adding the set bits to the nullVector
+               for (int j = 0; j < Rows; j++)
+               {
+                  if (freeIndex < freeIndices.Count && j == freeIndices[freeIndex])
+                     freeIndex++;
+
+                  if (this[j, curPivotCol])
+                     nullVector[j + freeIndex] = true;
+               }
+
+               // Set the bit corresponding to this Column's free variable
+               nullVector[curPivotCol] = true;
+
+               nullVectors.Add(nullVector);
+               freeIndices.Add(curPivotCol);
+               curPivotCol++;
+            }
+            curPivotRow++;
+            curPivotCol++;
+         }
+
+         return nullVectors;
       }
    }
 }
