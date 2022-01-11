@@ -141,15 +141,15 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private void ReduceForward()
       {
-         for (int col = 0, jul = Rows, curRow = 0; col < jul; col ++)
+         for (int col = 0, curRow = 0; col < Columns; col ++)
          {
             if (!this[curRow,col])
             {
                // find a row below to swap with.
                int rw = curRow + 1;
-               while (rw < jul && !this[rw, col])
+               while (rw < Rows && !this[rw, col])
                   rw++;
-               if (rw < jul)
+               if (rw < Rows)
                {
                   BigBitArray t = _rows[curRow];
                   _rows[curRow] = _rows[rw];
@@ -162,12 +162,12 @@ namespace Friendly.Library.QuadraticSieve
             }
 
             int k = curRow + 1;
-            while (k < jul)
+            while (k < Rows)
             {
-               while (k < jul && !this[k, col])
+               while (k < Rows && !this[k, col])
                   k++;
 
-               if (k < jul)
+               if (k < Rows)
                {
                   _rows[k].Xor(_rows[curRow]);
                   k++;
@@ -183,7 +183,7 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private void ReduceBackward()
       {
-         int maxCols = Rows;
+         int maxCols = Columns;
 
          for (int row = Rows - 1; row >= 0; row --)
          {
