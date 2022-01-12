@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Friendly.Library;
 
 //====================================================================
@@ -14,6 +15,65 @@ namespace Friendly.Library.QuadraticSieve
 {
    public static class QuadraticSieve
    {
+      /// <summary>
+      /// Factors the given number into two factors.
+      /// </summary>
+      /// <param name="n">The number to factor.</param>
+      /// <returns>A tuple containing two factors.</returns>
+      /// <remarks>
+      /// <para>
+      /// Pre-conditions:
+      /// <list type="number">
+      /// <item>Small prime factors have already been factored out.</item>
+      /// <item>The given number, n, is not a power.</item>
+      /// <item>n is not a prime number.</item>
+      /// </list>
+      /// </para>
+      /// </remarks>
+      public static (long, long) Factor(long n)
+      {
+         List<long> factorBase = FactorBase(n);
+         (List<long> xValues, List<long> bSmooth, Matrix A) = FindBSmooth(factorBase, n);
+         A.Reduce();
+         List<BigBitArray> nullVectors = A.FindNullVectors();
+
+         BigInteger x, y;
+         foreach (BigBitArray nullVector in nullVectors)
+         {
+            x = BigInteger.One;
+            y = BigInteger.One;
+            for (int j = 0; j < bSmooth.Count; j++)
+            {
+               if (nullVector[j])
+               {
+                  x *= xValues[j];
+                  y *= bSmooth[j];
+               }
+            }
+            BigInteger t = BigIntegerCalculator.SquareRoot(y);
+            Assertions.True(t * t == y);  // y was constructed to be a square.
+            y = t;
+
+            x %= n;
+            y %= n;
+
+            // Is x = +/-y mod n?
+            if (x == y || x + y == n)
+               continue;
+
+            long xmy = (long)(x - y);
+            if (xmy < 0)
+               xmy += n;
+
+            long f1 = LongCalculator.GCD(n, xmy);
+            if (f1 != 1 && f1 != n)
+               return (f1, n / f1);
+         }
+
+         // TODO Ran out of squares to check; have to go back and find more.
+         throw new ApplicationException("ran out of squares");
+      }
+
       /// <summary>
       /// Determines an appropriate factor base for factoring the given number
       /// </summary>
@@ -51,14 +111,19 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="factorBase">The factor base which defines B-Smooth.</param>
       /// <param name="n">The number being factored.</param>
-      /// <returns>A Tuple containing the B-Smooth numbers and the Matrix to solve.</returns>
+      /// <returns>A Tuple containing:
+      /// <list type="number">
+      /// <item>the x-values (input to the polynomials)</item>
+      /// <item>the B-Smooth output values of the polynomials</item>
+      /// <item>the exponent vector Matrix, which must be solved.</item>
+      /// </list>
       /// <remarks>
       /// <para>
       /// Each column of the Matrix contains the Exponent Vector for the B-Smooth number at
       /// the same index.
       /// </para>
       /// </remarks>
-      internal static (List<long>, Matrix) FindBSmooth(List<long> factorBase, long n)
+      internal static (List<long>, List<long>, Matrix) FindBSmooth(List<long> factorBase, long n)
       {
          // Choose twice the largest factor as the Sieving Interval
          int fbSize = factorBase.Count;
@@ -154,12 +219,14 @@ namespace Friendly.Library.QuadraticSieve
 
          // Collect up the B-Smooth numbers and their Exponent Vectors.
          // Each Exponent Vector becomes a column in the output Matrix.
+         List<long> xValues = new List<long>(bSmoothCount);
          List<long> lstBSmooth = new List<long>(bSmoothCount);
          Matrix expVectors = new Matrix(fbSize, bSmoothCount, fbSize);
          for (int x = 0; x < M; x ++)
          {
             if (Q[x] == 1)
             {
+               xValues.Add(x + rootN);
                lstBSmooth.Add((x + rootN) * (x + rootN) - n);
                int index = lstBSmooth.Count - 1;
                for (int r = 0; r < fbSize; r++)
@@ -167,7 +234,7 @@ namespace Friendly.Library.QuadraticSieve
             }
          }
 
-         return (lstBSmooth, expVectors);
+         return (xValues, lstBSmooth, expVectors);
       }
    }
 }

@@ -22,6 +22,46 @@ namespace Test.Library.QuadraticSieve
          TestPrimes.EnsureInitialized();
       }
 
+      public static TheoryData<long, long> FactorTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long, long>();
+
+            rv.Add(83717, 96097);
+            rv.Add(98563, 85661);  // Note: failing this test - did not find any squares.
+            rv.Add(86371, 99391);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(FactorTestData))]
+      public void Factor(long f1, long f2)
+      {
+         if (f1 > f2)
+         {
+            long t = f1;
+            f1 = f2;
+            f2 = t;
+         }
+
+         long product = f1 * f2;
+
+         (long actual1, long actual2) = Friendly.Library.QuadraticSieve.QuadraticSieve.Factor(product);
+
+         if (actual1 > actual2)
+         {
+            long t = actual1;
+            actual1 = actual2;
+            actual2 = t;
+         }
+
+         Assert.Equal(f1, actual1);
+         Assert.Equal(f2, actual2);
+      }
+
       public static TheoryData<long[], long> FactorBaseTestData
       {
          get
@@ -80,7 +120,7 @@ namespace Test.Library.QuadraticSieve
             0b0010100101    // 39368 == 2**3 * 7 * 19 * 37
          };
 
-         (List<long> actualBSmooth, Matrix actualExpVectors) = Friendly.Library.QuadraticSieve.QuadraticSieve.FindBSmooth(factorBase, n);
+         (List<long> xValues, List<long> actualBSmooth, Matrix actualExpVectors) = Friendly.Library.QuadraticSieve.QuadraticSieve.FindBSmooth(factorBase, n);
 
          // Both returned lists are the same length
          Assert.Equal(actualBSmooth.Count, actualExpVectors.Columns);
