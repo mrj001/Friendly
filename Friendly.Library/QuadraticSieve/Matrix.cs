@@ -224,29 +224,33 @@ namespace Friendly.Library.QuadraticSieve
          while (curPivotRow < Rows)
          {
             while (curPivotCol < Columns && !this[curPivotRow, curPivotCol])
-            {
+               curPivotCol++;
+
+            int freeCol = curPivotCol + 1;
+            while (freeCol < Columns && ((curPivotRow + 1 < Rows && !this[curPivotRow + 1, freeCol]) || curPivotRow == Rows - 1))
+               {
                int freeIndex = 0;
                BigBitArray nullVector = new BigBitArray(Columns);
 
                // Proceed down this column, adding the set bits to the nullVector
-               for (int j = 0; j < Rows; j++)
+               for (int j = 0; j <= curPivotRow; j++)
                {
-                  if (freeIndex < freeIndices.Count && j == freeIndices[freeIndex])
+                  if (freeIndex < freeIndices.Count && j + freeIndex == freeIndices[freeIndex])
                      freeIndex++;
 
-                  if (this[j, curPivotCol])
+                  if (this[j, freeCol])
                      nullVector[j + freeIndex] = true;
                }
 
                // Set the bit corresponding to this Column's free variable
-               nullVector[curPivotCol] = true;
+               nullVector[freeCol] = true;
 
                nullVectors.Add(nullVector);
-               freeIndices.Add(curPivotCol);
-               curPivotCol++;
+               freeIndices.Add(freeCol);
+               freeCol++;
             }
             curPivotRow++;
-            curPivotCol++;
+            curPivotCol = freeCol;
          }
 
          return nullVectors;
