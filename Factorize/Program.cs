@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using Friendly.Library;
 
@@ -15,8 +16,11 @@ namespace Factorize
             return;
          }
 
+         Stopwatch watch = Stopwatch.StartNew();
          Primes.Init(1 + LongCalculator.SquareRoot(n));  // sufficient for the given number
+         TimeSpan sieveTime = watch.Elapsed;
          PrimeFactorization factors = PrimeFactorization.Get(n);
+         TimeSpan factorTime = watch.Elapsed - sieveTime;
 
          // Determine the number of characters needed to display the largest factor
          // and the largest exponent.
@@ -38,6 +42,9 @@ namespace Factorize
          fmt = $"{{0,{factorWidth}:N0}} {{1,{powerWidth}:N0}}";
          foreach (PrimeFactor f in factors)
             Console.WriteLine(fmt, f.Factor, f.Exponent);
+
+         Console.WriteLine($"Sieve Time:     {sieveTime:mm\\:ss\\.ffff}");
+         Console.WriteLine($"Factoring Time: {factorTime:mm\\:ss\\.ffff}");
       }
    }
 }
