@@ -12,6 +12,7 @@
 *.swp
 .DS_Store
 References/
+WorkingFiles/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
