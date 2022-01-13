@@ -147,6 +147,9 @@ namespace Test.Library
             rv.Add(-1, 4852777, 12408107);  // example 3
             rv.Add(1, 17327467, 48746413);  // example 4
 
+            // This value was calculated using Wolfram-Alpha.
+            rv.Add(1, 35912, 55457);
+
             return rv;
          }
       }
