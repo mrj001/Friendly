@@ -126,11 +126,12 @@ namespace Friendly.Library
          {
             // Can we factor out powers of two?
             int powersOfTwo = 0;
-            while ((n & 1) == 0)
+            while ((a & 1) == 0 && a != 0)
             {
-               n >>= 1;
+               a >>= 1;
                powersOfTwo++;
             }
+            if (a == 0) return 0;
             long powerOfTwoSign = (powersOfTwo & 1) == 0 ? 1 : Jacobi2(n);
 
             // Per the "Law of Quadratic Reciprocity"
