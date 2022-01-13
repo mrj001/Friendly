@@ -209,5 +209,66 @@ namespace Friendly.Library
 
          return root;
       }
+
+      /// <summary>
+      /// Calculates the square root of n mod p.
+      /// </summary>
+      /// <param name="n">The quadratic residue.</param>
+      /// <param name="p">The prime modulus.</param>
+      /// <returns>One of the square roots of n mod p.
+      /// The other can be determined trivially by the caller.</returns>
+      /// <remarks>
+      /// <para>
+      /// Reference: https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm
+      /// </para>
+      /// </remarks>
+      public static long SquareRoot(long n, long p)
+      {
+         Assertions.True<ArgumentException>(Primes.IsPrime(p),
+                  $"{nameof(p)} == {p} is not a prime.");
+         Assertions.True<ArgumentException>(1 == JacobiSymbol(n ,p),
+                  $"{nameof(n)} == {n} is not a quadratic residue mod {p}.");
+
+         if ((p & 3) == 3)
+            return ModPow(n, (p + 1) / 4, p);
+
+         // Find S & Q such that p - 1 == Q * 2**S
+         int S = 0;
+         long Q = p - 1;
+         while ((Q & 1) == 0)
+         {
+            S++;
+            Q >>= 1;
+         }
+
+         // Find a value of z that is a quadratic non-residue.
+         long z = 2;
+         while (1 == JacobiSymbol(z, p))
+            z++;
+
+         int M = S;
+         long c = ModPow(z, Q, p);
+         long t = ModPow(n, Q, p);
+         long R = ModPow(n, (Q + 1) / 2, p);
+
+         while (t != 0 && t != 1)
+         {
+            long t2 = t;
+            int i = 0;
+            while (t2 != 1)
+            {
+               t2 = (t2 * t2) % p;
+               i++;
+            }
+
+            long b = ModPow(c, 1 << (M - i - 1), p);
+            M = i;
+            c = (b * b) % p;
+            t = (t * c) % p;
+            R = (R * b) % p;
+         }
+
+         return t == 0 ? 0 : R;
+      }
    }
 }

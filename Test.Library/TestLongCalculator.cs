@@ -191,5 +191,42 @@ namespace Test.Library
 
          Assert.Equal(expectedRoot, actualRoot);
       }
+
+      public static TheoryData<long, long> SquareRootModuloTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long, long>();
+
+            rv.Add(2, 13);        // p % 4 == 1
+            rv.Add(3200, 55457);  // p % 4 == 1
+            rv.Add(423,73679);    // p % 4 == 3
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(SquareRootModuloTestData))]
+      public void SquareRootModulo(long root, long p)
+      {
+         long n = root * root % p;
+
+         long actual = LongCalculator.SquareRoot(n, p);
+
+         Assert.True(root == actual || p - root == actual);
+      }
+
+      [Fact]
+      public void SquareRootModulo_Throws()
+      {
+#if DEBUG
+         // Throws an ArgumentException because 5 is not a quadratic residue of 13.
+         Assert.Throws<ArgumentException>(() => LongCalculator.SquareRoot(5, 13));
+
+         // Throws an Argument Exception because the modulus is not prime.
+         Assert.Throws<ArgumentException>(() => LongCalculator.SquareRoot(42, 17 * 19));
+#endif
+      }
    }
 }
