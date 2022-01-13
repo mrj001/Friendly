@@ -29,7 +29,7 @@ namespace Test.Library.QuadraticSieve
             var rv = new TheoryData<long, long>();
 
             rv.Add(83717, 96097);
-            rv.Add(98563, 85661);  // Note: failing this test - did not find any squares.
+            rv.Add(98563, 85661);
             rv.Add(86371, 99391);
 
             return rv;
