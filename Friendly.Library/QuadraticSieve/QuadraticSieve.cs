@@ -169,23 +169,19 @@ namespace Friendly.Library.QuadraticSieve
             // Sieve the remaining Factor Base
             for (int factorIndex = 1; factorIndex < fbSize; factorIndex++)
             {
-               // This is eqivalent to finding s such that s * s == N mod p.
-               // TODO It can be done more efficiently.
+               // Calculate ceiling(a/p) * p - a
+               // where a is the start of the Sieve Interval.
+               long rem = (rootN + nSieveIntervals * M) % factorBase[factorIndex];
+               if (rem != 0) rem = factorBase[factorIndex] - rem;
 
-               // Find x1 such that  Q(x1) / factorBase[factorIndex] == 0 mod p.
-               // This corresponds to the first solution of n being a quadratic
-               // residue mod p.
-               // NOTE: the length of the list Q is chosen such that this must be
-               //    true before we throw an ArgumentOutOfRangeException.
-               int x1 = 0;
-               while (Q[x1] % factorBase[factorIndex] != 0)
-                  x1++;
+               // Find the square roots of n mod p.
+               int x1 = (int)LongCalculator.SquareRoot(n % factorBase[factorIndex], factorBase[factorIndex]);
+               int x2 = (int)factorBase[factorIndex] - x1;
 
-               // Find x2 such that Q(x2) / factorBase[factorIndex] == 0 mod p.
-               // This corresponds to the second solution.
-               int x2 = x1 + 1;
-               while ((Q[x2] % factorBase[factorIndex]) != 0)
-                  x2++;
+               x1 += (int)rem;
+               if (x1 >= factorBase[factorIndex]) x1 -= (int)factorBase[factorIndex];
+               x2 += (int)rem;
+               if (x2 >= factorBase[factorIndex]) x2 -= (int)factorBase[factorIndex];
 
                // Sieve out these factors
                while (x1 < Q.Count)
