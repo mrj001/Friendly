@@ -473,19 +473,6 @@ namespace Test.Library.QuadraticSieve
 
          List<BigBitArray> actual = matrix.FindNullVectors();
 
-         // BEGIN debugging
-         using (System.IO.StreamWriter sw = new System.IO.StreamWriter("vectors.txt", true))
-         {
-            for (int j = 0; j < cols; j ++)
-            {
-               foreach(BigBitArray v in actual)
-                  sw.Write(v[j] ? "1," : "0,");
-               sw.WriteLine();
-            }
-         }
-
-         // END debugging
-
          // The expected number of Null Vectors is the number of columns
          // minus the rank of the Matrix.
          int zeroRows = 0;
