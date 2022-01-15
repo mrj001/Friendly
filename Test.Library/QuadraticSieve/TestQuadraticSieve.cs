@@ -28,6 +28,7 @@ namespace Test.Library.QuadraticSieve
          {
             var rv = new TheoryData<long, long>();
 
+            rv.Add(10_247, 10_267);
             rv.Add(83717, 96097);
             rv.Add(98563, 85661);
             rv.Add(86371, 99391);
