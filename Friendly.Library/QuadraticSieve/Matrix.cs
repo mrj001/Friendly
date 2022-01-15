@@ -235,7 +235,7 @@ namespace Friendly.Library.QuadraticSieve
                // Proceed down this column, adding the set bits to the nullVector
                for (int j = 0; j <= curPivotRow; j++)
                {
-                  if (freeIndex < freeIndices.Count && j + freeIndex == freeIndices[freeIndex])
+                  while (freeIndex < freeIndices.Count && j + freeIndex == freeIndices[freeIndex])
                      freeIndex++;
 
                   if (this[j, freeCol])
