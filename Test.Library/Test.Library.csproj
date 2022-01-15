@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <Nullable>enable</Nullable>
-
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
