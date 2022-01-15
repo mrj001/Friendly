@@ -31,6 +31,7 @@ namespace Test.Library.QuadraticSieve
             rv.Add(83717, 96097);
             rv.Add(98563, 85661);
             rv.Add(86371, 99391);
+            rv.Add(1_092_547_727, 1_066_246_453);
 
             return rv;
          }
