@@ -218,15 +218,30 @@ namespace Friendly.Library.QuadraticSieve
 
          int curPivotRow = 0;
          int curPivotCol = 0;
+         int freeCol = 0;
          List<int> freeIndices = new List<int>();
          List<BigBitArray> nullVectors = new List<BigBitArray>();
+
+         // Handle leading free variables.
+         while(!this[0, freeCol])
+         {
+            BigBitArray nullVector = new BigBitArray(Columns);
+            // Note: there are no bits to copy in this column.  This indicates
+            // that the exponent vector components corresponding to the smallest
+            // primes were all even.
+            nullVector[freeCol] = true;
+            nullVectors.Add(nullVector);
+            freeIndices.Add(freeCol);
+            freeCol++;
+         }
+         curPivotCol = freeCol;
 
          while (curPivotRow < Rows)
          {
             while (curPivotCol < Columns && !this[curPivotRow, curPivotCol])
                curPivotCol++;
 
-            int freeCol = curPivotCol + 1;
+            freeCol = curPivotCol + 1;
             while (freeCol < Columns && ((curPivotRow + 1 < Rows && !this[curPivotRow + 1, freeCol]) || curPivotRow == Rows - 1))
                {
                int freeIndex = 0;
