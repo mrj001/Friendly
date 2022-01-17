@@ -64,6 +64,56 @@ namespace Test.Library.QuadraticSieve
          Assert.Equal(f2, actual2);
       }
 
+      // Multiply a bunch of pseudo-randomly chosen pairs of primes together and
+      // factor the resulting number to make sure it works.
+      [Fact]
+      public void Factor2()
+      {
+         IEnumerator<long> j = Primes.GetEnumerator();
+         List<long> primes = new List<long>();
+
+         while (j.MoveNext() && j.Current < Primes.SieveLimit / 2) ;
+
+         while (j.MoveNext() && j.Current < Primes.SieveLimit)
+            primes.Add(j.Current);
+         Assert.True(primes.Count > 2);
+
+         int p1Index, p2Index;
+         Random rnd = new Random(123);
+
+         for (int k = 0; k < 100; k ++)
+         {
+            p1Index = rnd.Next(primes.Count);
+            do
+            {
+               p2Index = rnd.Next(primes.Count);
+            } while (p2Index == p1Index);
+
+            long p1 = primes[p1Index];
+            long p2 = primes[p2Index];
+
+            long n = p1 * p2;
+
+            if (p1 > p2)
+            {
+               long t = p1;
+               p1 = p2;
+               p2 = t;
+            }
+
+            (long q1, long q2) = Friendly.Library.QuadraticSieve.QuadraticSieve.Factor(n);
+            if (q1 > q2)
+            {
+               long t = q1;
+               q1 = q2;
+               q2 = t;
+            }
+
+            Assert.Equal(p1, q1);
+            Assert.Equal(p2, q2);
+         }
+      }
+
       public static TheoryData<long[], long> FactorBaseTestData
       {
          get
