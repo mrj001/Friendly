@@ -228,5 +228,33 @@ namespace Test.Library
          Assert.Throws<ArgumentException>(() => LongCalculator.SquareRoot(42, 17 * 19));
 #endif
       }
+
+      public static TheoryData<long, long, int> RootTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long, long, int>();
+
+            // Test exact cube root.
+            rv.Add(65_537, 65_537L * 65_537 * 65_537, 3);
+
+            // Test exact 7th root.
+            rv.Add(43, 43L * 43 * 43 * 43 * 43 * 43 * 43, 7);
+
+            // Test one less than a 4th power.
+            rv.Add(11272, 11273L * 11273 * 11273 * 11273 - 1, 4);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(RootTestData))]
+      public void Root(long expectedRoot, long n, int y)
+      {
+         long actualRoot = LongCalculator.Root(n, y);
+
+         Assert.Equal(expectedRoot, actualRoot);
+      }
    }
 }

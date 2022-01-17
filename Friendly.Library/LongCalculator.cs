@@ -270,5 +270,32 @@ namespace Friendly.Library
 
          return t == 0 ? 0 : R;
       }
+
+      /// <summary>
+      /// Calculates the y'th root of n.
+      /// </summary>
+      /// <param name="n"></param>
+      /// <param name="y"></param>
+      /// <returns>The floor of the y'th root of n.</returns>
+      public static long Root(long n, int y)
+      {
+         // Estimate rough power of 2 of the root.
+         int bit = 1 << y;  // 2 ** y;
+         int pow = 0;
+         long n1 = n;
+         while (n1 > bit)
+         {
+            pow++;
+            n1 >>= y;
+         }
+
+         long root = 1 << pow;
+
+         // Iterate to the desired value
+         while (Pow(root, y) > n || Pow(root + 1, y) <= n)
+            root = ((y - 1) * root + n / Pow(root, y - 1)) / y;
+
+         return root;
+      }
    }
 }
