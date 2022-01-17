@@ -23,7 +23,20 @@ namespace Test.Library
             rv.Add(new (long, int)[] { (2, 4), (3, 1) }, 48);
             rv.Add(new (long, int)[] { (7, 2) }, 49);
             rv.Add(new (long, int)[] { (149, 2), (163, 2) }, 149 * 149 * 163 * 163);
+
+            // Only one prime factor remains after trial division
             rv.Add(new (long, int)[] { (7, 1) , (11, 1), (13, 1), (60149, 1) }, 7 * 11 * 13 * 60149);
+
+            // Two prime factors remain after trial division.
+            rv.Add(new (long, int)[] { (2, 2), (17, 1), (19, 1), (48661, 1), (55441, 1) },
+               2L * 2 * 17 * 19 * 48661 * 55441);
+
+            // 3 large prime factors remain after trial division.
+            rv.Add(new (long, int)[] { (2,1), (3, 2), (5, 1), (33119, 1), (33149 , 1), (33151 ,1) },
+               2L * 3 * 3 * 5 * 33119 * 33149 * 33151);
+
+            // A cube remains after trial division
+            rv.Add(new (long, int)[] { (11, 2), (33151, 3) }, 11L * 11 * 33151 * 33151 * 33151);
 
             return rv;
          }
@@ -42,19 +55,6 @@ namespace Test.Library
             Assert.Equal(expected[j].factor, actual[j].Factor);
             Assert.Equal(expected[j].exponent, actual[j].Exponent);
          }
-      }
-
-      [Fact]
-      public void GetPrimeFactorization_Throws()
-      {
-         // TODO when factorization of larger integers is implemented, this
-         //   test needs to be removed.  This number has 2 prime factors larger
-         //   than the Sieve Limit (See TestPrimes._upperLimit).
-         //   Note that the product of these factors must be less than 55108**2
-         //   to avoid an overflow of the long data type during primality testing.
-         long n = 2 * 2 * 17 * 19 * 48661 * 55441L;
-
-         Assert.Throws<ApplicationException>(() => PrimeFactorization.Get(n));
       }
 
       public static TheoryData<long, long> SumOfFactorsTestData
