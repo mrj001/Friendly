@@ -114,6 +114,15 @@ namespace Test.Library.QuadraticSieve
          }
       }
 
+      // Test factoring the first number found that ran out of squares
+      // before successfully factoring.
+      [Fact]
+      public void Factor3()
+      {
+         long n = 20_467_711_333;
+         Friendly.Library.QuadraticSieve.QuadraticSieve.Factor(n);
+      }
+
       public static TheoryData<long[], long> FactorBaseTestData
       {
          get
