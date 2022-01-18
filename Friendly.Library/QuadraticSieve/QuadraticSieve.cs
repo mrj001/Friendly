@@ -33,45 +33,58 @@ namespace Friendly.Library.QuadraticSieve
       public static (long, long) Factor(long n)
       {
          List<long> factorBase = FactorBase(n);
-         (List<long> xValues, List<long> bSmooth, Matrix A) = FindBSmooth(factorBase, n);
-         A.Reduce();
-         List<BigBitArray> nullVectors = A.FindNullVectors();
+         //(List<long> xValues, List<long> bSmooth, Matrix A) = FindBSmooth(factorBase, n);
+         SieveToken sieveToken = FindBSmooth(factorBase, n);
 
-         BigInteger x, y;
-         foreach (BigBitArray nullVector in nullVectors)
+         int retryCount = 0;
+         int retryLimit = 10;
+         while (retryCount < retryLimit)
          {
-            x = BigInteger.One;
-            y = BigInteger.One;
-            for (int j = 0; j < bSmooth.Count; j++)
+            sieveToken.ExponentVectorMatrix.Reduce();
+            List<BigBitArray> nullVectors = sieveToken.ExponentVectorMatrix.FindNullVectors();
+
+            BigInteger x, y;
+            foreach (BigBitArray nullVector in nullVectors)
             {
-               if (nullVector[j])
+               x = BigInteger.One;
+               y = BigInteger.One;
+               for (int j = 0; j < sieveToken.SmoothCount; j++)
                {
-                  x *= xValues[j];
-                  y *= bSmooth[j];
+                  if (nullVector[j])
+                  {
+                     x *= sieveToken.GetXValue(j);
+                     y *= sieveToken.GetSmoothValue(j);
+                  }
                }
+               BigInteger t = BigIntegerCalculator.SquareRoot(y);
+               Assertions.True(t * t == y);  // y was constructed to be a square.
+               y = t;
+
+               x %= n;
+               y %= n;
+
+               // Is x = +/-y mod n?
+               if (x == y || x + y == n)
+                  continue;
+
+               long xmy = (long)(x - y);
+               if (xmy < 0)
+                  xmy += n;
+
+               long f1 = LongCalculator.GCD(n, xmy);
+               if (f1 != 1 && f1 != n)
+                  return (f1, n / f1);
             }
-            BigInteger t = BigIntegerCalculator.SquareRoot(y);
-            Assertions.True(t * t == y);  // y was constructed to be a square.
-            y = t;
 
-            x %= n;
-            y %= n;
-
-            // Is x = +/-y mod n?
-            if (x == y || x + y == n)
-               continue;
-
-            long xmy = (long)(x - y);
-            if (xmy < 0)
-               xmy += n;
-
-            long f1 = LongCalculator.GCD(n, xmy);
-            if (f1 != 1 && f1 != n)
-               return (f1, n / f1);
+            retryCount++;
+            sieveToken.PrepareToResieve();
+            FindBSmooth(factorBase, n, sieveToken);
          }
 
-         // TODO Ran out of squares to check; have to go back and find more.
-         throw new ApplicationException("ran out of squares");
+         // TODO We've gone back and retried 10 times and run out of squares each
+         //  time.  That's a minimum of 2**100 : 1 odds of finding a factor.
+         //  This is cause for suspicion.
+         throw new ApplicationException($"Ran out of squares while factoring {n:N0}");
       }
 
       /// <summary>
@@ -123,15 +136,21 @@ namespace Friendly.Library.QuadraticSieve
       /// the same index.
       /// </para>
       /// </remarks>
-      internal static (List<long>, List<long>, Matrix) FindBSmooth(List<long> factorBase, long n)
+      internal static SieveToken FindBSmooth(List<long> factorBase, long n)
+      {
+         SieveToken sieveToken = new SieveToken(factorBase);
+         FindBSmooth(factorBase, n, sieveToken);
+         return sieveToken;
+      }
+
+      private static void FindBSmooth(List<long> factorBase, long n, SieveToken sieveToken)
       {
          // Choose twice the largest factor as the Sieving Interval
          int fbSize = factorBase.Count;
          int M = 2 * (int)factorBase[fbSize - 1];
-         int nSieveIntervals = 0;
-         List<long> xValues = new List<long>();
-         List<long> lstBSmooth = new List<long>();
-         Matrix expVectors = new Matrix(fbSize, fbSize, fbSize);
+         //List<long> xValues = new List<long>();
+         //List<long> lstBSmooth = new List<long>();
+         Matrix expVectors = sieveToken.ExponentVectorMatrix;
 
          // Note: this assumes that n is not a square.
          long rootN = 1 + LongCalculator.SquareRoot(n);
@@ -142,7 +161,7 @@ namespace Friendly.Library.QuadraticSieve
             List<long> Q = new List<long>(M);
             for (int x = 0; x < M; x++)
             {
-               long t = x + rootN + nSieveIntervals * M;
+               long t = x + rootN + sieveToken.SieveIntervals * M;
                Q.Add(t * t - n);
             }
 
@@ -171,7 +190,7 @@ namespace Friendly.Library.QuadraticSieve
             {
                // Calculate ceiling(a/p) * p - a
                // where a is the start of the Sieve Interval.
-               long rem = (rootN + nSieveIntervals * M) % factorBase[factorIndex];
+               long rem = (rootN + sieveToken.SieveIntervals * M) % factorBase[factorIndex];
                if (rem != 0) rem = factorBase[factorIndex] - rem;
 
                // Find the square roots of n mod p.
@@ -219,23 +238,128 @@ namespace Friendly.Library.QuadraticSieve
             {
                if (Q[x] == 1)
                {
-                  long t = x + rootN + nSieveIntervals * M;
-                  xValues.Add(t);
-                  lstBSmooth.Add(t * t - n);
-                  int index = lstBSmooth.Count - 1;
+                  long t = x + rootN + sieveToken.SieveIntervals * M;
+                  sieveToken.AddValues(t, t * t - n);
+                  int index = sieveToken.SmoothCount - 1;
                   expVectors.ExpandColumns(index + 1);
                   for (int r = 0; r < fbSize; r++)
                      expVectors[r, index] = exponentVectors[x][r];
                }
             }
 
-            nSieveIntervals++;
+            sieveToken.IncrementSieveIntervals();
 
             // 10 gives a worst-case of 1 chance in 1024 of none of the squares
             // being useful.
-         } while (lstBSmooth.Count < fbSize + 10);
+         } while (sieveToken.SmoothCount < fbSize + 10);
+      }
 
-         return (xValues, lstBSmooth, expVectors);
+      // NOTE: SieveToken is only internal instead of private to support
+      //   unit test of FindBSmooth.
+
+      /// <summary>
+      /// A class to track the state of the Sieving in order to handle
+      /// additional sieving if the previous set(s) of smooth numbers turn out
+      /// to be inadequate to factor the number.
+      /// </summary>
+      internal class SieveToken
+      {
+         private readonly List<long> _factorBase;
+         private readonly List<long> _xValues;
+         private readonly List<long> _bSmoothValues;
+         private Matrix _matrix;
+         private int _sieveIntervals;
+
+         public SieveToken(List<long> factorBase)
+         {
+            _factorBase = factorBase;
+            _xValues = new List<long>(_factorBase.Count + 10);
+            _bSmoothValues = new List<long>(_factorBase.Count + 10);
+            _matrix = AllocateMatrix(_factorBase.Count);
+            _sieveIntervals = 0;
+         }
+
+         private static Matrix AllocateMatrix(int fbSize)
+         {
+            return new Matrix(fbSize, fbSize, 20);
+         }
+
+         /// <summary>
+         /// Gets the number of Sieve Intervals that have already been sieved.
+         /// </summary>
+         public int SieveIntervals { get => _sieveIntervals; }
+
+         /// <summary>
+         /// Adds one to the completed number of Sieve Intervals
+         /// </summary>
+         public void IncrementSieveIntervals()
+         {
+            _sieveIntervals++;
+         }
+
+         /// <summary>
+         /// Prepares for another round of Sieving
+         /// </summary>
+         /// <remarks>
+         /// <para>
+         /// Call this after the set of null vectors has failed to produce a
+         /// factorization.  The set of free variables is discarded, and the
+         /// Exponent Vector Matrix is recalculated.
+         /// </para>
+         /// </remarks>
+         public void PrepareToResieve()
+         {
+            // Remove the free columns which generated the non-useful null vectors.
+            List<int> freeColumns = _matrix.FindFreeColumns();
+            _matrix = AllocateMatrix(_factorBase.Count);
+            for (int j = freeColumns.Count - 1; j >= 0; j--)
+            {
+               _bSmoothValues.RemoveAt(j);
+               _xValues.RemoveAt(j);
+            }
+
+            // Recalculate the Exponent Vectors.
+            for (int col = 0, jul = _bSmoothValues.Count; col < jul; col ++)
+            {
+               long bSmooth = _bSmoothValues[col];
+               int row = 0, kul = _factorBase.Count;
+               long q, r;
+               while (row < kul && bSmooth != 1)
+               {
+                  q = Math.DivRem(bSmooth, _factorBase[row], out r);
+                  while (r == 0)
+                  {
+                     bSmooth = q;
+                     _matrix.FlipBit(row, col);
+                     q = Math.DivRem(bSmooth, _factorBase[row], out r);
+                  }
+                  row++;
+               }
+            }
+         }
+
+         public Matrix ExponentVectorMatrix { get => _matrix; }
+
+         /// <summary>
+         /// Gets the count of B-Smooth values.
+         /// </summary>
+         public int SmoothCount { get => _bSmoothValues.Count; }
+
+         public void AddValues(long xValue, long bSmoothNumber)
+         {
+            _xValues.Add(xValue);
+            _bSmoothValues.Add(bSmoothNumber);
+         }
+
+         public long GetXValue(int index)
+         {
+            return _xValues[index];
+         }
+
+         public long GetSmoothValue(int index)
+         {
+            return _bSmoothValues[index];
+         }
       }
    }
 }

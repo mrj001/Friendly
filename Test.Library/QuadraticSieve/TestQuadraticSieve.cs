@@ -120,7 +120,20 @@ namespace Test.Library.QuadraticSieve
       public void Factor3()
       {
          long n = 20_467_711_333;
-         Friendly.Library.QuadraticSieve.QuadraticSieve.Factor(n);
+         long expectedF1 = 70_051;     // number factored by Wolfram-Alpha
+         long expectedF2 = 292_183;
+
+         (long actualF1, long actualF2) = Friendly.Library.QuadraticSieve.QuadraticSieve.Factor(n);
+         if (actualF1 > actualF2)
+         {
+            long t = actualF1;
+            actualF1 = actualF2;
+            actualF2 = t;
+         }
+
+         Assert.Equal(expectedF1, actualF1);
+         Assert.Equal(expectedF2, actualF2);
+         Assert.Equal(n, actualF1 * actualF2);
       }
 
       public static TheoryData<long[], long> FactorBaseTestData
@@ -181,17 +194,18 @@ namespace Test.Library.QuadraticSieve
             0b0010100101    // 39368 == 2**3 * 7 * 19 * 37
          };
 
-         (List<long> xValues, List<long> actualBSmooth, Matrix actualExpVectors) = Friendly.Library.QuadraticSieve.QuadraticSieve.FindBSmooth(factorBase, n);
+         Friendly.Library.QuadraticSieve.QuadraticSieve.SieveToken sieveToken = Friendly.Library.QuadraticSieve.QuadraticSieve.FindBSmooth(factorBase, n);
+         Matrix actualExpVectors = sieveToken.ExponentVectorMatrix;
 
          // Both returned lists are the same length
-         Assert.Equal(actualBSmooth.Count, actualExpVectors.Columns);
+         Assert.Equal(sieveToken.SmoothCount, actualExpVectors.Columns);
 
-         Assert.Equal(expectedBSmooth.Count, actualBSmooth.Count);
+         Assert.Equal(expectedBSmooth.Count, sieveToken.SmoothCount);
          Assert.Equal(expectedExpVectors.Count, actualExpVectors.Columns);
 
          for (int j = 0; j < expectedBSmooth.Count; j ++)
          {
-            Assert.Equal(expectedBSmooth[j], actualBSmooth[j]);
+            Assert.Equal(expectedBSmooth[j], sieveToken.GetSmoothValue(j));
             for (int k = 0, kbit = 1; k < factorBase.Count; k ++, kbit <<= 1)
                Assert.Equal((expectedExpVectors[j] & kbit) != 0, actualExpVectors[k, j]);
          }
