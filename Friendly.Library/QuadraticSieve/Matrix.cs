@@ -270,5 +270,41 @@ namespace Friendly.Library.QuadraticSieve
 
          return nullVectors;
       }
+
+      /// <summary>
+      /// Returns a list of Column indices which specify the free variables.
+      /// </summary>
+      /// <returns></returns>
+      public List<int> FindFreeColumns()
+      {
+         Assertions.True(_rref);
+
+         List<int> rv = new List<int>();
+         int r = 0;
+         int c = 0;
+
+         // Add leading free columns
+         while (!this[r, c])
+         {
+            rv.Add(c);
+            c++;
+         }
+
+         while (r < Rows && c < Columns)
+         {
+            while (c < Columns && !this[r, c])
+               c++;
+
+            c++;
+            while (c < Columns && ((r + 1 < Rows && !this[r + 1, c]) || r == Rows - 1))
+            {
+               rv.Add(c);
+               c++;
+            }
+            r++;
+         }
+
+         return rv;
+      }
    }
 }
