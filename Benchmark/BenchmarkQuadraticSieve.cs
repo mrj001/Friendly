@@ -46,7 +46,8 @@ namespace Benchmark
          }
 
          long n = f1 * f2;
-         (long g1, long g2) = QuadraticSieve.Factor(n);
+         QuadraticSieve sieve = new QuadraticSieve(n);
+         (long g1, long g2) = sieve.Factor();
 
          if (g1 > g2)
          {

@@ -13,8 +13,61 @@ using Friendly.Library;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public static class QuadraticSieve
+   public class QuadraticSieve
    {
+      /// <summary>
+      /// The original number being factored.
+      /// </summary>
+      private readonly long _nOrig;
+
+      /// <summary>
+      /// A small prime which is multiplied by the number being factored to
+      /// obtain a factor base which is richer in small primes.
+      /// </summary>
+      private long _multiplier;
+
+      /// <summary>
+      /// _nOrig *_multiplier
+      /// </summary>
+      private long _n;
+
+      private List<long> _factorBase;
+
+      private readonly List<long> _xValues;
+      private readonly List<long> _bSmoothValues;
+      private Matrix _matrix;
+
+      /// <summary>
+      /// A count of the number of completed iterations of sieving.
+      /// </summary>
+      private int _sieveIntervals;
+
+      /// <summary>
+      /// 
+      /// </summary>
+      /// <param name="n">The number to be factored by this Quadratic Sieve.</param>
+      public QuadraticSieve(long n)
+      {
+         _nOrig = n;
+         _multiplier = 1;
+         _n = n;
+
+         _factorBase = null;
+         _xValues = new List<long>();
+         _bSmoothValues = new List<long>();
+         _matrix = null;
+
+         _sieveIntervals = 0;
+      }
+
+      private static Matrix AllocateMatrix(int fbSize)
+      {
+         // The buffer of 20 is twice the number of extra exponent vectors
+         // that will end the sieving loop.
+         return new Matrix(fbSize, fbSize, 20);
+      }
+
+
       /// <summary>
       /// Factors the given number into two factors.
       /// </summary>
@@ -30,130 +83,169 @@ namespace Friendly.Library.QuadraticSieve
       /// </list>
       /// </para>
       /// </remarks>
-      public static (long, long) Factor(long n)
+      public (long, long) Factor()
       {
-         List<long> factorBase = FactorBase(n);
-         //(List<long> xValues, List<long> bSmooth, Matrix A) = FindBSmooth(factorBase, n);
-         SieveToken sieveToken = FindBSmooth(factorBase, n);
+         FindFactorBase();
+         FindBSmooth();
 
          int retryCount = 0;
          int retryLimit = 10;
          while (retryCount < retryLimit)
          {
-            sieveToken.ExponentVectorMatrix.Reduce();
-            List<BigBitArray> nullVectors = sieveToken.ExponentVectorMatrix.FindNullVectors();
+            _matrix.Reduce();
+            List<BigBitArray> nullVectors = _matrix.FindNullVectors();
 
             BigInteger x, y;
             foreach (BigBitArray nullVector in nullVectors)
             {
                x = BigInteger.One;
                y = BigInteger.One;
-               for (int j = 0; j < sieveToken.SmoothCount; j++)
+               for (int j = 0; j < _bSmoothValues.Count; j++)
                {
                   if (nullVector[j])
                   {
-                     x *= sieveToken.GetXValue(j);
-                     y *= sieveToken.GetSmoothValue(j);
+                     x *= _xValues[j];
+                     y *= _bSmoothValues[j];
                   }
                }
                BigInteger t = BigIntegerCalculator.SquareRoot(y);
                Assertions.True(t * t == y);  // y was constructed to be a square.
                y = t;
 
-               x %= n;
-               y %= n;
+               x %= _n;
+               y %= _n;
 
                // Is x = +/-y mod n?
-               if (x == y || x + y == n)
+               if (x == y || x + y == _n)
                   continue;
 
                long xmy = (long)(x - y);
                if (xmy < 0)
-                  xmy += n;
+                  xmy += _n;
 
-               long f1 = LongCalculator.GCD(n, xmy);
-               if (f1 != 1 && f1 != n)
-                  return (f1, n / f1);
+               long f1 = LongCalculator.GCD(_n, xmy);
+               if (f1 != 1 && f1 != _n && f1 != _nOrig && f1 != _multiplier)
+               {
+                  long q = Math.DivRem(f1, _multiplier, out long remainder);
+                  if (remainder == 0)
+                     f1 = q;
+                  return (f1, _nOrig / f1);
+               }
             }
 
             retryCount++;
-            sieveToken.PrepareToResieve();
-            FindBSmooth(factorBase, n, sieveToken);
+            PrepareToResieve();
+            FindBSmooth();
          }
 
          // TODO We've gone back and retried 10 times and run out of squares each
          //  time.  That's a minimum of 2**100 : 1 odds of finding a factor.
          //  This is cause for suspicion.
-         throw new ApplicationException($"Ran out of squares while factoring {n:N0}");
+         throw new ApplicationException($"Ran out of squares while factoring {_n:N0}");
       }
 
       /// <summary>
       /// Determines an appropriate factor base for factoring the given number
       /// </summary>
-      /// <param name="n">The number being factored.</param>
-      /// <returns>A factor base to use for factoring the given number.</returns>
-      internal static List<long> FactorBase(long n)
+      private void FindFactorBase()
       {
-         double logn = Math.Log(n);
+         long n;
+         double logn = Math.Log(_nOrig);
          // Number of odd primes to consider for the Factor Base per Ref. A.
          int sz = (int)Math.Floor(Math.Sqrt(Math.Exp(Math.Sqrt(logn * Math.Log(logn)))));
-         List<long> rv = new List<long>(sz);
 
-         // We can always include 2 because any odd number squared will have 1 as a
-         // Quadratic Residue modulo 2.
-         rv.Add(2);
+         int[] nSmallMultipliersToConsider = new int[] { 1, 3, 5, 7, 11, 13, 17, 19 };
+         List<long>[] rv = new List<long>[nSmallMultipliersToConsider.Length];
 
-         // Add primes p such that (n % p) is a quadratic residue modulo p.
-         // Note that for primes in the second argument, the Jacobi Symbol
-         // reduces to the Legendre Symbol.
-         IEnumerator<long> j = Primes.GetEnumerator();
-         j.MoveNext();  // Skip 2
-         int k = 0;
-         while (j.MoveNext() && k < sz)
+         long maxPrime = 0;
+         for (int j = 0; j < nSmallMultipliersToConsider.Length; j ++)
          {
-            if (1 == LongCalculator.JacobiSymbol(n % j.Current, j.Current))
-               rv.Add(j.Current);
-            k++;
+            try
+            {
+                n = _nOrig * nSmallMultipliersToConsider[j];
+            }
+            catch (OverflowException)
+            {
+               // Try to factor with just the factor bases we've already got.
+               break;
+            }
+            if ((n & 3) == 1)  // n == 1 mod 4.
+            {
+               rv[j] = new List<long>(sz);
+
+               // We can always include 2 because any odd number squared will have 1 as a
+               // Quadratic Residue modulo 2.
+               rv[j].Add(2);
+
+               // Add primes p such that (n % p) is a quadratic residue modulo p.
+               // Note that for primes in the second argument, the Jacobi Symbol
+               // reduces to the Legendre Symbol.
+               IEnumerator<long> primes = Primes.GetEnumerator();
+               primes.MoveNext();  // Skip 2
+               int k = 0;
+               while (primes.MoveNext() && k < sz)
+               {
+                  long prime = primes.Current;
+                  if (1 == LongCalculator.JacobiSymbol(n % prime, prime))
+                  {
+                     rv[j].Add(prime);
+                     maxPrime = Math.Max(prime, maxPrime);
+                  }
+                  k++;
+               }
+            }
          }
 
-         return rv;
+         // The goals of this phase are
+         //  1. Maximize the number of small primes in the factor base
+         //  2. Keep the multiplier small
+         //  TODO: Should "Minimize the number of factors in the factor base"
+         //        be a goal?
+         //  TODO: Is this too much emphasis on keeping the multiplier small?
+         double bestCost = double.MaxValue;
+         int indexOfBest = int.MinValue;
+         for (int j = 0; j < rv.Length; j ++)
+         {
+            if (rv[j] is not null)
+            {
+               int smallPrimeCount = 0;
+               for (int k = 0; k < rv[j].Count && rv[j][k] < 100; k++)
+                  smallPrimeCount++;
+               double cost = (double)nSmallMultipliersToConsider[j] / smallPrimeCount;
+               if (cost < bestCost)
+               {
+                  bestCost = cost;
+                  indexOfBest = j;
+               }
+            }
+         }
+
+         // TODO There exists a possibility that no small multiplier satisfied
+         //  the condition _nOrig * m mod 4 == 1;  In this event, this will
+         //  throw an exception.
+         _multiplier = nSmallMultipliersToConsider[indexOfBest];
+         _n = _multiplier * _nOrig;
+         _factorBase = rv[indexOfBest];
+         _matrix = AllocateMatrix(_factorBase.Count);
       }
 
       /// <summary>
       /// Sieves for a list of B-Smooth numbers
       /// </summary>
-      /// <param name="factorBase">The factor base which defines B-Smooth.</param>
-      /// <param name="n">The number being factored.</param>
-      /// <returns>A Tuple containing:
-      /// <list type="number">
-      /// <item>the x-values (input to the polynomials)</item>
-      /// <item>the B-Smooth output values of the polynomials</item>
-      /// <item>the exponent vector Matrix, which must be solved.</item>
-      /// </list>
       /// <remarks>
       /// <para>
       /// Each column of the Matrix contains the Exponent Vector for the B-Smooth number at
       /// the same index.
       /// </para>
       /// </remarks>
-      internal static SieveToken FindBSmooth(List<long> factorBase, long n)
-      {
-         SieveToken sieveToken = new SieveToken(factorBase);
-         FindBSmooth(factorBase, n, sieveToken);
-         return sieveToken;
-      }
-
-      private static void FindBSmooth(List<long> factorBase, long n, SieveToken sieveToken)
+      private void FindBSmooth()
       {
          // Choose twice the largest factor as the Sieving Interval
-         int fbSize = factorBase.Count;
-         long M = 2 * (int)factorBase[fbSize - 1];
-         //List<long> xValues = new List<long>();
-         //List<long> lstBSmooth = new List<long>();
-         Matrix expVectors = sieveToken.ExponentVectorMatrix;
+         int fbSize = _factorBase.Count;
+         long M = 2 * (int)_factorBase[fbSize - 1];
 
          // Note: this assumes that n is not a square.
-         long rootN = 1 + LongCalculator.SquareRoot(n);
+         long rootN = 1 + LongCalculator.SquareRoot(_n);
 
          do
          {
@@ -161,8 +253,8 @@ namespace Friendly.Library.QuadraticSieve
             List<long> Q = new List<long>((int)M);
             for (int x = 0; x < M; x++)
             {
-               long t = x + rootN + sieveToken.SieveIntervals * M;
-               Q.Add(t * t - n);
+               long t = x + rootN + _sieveIntervals * M;
+               Q.Add(t * t - _n);
             }
 
             //
@@ -190,45 +282,45 @@ namespace Friendly.Library.QuadraticSieve
             {
                // Calculate ceiling(a/p) * p - a
                // where a is the start of the Sieve Interval.
-               long rem = (rootN + sieveToken.SieveIntervals * M) % factorBase[factorIndex];
-               if (rem != 0) rem = factorBase[factorIndex] - rem;
+               long rem = (rootN + _sieveIntervals * M) % _factorBase[factorIndex];
+               if (rem != 0) rem = _factorBase[factorIndex] - rem;
 
                // Find the square roots of n mod p.
-               int x1 = (int)LongCalculator.SquareRoot(n % factorBase[factorIndex], factorBase[factorIndex]);
-               int x2 = (int)factorBase[factorIndex] - x1;
+               int x1 = (int)LongCalculator.SquareRoot(_n % _factorBase[factorIndex], _factorBase[factorIndex]);
+               int x2 = (int)_factorBase[factorIndex] - x1;
 
                x1 += (int)rem;
-               if (x1 >= factorBase[factorIndex]) x1 -= (int)factorBase[factorIndex];
+               if (x1 >= _factorBase[factorIndex]) x1 -= (int)_factorBase[factorIndex];
                x2 += (int)rem;
-               if (x2 >= factorBase[factorIndex]) x2 -= (int)factorBase[factorIndex];
+               if (x2 >= _factorBase[factorIndex]) x2 -= (int)_factorBase[factorIndex];
 
                // Sieve out these factors
                while (x1 < Q.Count)
                {
                   long q, r;
-                  q = Math.DivRem(Q[x1], factorBase[factorIndex], out r);
+                  q = Math.DivRem(Q[x1], _factorBase[factorIndex], out r);
                   Assertions.True(r == 0);
                   do
                   {
                      Q[x1] = q;
                      exponentVectors[x1].FlipBit(factorIndex);
-                     q = Math.DivRem(Q[x1], factorBase[factorIndex], out r);
+                     q = Math.DivRem(Q[x1], _factorBase[factorIndex], out r);
                   } while (r == 0);
-                  x1 += (int)factorBase[factorIndex];
+                  x1 += (int)_factorBase[factorIndex];
                }
 
                while (x2 < Q.Count)
                {
                   long q, r;
-                  q = Math.DivRem(Q[x2], factorBase[factorIndex], out r);
+                  q = Math.DivRem(Q[x2], _factorBase[factorIndex], out r);
                   Assertions.True(r == 0);
                   do
                   {
                      Q[x2] = q;
                      exponentVectors[x2].FlipBit(factorIndex);
-                     q = Math.DivRem(Q[x2], factorBase[factorIndex], out r);
+                     q = Math.DivRem(Q[x2], _factorBase[factorIndex], out r);
                   } while (r == 0);
-                  x2 += (int)factorBase[factorIndex];
+                  x2 += (int)_factorBase[factorIndex];
                }
             }
 
@@ -238,127 +330,61 @@ namespace Friendly.Library.QuadraticSieve
             {
                if (Q[x] == 1)
                {
-                  long t = x + rootN + sieveToken.SieveIntervals * M;
-                  sieveToken.AddValues(t, t * t - n);
-                  int index = sieveToken.SmoothCount - 1;
-                  expVectors.ExpandColumns(index + 1);
+                  long t = x + rootN + _sieveIntervals * M;
+                  _xValues.Add(t);
+                  _bSmoothValues.Add(t * t - _n);
+                  int index = _bSmoothValues.Count - 1;
+                  _matrix.ExpandColumns(index + 1);
                   for (int r = 0; r < fbSize; r++)
-                     expVectors[r, index] = exponentVectors[x][r];
+                     _matrix[r, index] = exponentVectors[x][r];
                }
             }
 
-            sieveToken.IncrementSieveIntervals();
+            _sieveIntervals ++;
 
             // 10 gives a worst-case of 1 chance in 1024 of none of the squares
             // being useful.
-         } while (sieveToken.SmoothCount < fbSize + 10);
+         } while (_bSmoothValues.Count < fbSize + 10);
       }
 
-      // NOTE: SieveToken is only internal instead of private to support
-      //   unit test of FindBSmooth.
-
       /// <summary>
-      /// A class to track the state of the Sieving in order to handle
-      /// additional sieving if the previous set(s) of smooth numbers turn out
-      /// to be inadequate to factor the number.
+      /// Prepares for another round of Sieving
       /// </summary>
-      internal class SieveToken
+      /// <remarks>
+      /// <para>
+      /// Call this after the set of null vectors has failed to produce a
+      /// factorization.  The set of free variables is discarded, and the
+      /// Exponent Vector Matrix is recalculated.
+      /// </para>
+      /// </remarks>
+      public void PrepareToResieve()
       {
-         private readonly List<long> _factorBase;
-         private readonly List<long> _xValues;
-         private readonly List<long> _bSmoothValues;
-         private Matrix _matrix;
-         private int _sieveIntervals;
-
-         public SieveToken(List<long> factorBase)
+         // Remove the free columns which generated the non-useful null vectors.
+         List<int> freeColumns = _matrix.FindFreeColumns();
+         _matrix = AllocateMatrix(_factorBase.Count);
+         for (int j = freeColumns.Count - 1; j >= 0; j--)
          {
-            _factorBase = factorBase;
-            _xValues = new List<long>(_factorBase.Count + 10);
-            _bSmoothValues = new List<long>(_factorBase.Count + 10);
-            _matrix = AllocateMatrix(_factorBase.Count);
-            _sieveIntervals = 0;
+            _bSmoothValues.RemoveAt(j);
+            _xValues.RemoveAt(j);
          }
 
-         private static Matrix AllocateMatrix(int fbSize)
+         // Recalculate the Exponent Vectors.
+         for (int col = 0, jul = _bSmoothValues.Count; col < jul; col++)
          {
-            return new Matrix(fbSize, fbSize, 20);
-         }
-
-         /// <summary>
-         /// Gets the number of Sieve Intervals that have already been sieved.
-         /// </summary>
-         public int SieveIntervals { get => _sieveIntervals; }
-
-         /// <summary>
-         /// Adds one to the completed number of Sieve Intervals
-         /// </summary>
-         public void IncrementSieveIntervals()
-         {
-            _sieveIntervals++;
-         }
-
-         /// <summary>
-         /// Prepares for another round of Sieving
-         /// </summary>
-         /// <remarks>
-         /// <para>
-         /// Call this after the set of null vectors has failed to produce a
-         /// factorization.  The set of free variables is discarded, and the
-         /// Exponent Vector Matrix is recalculated.
-         /// </para>
-         /// </remarks>
-         public void PrepareToResieve()
-         {
-            // Remove the free columns which generated the non-useful null vectors.
-            List<int> freeColumns = _matrix.FindFreeColumns();
-            _matrix = AllocateMatrix(_factorBase.Count);
-            for (int j = freeColumns.Count - 1; j >= 0; j--)
+            long bSmooth = _bSmoothValues[col];
+            int row = 0, kul = _factorBase.Count;
+            long q, r;
+            while (row < kul && bSmooth != 1)
             {
-               _bSmoothValues.RemoveAt(j);
-               _xValues.RemoveAt(j);
-            }
-
-            // Recalculate the Exponent Vectors.
-            for (int col = 0, jul = _bSmoothValues.Count; col < jul; col ++)
-            {
-               long bSmooth = _bSmoothValues[col];
-               int row = 0, kul = _factorBase.Count;
-               long q, r;
-               while (row < kul && bSmooth != 1)
+               q = Math.DivRem(bSmooth, _factorBase[row], out r);
+               while (r == 0)
                {
+                  bSmooth = q;
+                  _matrix.FlipBit(row, col);
                   q = Math.DivRem(bSmooth, _factorBase[row], out r);
-                  while (r == 0)
-                  {
-                     bSmooth = q;
-                     _matrix.FlipBit(row, col);
-                     q = Math.DivRem(bSmooth, _factorBase[row], out r);
-                  }
-                  row++;
                }
+               row++;
             }
-         }
-
-         public Matrix ExponentVectorMatrix { get => _matrix; }
-
-         /// <summary>
-         /// Gets the count of B-Smooth values.
-         /// </summary>
-         public int SmoothCount { get => _bSmoothValues.Count; }
-
-         public void AddValues(long xValue, long bSmoothNumber)
-         {
-            _xValues.Add(xValue);
-            _bSmoothValues.Add(bSmoothNumber);
-         }
-
-         public long GetXValue(int index)
-         {
-            return _xValues[index];
-         }
-
-         public long GetSmoothValue(int index)
-         {
-            return _bSmoothValues[index];
          }
       }
    }

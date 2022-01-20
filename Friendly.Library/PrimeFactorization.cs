@@ -122,7 +122,8 @@ namespace Friendly.Library
          }
          else
          {
-            (long f1, long f2) = QuadraticSieve.QuadraticSieve.Factor(n);
+            QuadraticSieve.QuadraticSieve quadraticSieve = new QuadraticSieve.QuadraticSieve(n);
+            (long f1, long f2) = quadraticSieve.Factor();
             if (Primes.IsPrime(f1))
                rv.Add(f1);
             else
