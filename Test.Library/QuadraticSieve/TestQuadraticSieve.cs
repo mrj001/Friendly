@@ -34,6 +34,11 @@ namespace Test.Library.QuadraticSieve
             rv.Add(86371, 99391);
             rv.Add(1_092_547_727, 1_066_246_453);
 
+            // 20_467_711_333 is the first number encountered which ran out
+            // of squares before successfully factoring.
+            // The factors were provided by Wolfram-Alpha.
+            rv.Add(70_051, 292_183);
+
             // 102,349,931,745 caused an integer overflow in the Quadratic Sieve.
             // Wolfram-Alpha provided the factorization.
             // Factors of 3 & 5 not included here.
@@ -117,28 +122,6 @@ namespace Test.Library.QuadraticSieve
             Assert.Equal(p1, q1);
             Assert.Equal(p2, q2);
          }
-      }
-
-      // Test factoring the first number found that ran out of squares
-      // before successfully factoring.
-      [Fact]
-      public void Factor3()
-      {
-         long n = 20_467_711_333;
-         long expectedF1 = 70_051;     // number factored by Wolfram-Alpha
-         long expectedF2 = 292_183;
-
-         (long actualF1, long actualF2) = Friendly.Library.QuadraticSieve.QuadraticSieve.Factor(n);
-         if (actualF1 > actualF2)
-         {
-            long t = actualF1;
-            actualF1 = actualF2;
-            actualF2 = t;
-         }
-
-         Assert.Equal(expectedF1, actualF1);
-         Assert.Equal(expectedF2, actualF2);
-         Assert.Equal(n, actualF1 * actualF2);
       }
 
       public static TheoryData<long[], long> FactorBaseTestData
