@@ -147,7 +147,7 @@ namespace Friendly.Library.QuadraticSieve
       {
          // Choose twice the largest factor as the Sieving Interval
          int fbSize = factorBase.Count;
-         int M = 2 * (int)factorBase[fbSize - 1];
+         long M = 2 * (int)factorBase[fbSize - 1];
          //List<long> xValues = new List<long>();
          //List<long> lstBSmooth = new List<long>();
          Matrix expVectors = sieveToken.ExponentVectorMatrix;
@@ -158,7 +158,7 @@ namespace Friendly.Library.QuadraticSieve
          do
          {
             // Calculate the values of Q(x) = (x + rootN)**2 - n;
-            List<long> Q = new List<long>(M);
+            List<long> Q = new List<long>((int)M);
             for (int x = 0; x < M; x++)
             {
                long t = x + rootN + sieveToken.SieveIntervals * M;
@@ -172,7 +172,7 @@ namespace Friendly.Library.QuadraticSieve
             // Each bit in a bit array corresponds to one factor in the factor base.
             // The bit indices are the same as the indices into the factorBase.
             // There is one exponent vector for each value of Q.
-            List<BigBitArray> exponentVectors = new List<BigBitArray>(M);
+            List<BigBitArray> exponentVectors = new List<BigBitArray>((int)M);
             for (int j = 0; j < M; j++)
                exponentVectors.Add(new BigBitArray(fbSize));
 
