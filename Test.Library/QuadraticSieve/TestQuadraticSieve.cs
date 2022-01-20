@@ -34,6 +34,11 @@ namespace Test.Library.QuadraticSieve
             rv.Add(86371, 99391);
             rv.Add(1_092_547_727, 1_066_246_453);
 
+            // 102,349,931,745 caused an integer overflow in the Quadratic Sieve.
+            // Wolfram-Alpha provided the factorization.
+            // Factors of 3 & 5 not included here.
+            rv.Add(76_487, 89_209);
+
             return rv;
          }
       }
