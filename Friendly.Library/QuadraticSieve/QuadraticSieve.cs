@@ -31,6 +31,11 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private long _n;
 
+      /// <summary>
+      /// Ceiling(sqrt(_n))
+      /// </summary>
+      private long _rootN;
+
       private List<long> _factorBase;
 
       private readonly List<long> _xValues;
@@ -51,6 +56,7 @@ namespace Friendly.Library.QuadraticSieve
          _nOrig = n;
          _multiplier = 1;
          _n = n;
+         _rootN = 1 + LongCalculator.SquareRoot(_n);  // assumes _n is not square.
 
          _factorBase = null;
          _xValues = new List<long>();
@@ -173,6 +179,9 @@ namespace Friendly.Library.QuadraticSieve
             {
                rv[j] = new List<long>(sz);
 
+               // Always add -1
+               rv[j].Add(-1);
+
                // We can always include 2 because any odd number squared will have 1 as a
                // Quadratic Residue modulo 2.
                rv[j].Add(2);
@@ -225,6 +234,7 @@ namespace Friendly.Library.QuadraticSieve
          //  throw an exception.
          _multiplier = nSmallMultipliersToConsider[indexOfBest];
          _n = _multiplier * _nOrig;
+         _rootN = 1 + LongCalculator.SquareRoot(_n);  // assumes _n is not square.
          _factorBase = rv[indexOfBest];
          _matrix = AllocateMatrix(_factorBase.Count);
       }
@@ -244,16 +254,13 @@ namespace Friendly.Library.QuadraticSieve
          int fbSize = _factorBase.Count;
          long M = 2 * (int)_factorBase[fbSize - 1];
 
-         // Note: this assumes that n is not a square.
-         long rootN = 1 + LongCalculator.SquareRoot(_n);
-
          do
          {
             // Calculate the values of Q(x) = (x + rootN)**2 - n;
             List<long> Q = new List<long>((int)M);
             for (int x = 0; x < M; x++)
             {
-               long t = x + rootN + _sieveIntervals * M;
+               long t = x + StartOfSieveInterval(M);
                Q.Add(t * t - _n);
             }
 
@@ -268,21 +275,28 @@ namespace Friendly.Library.QuadraticSieve
             for (int j = 0; j < M; j++)
                exponentVectors.Add(new BigBitArray(fbSize));
 
+            // Sieve out the special case of p == -1
+            for (int j = 0; j < M && Q[j] < 0; j ++)
+            {
+               Q[j] *= -1;
+               exponentVectors[j].FlipBit(0);
+            }
+
             // Sieve out the special case of p == 2;
             // the zero'th element of the Factor Base.
             for (int j = 0; j < M; j++)
                while ((Q[j] & 1) == 0)
                {
                   Q[j] >>= 1;
-                  exponentVectors[j].FlipBit(0);
+                  exponentVectors[j].FlipBit(1);
                }
 
             // Sieve the remaining Factor Base
-            for (int factorIndex = 1; factorIndex < fbSize; factorIndex++)
+            for (int factorIndex = 2; factorIndex < fbSize; factorIndex++)
             {
                // Calculate ceiling(a/p) * p - a
                // where a is the start of the Sieve Interval.
-               long rem = (rootN + _sieveIntervals * M) % _factorBase[factorIndex];
+               long rem = StartOfSieveInterval(M) % _factorBase[factorIndex];
                if (rem != 0) rem = _factorBase[factorIndex] - rem;
 
                // Find the square roots of n mod p.
@@ -330,7 +344,7 @@ namespace Friendly.Library.QuadraticSieve
             {
                if (Q[x] == 1)
                {
-                  long t = x + rootN + _sieveIntervals * M;
+                  long t = x + StartOfSieveInterval(M);
                   _xValues.Add(t);
                   _bSmoothValues.Add(t * t - _n);
                   int index = _bSmoothValues.Count - 1;
@@ -345,6 +359,14 @@ namespace Friendly.Library.QuadraticSieve
             // 10 gives a worst-case of 1 chance in 1024 of none of the squares
             // being useful.
          } while (_bSmoothValues.Count < fbSize + 10);
+      }
+
+      private long StartOfSieveInterval(long M)
+      {
+         if ((_sieveIntervals & 1) == 1)
+            return _rootN - M * ((_sieveIntervals + 1) >> 1);
+         else
+            return _rootN + M * (_sieveIntervals >> 1);
       }
 
       /// <summary>
