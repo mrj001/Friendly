@@ -48,6 +48,11 @@ namespace Test.Library.QuadraticSieve
             // 102,350,181,745 = 5 * 7 * 39,667 * 73,721
             rv.Add(39_667, 73_721);
 
+            // With the small multiplier to make the number of the form
+            // n == 1 mod 4, this factorization causes an integer overflow.
+            // 100,005,503,345 = 5 * 11 * 41,893 * 43,403
+            rv.Add(41_893, 43_403);
+
             return rv;
          }
       }
