@@ -394,7 +394,15 @@ namespace Friendly.Library.QuadraticSieve
          for (int col = 0, jul = _bSmoothValues.Count; col < jul; col++)
          {
             long bSmooth = _bSmoothValues[col];
-            int row = 0, kul = _factorBase.Count;
+
+            // Handle factor of -1
+            if (bSmooth < 0)
+            {
+               _matrix.FlipBit(0, col);
+               bSmooth *= -1;
+            }
+
+            int row = 1, kul = _factorBase.Count;
             long q, r;
             while (row < kul && bSmooth != 1)
             {
