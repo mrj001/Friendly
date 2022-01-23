@@ -5,14 +5,19 @@ namespace Friendly.Library
    {
       public static long GCD(long a, long b)
       {
-#if DEBUG
+
          if (a < b)
-            throw new ArgumentException($"{nameof(a)} must be greater than {nameof(b)}");
-#endif
+            return GCDInternal(a, b);
+         else
+            return GCDInternal(b, a);
+      }
+
+      private static long GCDInternal(long a, long b)
+      {
          if (b == 0)
             return a;
 
-         return GCD(b, a % b);
+         return GCDInternal(b, a % b);
       }
 
       public static long ModPow(long val, long exponent, long modulus)

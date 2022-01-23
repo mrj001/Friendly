@@ -36,14 +36,6 @@ namespace Test.Library
          Assert.Equal(expectedGcd, actualGcd);
       }
 
-      [Fact]
-      public void GCD_Throws()
-      {
-#if DEBUG
-         Assert.Throws<ArgumentException>(() => LongCalculator.GCD(512, 513));
-#endif
-      }
-
       public static TheoryData<long, long,long, long> ModPowTestData
       {
          get
