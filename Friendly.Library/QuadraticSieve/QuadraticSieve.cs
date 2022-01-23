@@ -119,6 +119,8 @@ namespace Friendly.Library.QuadraticSieve
                y = t;
 
                x %= _n;
+               if (x < 0)
+                  x += _n;
                y %= _n;
 
                // Is x = +/-y mod n?

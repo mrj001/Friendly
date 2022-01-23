@@ -53,6 +53,10 @@ namespace Test.Library.QuadraticSieve
             // 100,005,503,345 = 5 * 11 * 41,893 * 43,403
             rv.Add(41_893, 43_403);
 
+            // 2 * 2 * 5 * 44927 * 111337 caused a negative value to be
+            // passed to the IsPrime method, which threw an exception.
+            rv.Add(44_927, 111_337);
+
             return rv;
          }
       }

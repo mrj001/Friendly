@@ -5,7 +5,8 @@ namespace Friendly.Library
    {
       public static long GCD(long a, long b)
       {
-
+         Assertions.True(a >= 0);
+         Assertions.True(b >= 0);
          if (a < b)
             return GCDInternal(a, b);
          else
