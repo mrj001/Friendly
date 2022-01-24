@@ -75,7 +75,9 @@ namespace Friendly.Library
             }
          }
 
-         return new PrimeFactorization(factors);
+         PrimeFactorization rv = new PrimeFactorization(factors);
+         Assertions.True(rv.Number == n);
+         return rv;
       }
 
       /// <summary>
@@ -175,6 +177,18 @@ namespace Friendly.Library
 
             foreach (IPrimeFactor f in _factors)
                rv *= (long)((BigInteger.Pow(f.Factor, f.Exponent + 1) - 1) / (f.Factor - 1));
+
+            return rv;
+         }
+      }
+
+      public long Number
+      {
+         get
+         {
+            long rv = 1;
+            foreach (IPrimeFactor f in _factors)
+               rv *= LongCalculator.Pow(f.Factor, f.Exponent);
 
             return rv;
          }

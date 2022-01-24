@@ -57,6 +57,42 @@ namespace Test.Library
          }
       }
 
+      public static TheoryData<long> NumberTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long>();
+
+            rv.Add(28);
+            rv.Add(48);
+            rv.Add(49);
+            rv.Add(149 * 149 * 163 * 163);
+
+            // Only one prime factor remains after trial division
+            rv.Add(7 * 11 * 13 * 60149);
+
+            // Two prime factors remain after trial division.
+            rv.Add(2L * 2 * 17 * 19 * 48661 * 55441);
+
+            // 3 large prime factors remain after trial division.
+            rv.Add(2L * 3 * 3 * 5 * 33119 * 33149 * 33151);
+
+            // A cube remains after trial division
+            rv.Add(11L * 11 * 33151 * 33151 * 33151);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(NumberTestData))]
+      public void Number(long n)
+      {
+         PrimeFactorization actual = PrimeFactorization.Get(n);
+
+         Assert.Equal(n, actual.Number);
+      }
+
       public static TheoryData<long, long> SumOfFactorsTestData
       {
          get
