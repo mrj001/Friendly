@@ -57,6 +57,12 @@ namespace Test.Library.QuadraticSieve
             // passed to the IsPrime method, which threw an exception.
             rv.Add(44_927, 111_337);
 
+            // This caused an integer overflow (commit id: 8d8299b)
+            // So few B-Smooth numbers are found that Q(x) = X**2 - n
+            // overflows when evaluating X**2.
+            // 100,123,265,325 == 3 * 5 * 5  * 33619 * 39709
+            rv.Add(33_619, 39_709);
+
             return rv;
          }
       }
