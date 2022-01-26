@@ -36,6 +36,28 @@ namespace Test.Library
          Assert.Equal(expectedGcd, actualGcd);
       }
 
+      public static TheoryData<long, long> FindInverseTestData
+      {
+         get
+         {
+            var rv = new TheoryData<long, long>();
+
+            rv.Add(42, 499);
+            rv.Add(720, 65_537);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(FindInverseTestData))]
+      public void FindInverse(long a, long n)
+      {
+         long actual = LongCalculator.FindInverse(a, n);
+
+         Assert.Equal(1, (actual * a) % n);
+      }
+
       public static TheoryData<long, long,long, long> ModPowTestData
       {
          get

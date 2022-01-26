@@ -21,6 +21,33 @@ namespace Friendly.Library
          return GCDInternal(b, a % b);
       }
 
+      // See: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
+      public static long FindInverse(long a, long n)
+      {
+         long t = 0;
+         long newt = 1;
+         long r = n;
+         long newr = a;
+
+         while (newr != 0)
+         {
+            long quotient = r / newr;
+
+            long tmp = t;
+            t = newt;
+            newt = tmp - quotient * newt;
+
+            tmp = r;
+            r = newr;
+            newr = tmp - quotient * newr;
+         }
+         if (r > 1)
+            throw new ApplicationException($"{a} is not invertible mod {n}");
+         if (t < 0) t += n;
+
+         return t;
+      }
+
       public static long ModPow(long val, long exponent, long modulus)
       {
          long curBitVal = val;
