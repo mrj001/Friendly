@@ -10,6 +10,11 @@ using Friendly.Library;
 // A. Kefa Rabah , 2006. Review of Methods for Integer Factorization
 //    Applied to Cryptography. Journal of Applied Sciences, 6: 458-481.
 //    https://scialert.net/fulltext/?doi=jas.2006.458.481
+//
+// B. Robert D. Silverman, The Multiple Polynomial Quadratic Sieve,
+//    Mathematics of Computation, Volume 48, Number 177, January 1987,
+//    pages 329-339.
+//
 
 namespace Friendly.Library.QuadraticSieve
 {
@@ -47,6 +52,8 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private int _sieveIntervals;
 
+      private IEnumerator<Polynomial> _polynomials;
+
       /// <summary>
       /// 
       /// </summary>
@@ -64,6 +71,7 @@ namespace Friendly.Library.QuadraticSieve
          _matrix = null;
 
          _sieveIntervals = 0;
+         _polynomials = null;
       }
 
       private static Matrix AllocateMatrix(int fbSize)
@@ -92,10 +100,13 @@ namespace Friendly.Library.QuadraticSieve
       public (long, long) Factor()
       {
          FindFactorBase();
+
+         _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase[_factorBase.Count - 1])).GetEnumerator();
+
          FindBSmooth();
 
          int retryCount = 0;
-         int retryLimit = 10;
+         int retryLimit = 100;
          while (retryCount < retryLimit)
          {
             _matrix.Reduce();
@@ -158,9 +169,6 @@ namespace Friendly.Library.QuadraticSieve
       private void FindFactorBase()
       {
          long n;
-         double logn = Math.Log(_nOrig);
-         // Number of odd primes to consider for the Factor Base per Ref. A.
-         int sz = (int)Math.Floor(Math.Sqrt(Math.Exp(Math.Sqrt(logn * Math.Log(logn)))));
 
          int[] nSmallMultipliersToConsider = new int[] { 1, 3, 5, 7, 11, 13, 17, 19 };
          List<long>[] rv = new List<long>[nSmallMultipliersToConsider.Length];
@@ -179,6 +187,7 @@ namespace Friendly.Library.QuadraticSieve
             }
             if ((n & 3) == 1)  // n == 1 mod 4.
             {
+               int sz = FindSizeOfFactorBase(n);
                rv[j] = new List<long>(sz);
 
                // Always add -1
@@ -193,8 +202,7 @@ namespace Friendly.Library.QuadraticSieve
                // reduces to the Legendre Symbol.
                IEnumerator<long> primes = Primes.GetEnumerator();
                primes.MoveNext();  // Skip 2
-               int k = 0;
-               while (primes.MoveNext() && k < sz)
+               while (primes.MoveNext() && rv[j].Count < sz)
                {
                   long prime = primes.Current;
                   if (1 == LongCalculator.JacobiSymbol(n % prime, prime))
@@ -202,7 +210,6 @@ namespace Friendly.Library.QuadraticSieve
                      rv[j].Add(prime);
                      maxPrime = Math.Max(prime, maxPrime);
                   }
-                  k++;
                }
             }
          }
@@ -241,6 +248,33 @@ namespace Friendly.Library.QuadraticSieve
          _matrix = AllocateMatrix(_factorBase.Count);
       }
 
+      private static int FindSizeOfFactorBase(long kn)
+      {
+         // Table 1 of Ref B is unclear as to the meaning of "Factor Base Size".
+         // Is this the number of primes in the Factor Base?  Or is it the
+         // maximum size of the primes to consider for membership in the
+         // Factor Base?
+         // Here, the first option is chosen.
+         // Additionally, for numbers smaller than 24 digits, the size has
+         // been extrapolated based upon halving the size of the factor base
+         // for each 6 digit reduction in size.
+         // Note that almost all of the entries here are far too large to fit
+         // in a long.  They are included in anticipation of a future update to
+         // using BigIntegers.
+         int[] digits = new int[] { 12, 18, 24, 30, 36, 42, 48, 54, 60, 66 };
+         int[] sz = new int[] { 25, 50, 100, 200, 400, 900, 1200, 2000, 3000, 4500 };
+
+         double d = Math.Log(kn, 10);
+         int j = 0;
+         while (j < digits.Length && digits[j] < d)
+            j++;
+
+         if (j == digits.Length)
+            return sz[sz.Length - 1];
+
+         return sz[j];
+      }
+
       /// <summary>
       /// Sieves for a list of B-Smooth numbers
       /// </summary>
@@ -252,19 +286,19 @@ namespace Friendly.Library.QuadraticSieve
       /// </remarks>
       private void FindBSmooth()
       {
-         // Choose twice the largest factor as the Sieving Interval
          int fbSize = _factorBase.Count;
-         long M = 2 * (int)_factorBase[fbSize - 1];
+         int M = FindSieveInterval(_n);
 
          do
          {
-            // Calculate the values of Q(x) = (x + rootN)**2 - n;
-            List<long> Q = new List<long>((int)M);
-            for (int x = 0; x < M; x++)
-            {
-               long t = x + StartOfSieveInterval(M);
-               Q.Add(t * t - _n);
-            }
+            if (!_polynomials.MoveNext())
+               throw new ApplicationException("Ran out of polynomials");
+            Polynomial poly = _polynomials.Current;
+
+            // Calculate the values of Q(x)
+            List<long> Q = new List<long>(2 * M);
+            for (int x = -M; x < M; x++)
+               Q.Add(poly.Evaluate(x));
 
             //
             // Sieve for B-Smooth values
@@ -273,24 +307,27 @@ namespace Friendly.Library.QuadraticSieve
             // Each bit in a bit array corresponds to one factor in the factor base.
             // The bit indices are the same as the indices into the factorBase.
             // There is one exponent vector for each value of Q.
-            List<BigBitArray> exponentVectors = new List<BigBitArray>((int)M);
-            for (int j = 0; j < M; j++)
+            List<BigBitArray> exponentVectors = new List<BigBitArray>(2 * M);
+            for (long j = -M; j < M; j++)
                exponentVectors.Add(new BigBitArray(fbSize));
 
             // Sieve out the special case of p == -1
-            for (int j = 0; j < M && Q[j] < 0; j ++)
+            for (int j = -M, idx = 0; j < M; j ++, idx ++)
             {
-               Q[j] *= -1;
-               exponentVectors[j].FlipBit(0);
+               if (Q[idx] < 0)
+               {
+                  Q[idx] *= -1;
+                  exponentVectors[idx].FlipBit(0);
+               }
             }
 
             // Sieve out the special case of p == 2;
             // the zero'th element of the Factor Base.
-            for (int j = 0; j < M; j++)
-               while ((Q[j] & 1) == 0)
+            for (int j = -M, idx = 0; j < M; j++, idx ++)
+               while ((Q[idx] & 1) == 0 && Q[idx] != 0)
                {
-                  Q[j] >>= 1;
-                  exponentVectors[j].FlipBit(1);
+                  Q[idx] >>= 1;
+                  exponentVectors[idx].FlipBit(1);
                }
 
             // Sieve the remaining Factor Base
@@ -298,61 +335,69 @@ namespace Friendly.Library.QuadraticSieve
             {
                // Calculate ceiling(a/p) * p - a
                // where a is the start of the Sieve Interval.
-               long rem = StartOfSieveInterval(M) % _factorBase[factorIndex];
-               if (rem != 0) rem = _factorBase[factorIndex] - rem;
+               //long rem = -M % _factorBase[factorIndex];
+               //if (rem < 0) rem += _factorBase[factorIndex];
 
-               // Find the square roots of n mod p.
-               int x1 = (int)LongCalculator.SquareRoot(_n % _factorBase[factorIndex], _factorBase[factorIndex]);
-               int x2 = (int)_factorBase[factorIndex] - x1;
+               // Find the roots of Q(x) mod p.
+               long inv2a = LongCalculator.FindInverse(2 * poly.A, _factorBase[factorIndex]);
+               long rootnModP = LongCalculator.SquareRoot(_n, _factorBase[factorIndex]);
+               int x1 = (int)((-poly.B + rootnModP) * inv2a % _factorBase[factorIndex]);
+               //if (x1 < 0) x1 += (int)_factorBase[factorIndex];
+               int x2 = (int)((-poly.B - rootnModP) * inv2a % _factorBase[factorIndex]);
+               //if (x2 < 0) x2 += (int)_factorBase[factorIndex];
 
-               x1 += (int)rem;
-               if (x1 >= _factorBase[factorIndex]) x1 -= (int)_factorBase[factorIndex];
-               x2 += (int)rem;
-               if (x2 >= _factorBase[factorIndex]) x2 -= (int)_factorBase[factorIndex];
+               // Translate to the first index of Q and exponentVectors where
+               // the values will divide evenly
+               int offset = (int)(M % _factorBase[factorIndex]);
+               int index1 = x1 + offset;
+               if (index1 < 0) index1 += (int)_factorBase[factorIndex];
+               if (index1 >= _factorBase[factorIndex]) index1 -= (int)_factorBase[factorIndex];
+               int index2 = x2 + offset;
+               if (index2 < 0) index2 += (int)_factorBase[factorIndex];
+               if (index2 >= _factorBase[factorIndex]) index2 -= (int)_factorBase[factorIndex];
 
                // Sieve out these factors
-               while (x1 < Q.Count)
+               while (index1 < Q.Count)
                {
                   long q, r;
-                  q = Math.DivRem(Q[x1], _factorBase[factorIndex], out r);
+                  q = Math.DivRem(Q[index1], _factorBase[factorIndex], out r);
                   Assertions.True(r == 0);
                   do
                   {
-                     Q[x1] = q;
-                     exponentVectors[x1].FlipBit(factorIndex);
-                     q = Math.DivRem(Q[x1], _factorBase[factorIndex], out r);
+                     Q[index1] = q;
+                     exponentVectors[index1].FlipBit(factorIndex);
+                     q = Math.DivRem(Q[index1], _factorBase[factorIndex], out r);
                   } while (r == 0);
-                  x1 += (int)_factorBase[factorIndex];
+                  index1 += (int)_factorBase[factorIndex];
                }
 
-               while (x2 < Q.Count)
+               while (index2 < Q.Count)
                {
                   long q, r;
-                  q = Math.DivRem(Q[x2], _factorBase[factorIndex], out r);
+                  q = Math.DivRem(Q[index2], _factorBase[factorIndex], out r);
                   Assertions.True(r == 0);
                   do
                   {
-                     Q[x2] = q;
-                     exponentVectors[x2].FlipBit(factorIndex);
-                     q = Math.DivRem(Q[x2], _factorBase[factorIndex], out r);
+                     Q[index2] = q;
+                     exponentVectors[index2].FlipBit(factorIndex);
+                     q = Math.DivRem(Q[index2], _factorBase[factorIndex], out r);
                   } while (r == 0);
-                  x2 += (int)_factorBase[factorIndex];
+                  index2 += (int)_factorBase[factorIndex];
                }
             }
 
             // Collect up the B-Smooth numbers and their Exponent Vectors.
             // Each Exponent Vector becomes a column in the output Matrix.
-            for (int x = 0; x < M; x++)
+            for (int x = -M, idx = 0; x < M; x++, idx ++)
             {
-               if (Q[x] == 1)
+               if (Q[idx] == 1)
                {
-                  long t = x + StartOfSieveInterval(M);
-                  _xValues.Add(t);
-                  _bSmoothValues.Add(t * t - _n);
+                  _xValues.Add(poly.EvaluateLHS(x));
+                  _bSmoothValues.Add(poly.Evaluate(x));
                   int index = _bSmoothValues.Count - 1;
                   _matrix.ExpandColumns(index + 1);
                   for (int r = 0; r < fbSize; r++)
-                     _matrix[r, index] = exponentVectors[x][r];
+                     _matrix[r, index] = exponentVectors[idx][r];
                }
             }
 
@@ -363,12 +408,23 @@ namespace Friendly.Library.QuadraticSieve
          } while (_bSmoothValues.Count < fbSize + 10);
       }
 
-      private long StartOfSieveInterval(long M)
+      private static int FindSieveInterval(long kn)
       {
-         if ((_sieveIntervals & 1) == 1)
-            return _rootN - M * ((_sieveIntervals + 1) >> 1);
-         else
-            return _rootN + M * (_sieveIntervals >> 1);
+         // See Table 1 of Ref B
+         // Note that these entries are too large to fit into a long.
+         // They are included in anticipation of updating to a BigInteger.
+         int[] digits = new int[] { 24, 30, 36, 42, 48, 54, 60, 66 };
+         int[] interval = new int[] { 5000, 25000, 25000, 50000, 100_000, 250_000, 350_000, 500_000 };
+
+         double numDigits = Math.Log(kn, 10);
+         int j = 0;
+         while (j < digits.Length && digits[j] < numDigits)
+            j++;
+
+         if (j == digits.Length)
+            return interval[interval.Length];
+
+         return interval[j];
       }
 
       /// <summary>
@@ -383,6 +439,9 @@ namespace Friendly.Library.QuadraticSieve
       /// </remarks>
       public void PrepareToResieve()
       {
+         if (!_polynomials.MoveNext())
+            throw new ApplicationException("Ran out of polynomials");
+
          // Remove the free columns which generated the non-useful null vectors.
          List<int> freeColumns = _matrix.FindFreeColumns();
          _matrix = AllocateMatrix(_factorBase.Count);

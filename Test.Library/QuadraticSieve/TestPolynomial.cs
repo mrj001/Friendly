@@ -44,7 +44,6 @@ namespace Test.Library.QuadraticSieve
 
          Assert.Equal(a, actual.A);
          Assert.Equal(b, actual.B);
-         Assert.Equal(c, actual.C);
       }
 
       public static TheoryData<long, long, long, long, long> EvaluateTestData
@@ -54,7 +53,7 @@ namespace Test.Library.QuadraticSieve
             var rv = new TheoryData<long, long, long, long, long>();
 
             rv.Add(102, 12, 1, 0, -42);
-            rv.Add(7291, 42, 4, 2, 67);
+            rv.Add(7207, 42, 4, 2, 67);
 
             return rv;
          }

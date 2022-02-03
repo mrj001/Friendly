@@ -50,6 +50,7 @@ namespace Friendly.Library
 
       public static long ModPow(long val, long exponent, long modulus)
       {
+         val %= modulus;
          long curBitVal = val;
          long rv = (exponent & 1) == 1 ? val : 1;
          exponent >>= 1;
