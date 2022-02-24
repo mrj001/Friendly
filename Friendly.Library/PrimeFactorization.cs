@@ -9,9 +9,6 @@ namespace Friendly.Library
    {
       private readonly List<IPrimeFactor> _factors;
 
-      // A prime just under 2**15.
-      private static long _highestPrime = 32_609;
-
       public PrimeFactorization(List<IPrimeFactor> factors)
       {
 #if DEBUG
@@ -32,13 +29,15 @@ namespace Friendly.Library
          IEnumerator<long> primes = Primes.GetEnumerator();
          long nCopy = n;
          long prime = 0;
+         long lastPrimeSquared = 0;
          int exponent;
          long quotient, remainder;
          List<IPrimeFactor> factors = new List<IPrimeFactor>();
 
-         while (primes.MoveNext() && nCopy != 1 && prime <= _highestPrime)
+         while (primes.MoveNext() && nCopy != 1 && lastPrimeSquared < nCopy)
          {
             prime = primes.Current;
+            lastPrimeSquared = prime * prime;
             exponent = 0;
             quotient = Math.DivRem(nCopy, prime, out remainder);
             while (remainder == 0)
@@ -60,82 +59,13 @@ namespace Friendly.Library
             }
             else
             {
-               List<long> bigFactors = Factor(prime, nCopy);
-               bigFactors.Sort();
-               int j = 0;
-               int pow;
-               while (j < bigFactors.Count)
-               {
-                  pow = 1;
-                  while (j + pow < bigFactors.Count && bigFactors[j] == bigFactors[j + pow])
-                     pow++;
-                  factors.Add(new PrimeFactor(bigFactors[j], pow));
-                  j += pow;
-               }
+               // TODO: attempt to factor remaining number
+               throw new ApplicationException($"Failed to find prime factorization of {n}; remaining composite: {nCopy}");
             }
          }
 
          PrimeFactorization rv = new PrimeFactorization(factors);
          Assertions.True(rv.Number == n);
-         return rv;
-      }
-
-      /// <summary>
-      /// Gets or sets the highest prime number to be used in trial divison.
-      /// </summary>
-      public static long HighestPrime
-      {
-         get => _highestPrime;
-         set
-         {
-#if DEBUG
-            if (!Primes.IsPrime(value))
-               throw new ArgumentException("Value must be a prime number.");
-#endif
-            _highestPrime = value;
-         }
-      }
-
-      /// <summary>
-      /// Factors the given number, n.
-      /// </summary>
-      /// <param name="highestPrime">The highest prime used in trial division.</param>
-      /// <param name="n">The number to factor.  This must not have any prime factors <= highestPrime.</param>
-      /// <returns>A List of factors of n.  Factors may be repeated.</returns>
-      private static List<long> Factor(long highestPrime, long n)
-      {
-         List<long> rv = new List<long>();
-         long factor;
-         int exponent;
-
-         if (IsAPower(highestPrime, n, out factor, out exponent))
-         {
-            if (Primes.IsPrime(factor))
-            {
-               for (int j = 0; j < exponent; j++)
-                  rv.Add(factor);
-            }
-            else
-            {
-               List<long> factors = Factor(highestPrime, factor);
-               for (int j = 0; j < exponent; j++)
-                  rv.AddRange(factors);
-            }
-         }
-         else
-         {
-            QuadraticSieve.QuadraticSieve quadraticSieve = new QuadraticSieve.QuadraticSieve(n);
-            (long f1, long f2) = quadraticSieve.Factor();
-            if (Primes.IsPrime(f1))
-               rv.Add(f1);
-            else
-               rv.AddRange(Factor(highestPrime, f1));
-            if (Primes.IsPrime(f2))
-               rv.Add(f2);
-            else
-               rv.AddRange(Factor(highestPrime, f2));
-         }
-
          return rv;
       }
 
