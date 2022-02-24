@@ -9,6 +9,9 @@ using System.Numerics;
 //    https://en.wikipedia.org/wiki/Pollard%27s_rho_algorithm
 //    Accessed: 2022-02-24
 //
+// B. Richard P. Brent, An Improved Monte Carlo Factorization Algorithm,
+//    BIT 20 (1980), pp 176 - 184.
+//
 
 namespace Friendly.Library.Pollard
 {
@@ -24,27 +27,49 @@ namespace Friendly.Library.Pollard
 
       public (BigInteger, BigInteger) Factor(BigInteger n)
       {
-         BigInteger d;
+         long x0 = 2;
+         long r = 1;
+         long k;
+         long m = 100;
+         BigInteger x, y, ys, q, G;
 
-         c = 1;
+         y = x0;
 
          do
          {
-            BigInteger x = 2;
-            BigInteger y = 2;
-
+            x = y;
+            for (int i = 0; i < r; i++)
+               y = f(y, n);
+            k = 0;
             do
             {
-               x = f(x, n);
-               y = f(f(y, n), n);
-               d = BigIntegerCalculator.GCD(x > y ? x - y : y - x, n);
-               // Note if x == y, the GCD will be n instead of 1.
-            } while (d == 1);
+               ys = y;
+               q = BigInteger.One;
+               for (long i = 0, iul = Math.Min(m, r - k); i < iul; i ++)
+               {
+                  y = f(y, n);
+                  q *= (x > y ? x - y : y - x);
+                  q %= n;
+               }
+               G = BigIntegerCalculator.GCD(q, n);
+               k += m;
+            } while (k < r && G == BigInteger.One);
+            r *= 2;
+         } while (G == BigInteger.One);
 
-            c++;
-         } while (d == n);
+         if (G == n)
+         {
+            do
+            {
+               ys = f(ys, n);
+               G = BigIntegerCalculator.GCD(x > ys ? x - ys : ys - x, n);
+            } while (G == BigInteger.One);
+         }
 
-         return (d, n / d);
+         if (G == n)
+            throw new ApplicationException();
+
+         return (G, n / G);
       }
 
       private BigInteger f(BigInteger x, BigInteger n)
