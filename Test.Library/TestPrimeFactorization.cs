@@ -27,6 +27,17 @@ namespace Test.Library
             // Only one prime factor remains after trial division
             rv.Add(new (long, int)[] { (7, 1) , (11, 1), (13, 1), (60149, 1) }, 7 * 11 * 13 * 60149);
 
+            // Two prime factors remain after trial division.
+            rv.Add(new (long, int)[] { (2, 2), (17, 1), (19, 1), (48661, 1), (55441, 1) },
+               2L * 2 * 17 * 19 * 48661 * 55441);
+
+            // 3 large prime factors remain after trial division.
+            rv.Add(new (long, int)[] { (2, 1), (3, 2), (5, 1), (33119, 1), (33149, 1), (33151, 1) },
+               2L * 3 * 3 * 5 * 33119 * 33149 * 33151);
+
+            // A cube remains after trial division
+            rv.Add(new (long, int)[] { (11, 2), (33151, 3) }, 11L * 11 * 33151 * 33151 * 33151);
+
             return rv;
          }
       }
@@ -59,6 +70,15 @@ namespace Test.Library
 
             // Only one prime factor remains after trial division
             rv.Add(7 * 11 * 13 * 60149);
+
+            // Two prime factors remain after trial division.
+            rv.Add(2L * 2 * 17 * 19 * 48661 * 55441);
+
+            // 3 large prime factors remain after trial division.
+            rv.Add(2L * 3 * 3 * 5 * 33119 * 33149 * 33151);
+
+            // A cube remains after trial division
+            rv.Add(11L * 11 * 33151 * 33151 * 33151);
 
             return rv;
          }

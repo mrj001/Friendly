@@ -2,11 +2,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
+using Friendly.Library.Pollard;
 
 namespace Friendly.Library
 {
    public class PrimeFactorization : IList<IPrimeFactor>
    {
+      private static long _highestTrialDivisor = 32_609;
+
       private readonly List<IPrimeFactor> _factors;
 
       public PrimeFactorization(List<IPrimeFactor> factors)
@@ -17,6 +20,24 @@ namespace Friendly.Library
                throw new ArgumentException("The prime factors must be unique and in increasing order.");
 #endif
          _factors = factors;
+      }
+
+      /// <summary>
+      /// Gets or sets the largest prime number that will be used for trial
+      /// division.
+      /// </summary>
+      /// <remarks>If the value given is composite, it will be reduced to the
+      /// next largest prime number.</remarks>
+      public static long HighestTrialDivisor
+      {
+         get => _highestTrialDivisor;
+         set
+         {
+            long t = value;
+            while (!Primes.IsPrime(t))
+               t--;
+            _highestTrialDivisor = t;
+         }
       }
 
       /// <summary>
@@ -34,7 +55,7 @@ namespace Friendly.Library
          long quotient, remainder;
          List<IPrimeFactor> factors = new List<IPrimeFactor>();
 
-         while (primes.MoveNext() && nCopy != 1 && lastPrimeSquared < nCopy)
+         while (primes.MoveNext() && nCopy != 1 && lastPrimeSquared < nCopy && prime <= _highestTrialDivisor)
          {
             prime = primes.Current;
             lastPrimeSquared = prime * prime;
@@ -59,8 +80,18 @@ namespace Friendly.Library
             }
             else
             {
-               // TODO: attempt to factor remaining number
-               throw new ApplicationException($"Failed to find prime factorization of {n}; remaining composite: {nCopy}");
+               List<long> bigFactors = Factor(prime, nCopy);
+               bigFactors.Sort();
+               int j = 0;
+               int pow;
+               while (j < bigFactors.Count)
+               {
+                  pow = 1;
+                  while (j + pow < bigFactors.Count && bigFactors[j] == bigFactors[j + pow])
+                     pow++;
+                  factors.Add(new PrimeFactor(bigFactors[j], pow));
+                  j += pow;
+               }
             }
          }
 
@@ -68,6 +99,35 @@ namespace Friendly.Library
          Assertions.True(rv.Number == n);
          return rv;
       }
+
+      /// <summary>
+      /// Factors the given number, n.
+      /// </summary>
+      /// <param name="highestPrime">The highest prime used in trial division.</param>
+      /// <param name="n">The number to factor.  This must not have any prime factors <= highestPrime.</param>
+      /// <returns>A List of factors of n.  Factors may be repeated.</returns>
+      private static List<long> Factor(long highestPrime, long n)
+      {
+         List<long> rv = new List<long>();
+
+         PollardRho rho = new PollardRho();
+         (BigInteger g1, BigInteger g2) = rho.Factor(n);
+         long f1 = (long)g1;
+         long f2 = (long)g2;
+
+         if (Primes.IsPrime(f1))
+            rv.Add(f1);
+         else
+            rv.AddRange(Factor(highestPrime, f1));
+
+         if (Primes.IsPrime(f2))
+            rv.Add(f2);
+         else
+            rv.AddRange(Factor(highestPrime, f2));
+
+         return rv;
+      }
+
 
       /// <summary>
       /// Determines whether or not the given number, n, is a power of another number.
