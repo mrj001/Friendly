@@ -8,9 +8,11 @@ namespace Friendly.Library
 {
    public class PrimeFactorization : IList<IPrimeFactor>
    {
-      private static long _highestTrialDivisor = 32_609;
+      private static long _highestTrialDivisor = 397;
 
       private readonly List<IPrimeFactor> _factors;
+
+      private int _rhoInvocations;
 
       public PrimeFactorization(List<IPrimeFactor> factors)
       {
@@ -20,6 +22,7 @@ namespace Friendly.Library
                throw new ArgumentException("The prime factors must be unique and in increasing order.");
 #endif
          _factors = factors;
+         _rhoInvocations = 0;
       }
 
       /// <summary>
@@ -54,6 +57,7 @@ namespace Friendly.Library
          int exponent;
          long quotient, remainder;
          List<IPrimeFactor> factors = new List<IPrimeFactor>();
+         int rhoInvocations = 0;
 
          while (primes.MoveNext() && nCopy != 1 && lastPrimeSquared < nCopy && prime <= _highestTrialDivisor)
          {
@@ -80,7 +84,8 @@ namespace Friendly.Library
             }
             else
             {
-               List<long> bigFactors = Factor(prime, nCopy);
+               (List<long> bigFactors, int tmp) = Factor(prime, nCopy);
+               rhoInvocations = tmp;
                bigFactors.Sort();
                int j = 0;
                int pow;
@@ -96,6 +101,7 @@ namespace Friendly.Library
          }
 
          PrimeFactorization rv = new PrimeFactorization(factors);
+         rv.RhoInvocations = rhoInvocations;
          Assertions.True(rv.Number == n);
          return rv;
       }
@@ -105,10 +111,12 @@ namespace Friendly.Library
       /// </summary>
       /// <param name="highestPrime">The highest prime used in trial division.</param>
       /// <param name="n">The number to factor.  This must not have any prime factors <= highestPrime.</param>
-      /// <returns>A List of factors of n.  Factors may be repeated.</returns>
-      private static List<long> Factor(long highestPrime, long n)
+      /// <returns>The first item is a List of factors of n.  Factors may be repeated.  The second
+      /// item specifies the number of times the Pollard Rho algorithm was invoked.</returns>
+      private static (List<long>, int) Factor(long highestPrime, long n)
       {
          List<long> rv = new List<long>();
+         int rhoInvocations = 1;
 
          PollardRho rho = new PollardRho();
          (BigInteger g1, BigInteger g2) = rho.Factor(n);
@@ -118,14 +126,22 @@ namespace Friendly.Library
          if (Primes.IsPrime(f1))
             rv.Add(f1);
          else
-            rv.AddRange(Factor(highestPrime, f1));
+         {
+            (List<long> factors, int k) = Factor(highestPrime, f1);
+            rv.AddRange(factors);
+            rhoInvocations += k;
+         }
 
          if (Primes.IsPrime(f2))
             rv.Add(f2);
          else
-            rv.AddRange(Factor(highestPrime, f2));
+         {
+            (List<long> factors, int k) = Factor(highestPrime, f2);
+            rv.AddRange(factors);
+            rhoInvocations += k;
+         }
 
-         return rv;
+         return (rv, rhoInvocations);
       }
 
 
@@ -157,6 +173,19 @@ namespace Friendly.Library
          }
 
          return false;
+      }
+
+      /// <summary>
+      /// Gets the number of times the Pollard Rho algorithm was invoked during
+      /// the factorization of the given number.
+      /// </summary>
+      public int RhoInvocations
+      {
+         get => _rhoInvocations;
+         private set
+         {
+            _rhoInvocations = value;
+         }
       }
 
       public long SumOfFactors
