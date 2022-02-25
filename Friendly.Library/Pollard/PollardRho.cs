@@ -34,38 +34,43 @@ namespace Friendly.Library.Pollard
          BigInteger x, y, ys, q, G;
 
          y = x0;
+         c = 1;
 
          do
          {
-            x = y;
-            for (int i = 0; i < r; i++)
-               y = f(y, n);
-            k = 0;
             do
             {
-               ys = y;
-               q = BigInteger.One;
-               for (long i = 0, iul = Math.Min(m, r - k); i < iul; i ++)
-               {
+               x = y;
+               for (int i = 0; i < r; i++)
                   y = f(y, n);
-                  q *= (x > y ? x - y : y - x);
-                  q %= n;
-               }
-               G = BigIntegerCalculator.GCD(q, n);
-               k += m;
-            } while (k < r && G == BigInteger.One);
-            r *= 2;
-         } while (G == BigInteger.One);
-
-         if (G == n)
-         {
-            do
-            {
-               ys = f(ys, n);
-               G = BigIntegerCalculator.GCD(x > ys ? x - ys : ys - x, n);
+               k = 0;
+               do
+               {
+                  ys = y;
+                  q = BigInteger.One;
+                  for (long i = 0, iul = Math.Min(m, r - k); i < iul; i++)
+                  {
+                     y = f(y, n);
+                     q *= (x > y ? x - y : y - x);
+                     q %= n;
+                  }
+                  G = BigIntegerCalculator.GCD(q, n);
+                  k += m;
+               } while (k < r && G == BigInteger.One);
+               r *= 2;
             } while (G == BigInteger.One);
-         }
 
+            if (G == n)
+            {
+               do
+               {
+                  ys = f(ys, n);
+                  G = BigIntegerCalculator.GCD(x > ys ? x - ys : ys - x, n);
+               } while (G == BigInteger.One);
+            }
+
+            c++;
+         } while (G == n && c < 100);
          if (G == n)
             throw new ApplicationException($"Failed to factor: {n}");
 
