@@ -55,5 +55,29 @@ namespace Test.Library.Pollard
          Assert.Equal(f1, actual1);
          Assert.Equal(f2, actual2);
       }
+
+      public static TheoryData<long> Factor2TestData
+      {
+         get
+         {
+            var rv = new TheoryData<long>();
+
+            // This number failed to factor during a Benchmark run.
+            rv.Add(21_116_263_079);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(Factor2TestData))]
+      public void Factor2(long n)
+      {
+         PollardRho rho = new PollardRho();
+
+         (BigInteger f1, BigInteger f2) = rho.Factor(n);
+
+         Assert.Equal(n, f1 * f2);
+      }
    }
 }

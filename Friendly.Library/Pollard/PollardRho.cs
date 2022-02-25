@@ -67,7 +67,7 @@ namespace Friendly.Library.Pollard
          }
 
          if (G == n)
-            throw new ApplicationException();
+            throw new ApplicationException($"Failed to factor: {n}");
 
          return (G, n / G);
       }
