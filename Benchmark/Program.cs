@@ -8,7 +8,7 @@ namespace Benchmark
    {
       public static void Main(string[] args)
       {
-         var summary = BenchmarkRunner.Run<BenchmarkPollardRho>();
+         var summary = BenchmarkRunner.Run<BenchmarkGCD>();
       }
    }
 }
