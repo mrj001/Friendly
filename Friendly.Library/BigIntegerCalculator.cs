@@ -23,10 +23,14 @@ namespace Friendly.Library
 
       private static BigInteger GCDInternal(BigInteger a, BigInteger b)
       {
-         if (b == 0)
-            return a;
+         while (b != BigInteger.Zero)
+         {
+            BigInteger t = b;
+            b = a % b;
+            a = t;
+         }
 
-         return GCDInternal(b, a % b);
+         return a;
       }
 
       /// <summary>
