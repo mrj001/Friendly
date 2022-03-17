@@ -79,5 +79,15 @@ namespace Benchmark
             Assertions.Equals(gcd[j], answer);
          }
       }
+
+      [Benchmark]
+      public void RunBuiltInGCD()
+      {
+         for (int j = 0; j < limit; j++)
+         {
+            BigInteger answer = BigInteger.GreatestCommonDivisor(a[j], b[j]);
+            Assertions.Equals(gcd[j], answer);
+         }
+      }
    }
 }
