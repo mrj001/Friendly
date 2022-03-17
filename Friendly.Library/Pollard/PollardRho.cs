@@ -54,7 +54,7 @@ namespace Friendly.Library.Pollard
                      q *= (x > y ? x - y : y - x);
                      q %= n;
                   }
-                  G = BigInteger.GreatestCommonDivisor(q, n);
+                  G = BigIntegerCalculator.GCD(q, n);
                   k += m;
                } while (k < r && G == BigInteger.One);
                r *= 2;
@@ -65,7 +65,7 @@ namespace Friendly.Library.Pollard
                do
                {
                   ys = f(ys, n);
-                  G = BigInteger.GreatestCommonDivisor(x > ys ? x - ys : ys - x, n);
+                  G = BigIntegerCalculator.GCD(x > ys ? x - ys : ys - x, n);
                } while (G == BigInteger.One);
             }
 
