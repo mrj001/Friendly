@@ -11,35 +11,6 @@ namespace Test.Library
       {
       }
 
-      public static TheoryData<BigInteger, BigInteger, BigInteger> GCDTestData
-      {
-         get
-         {
-            var rv = new TheoryData<BigInteger, BigInteger, BigInteger>();
-
-            rv.Add(1, 7523, 1783);
-            rv.Add(47, 47 * 93923, 47 * 77849);
-
-            // The following two test cases use prime numbers > 2**32,
-            // which were generated using Wolfram-Alpha:
-            // "random prime between 4,300,000,000 and 4,400,000,000"
-            rv.Add(56, 56 * 4_383_521_357, 56 * 4_339_939_033);
-            rv.Add(65_537, (new BigInteger(65_537)) * 4_331_304_973 * 4_335_665_377,
-               (new BigInteger(65_537)) * 4_365_330_709 * 4_374_926_749);
-
-            return rv;
-         }
-      }
-
-      [Theory]
-      [MemberData(nameof(GCDTestData))]
-      public void GCD(BigInteger expectedGcd, BigInteger a, BigInteger b)
-      {
-         BigInteger actualGcd = BigIntegerCalculator.GCD(a, b);
-
-         Assert.Equal(expectedGcd, actualGcd);
-      }
-
       public static TheoryData<long, long> SquareRootTestData
       {
          get
