@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 namespace Friendly.Library.QuadraticSieve
 {
    /// <summary>
@@ -8,9 +9,9 @@ namespace Friendly.Library.QuadraticSieve
    {
       private readonly long _a;
       private readonly long _b;
-      private readonly long _c;
+      private readonly BigInteger _c;
 
-      internal Polynomial(long a, long b, long c)
+      internal Polynomial(long a, long b, BigInteger c)
       {
          _a = a;
          _b = b;
@@ -25,9 +26,9 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="x"></param>
       /// <returns></returns>
-      public long Evaluate(long x)
+      public BigInteger Evaluate(long x)
       {
-         long rv = _a * x;
+         BigInteger rv = _a * x;
          rv += _b;
          rv *= x;
          rv += _c;

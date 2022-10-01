@@ -1,8 +1,10 @@
-﻿namespace Friendly.Library
+﻿using System.Numerics;
+
+namespace Friendly.Library
 {
    public interface IPrimeFactor
    {
-      long Factor { get; }
+      BigInteger Factor { get; }
       int Exponent { get; }
    }
 }

@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Numerics;
 
 namespace Friendly.Library
 {
    public class PrimeFactor : IPrimeFactor
    {
-      private readonly long _factor;
+      private readonly BigInteger _factor;
       private int _exponent;
 
-      public PrimeFactor(long factor, int exponent)
+      public PrimeFactor(BigInteger factor, int exponent)
       {
 #if DEBUG
          if (!Primes.IsPrime(factor))
@@ -17,7 +18,7 @@ namespace Friendly.Library
          _exponent = exponent;
       }
 
-      public long Factor { get => _factor; }
+      public BigInteger Factor { get => _factor; }
 
       public int Exponent { get => _exponent; }
 

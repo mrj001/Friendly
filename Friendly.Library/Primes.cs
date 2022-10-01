@@ -71,6 +71,27 @@ namespace Friendly.Library
          }
       }
 
+      /// <summary>
+      /// Determines if the given value is prime.
+      /// </summary>
+      /// <param name="n">The value to check for primality.</param>
+      /// <returns>True if the number if prime; false if the number is composite.</returns>
+      public static bool IsPrime(BigInteger n)
+      {
+#if DEBUG
+         if (n < 0)
+            throw new ArgumentOutOfRangeException($"{nameof(n)} must not be negative.");
+#endif
+
+         if (n <= long.MaxValue)
+            return IsPrime((long)n);
+         else
+         {
+            if ((n & 1) == 0) return false;
+            return MillerRabin(n);
+         }
+      }
+
       #region Enumeration of Primes
       private class Enumerator : IEnumerator<long>
       {
@@ -167,6 +188,67 @@ namespace Friendly.Library
          while (exp < n - 1)
          {
             x[i] = x[i-1] * x[i-1] % n;
+            exp <<= 1;
+            i++;
+         }
+         i--;
+
+         // This amounts to the Fermat test
+         if (x[i] != 1) return false;
+
+         while (i >= 0 && x[i] == 1)
+            i--;
+
+         if (i < 0 || x[i] == n - 1) return true;
+
+         return false;
+      }
+
+      // Reference:
+      // https://crypto.stanford.edu/pbc/notes/numbertheory/millerrabin.html
+      /// <summary>
+      /// Performs an iterated Miller-Rabin test with several bases.
+      /// </summary>
+      /// <param name="n">A number to be tested for primality.</param>
+      /// <returns>True if the number is probably prime; false if definitely composite.</returns>
+      public static bool MillerRabin(BigInteger n)
+      {
+         if ((n & 1) == 0)
+            return false;
+         if (n <= long.MaxValue)
+            return MillerRabin((long)n);
+
+         // TODO: Do we need more bases when n > 2**64?
+         foreach (long a in _millerRabinBases)
+            if (!MillerRabin(n, a))
+               return false;
+
+         return true;
+      }
+
+      /// <summary>
+      /// Performs a Miller-Rabin test with the given base.
+      /// </summary>
+      /// <param name="n">An odd number to be tested for primality.</param>
+      /// <param name="a">The base to be used during the primality test.</param>
+      /// <returns>True if the number is probably prime; false if definitely composite.</returns>
+      private static bool MillerRabin(BigInteger n, long a)
+      {
+         BigInteger exp = n - 1;
+         long s = 0;
+         while ((exp & 1) == 0)
+         {
+            exp >>= 1;
+            s++;
+         }
+
+         int i = 1;
+         BigInteger[] x = new BigInteger[s + 1];
+         x[0] = BigInteger.ModPow(a, exp, n);
+
+         while (exp < n - 1)
+         {
+            x[i] = x[i - 1] * x[i - 1] % n;
             exp <<= 1;
             i++;
          }

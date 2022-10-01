@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Friendly.Library;
 using Friendly.Library.QuadraticSieve;
 using Xunit;
@@ -81,11 +82,11 @@ namespace Test.Library.QuadraticSieve
          long product = f1 * f2;
 
          Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(product);
-         (long actual1, long actual2) = sieve.Factor();
+         (BigInteger actual1, BigInteger actual2) = sieve.Factor();
 
          if (actual1 > actual2)
          {
-            long t = actual1;
+            BigInteger t = actual1;
             actual1 = actual2;
             actual2 = t;
          }
@@ -132,10 +133,10 @@ namespace Test.Library.QuadraticSieve
             }
 
             Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(n);
-            (long q1, long q2) = sieve.Factor();
+            (BigInteger q1, BigInteger q2) = sieve.Factor();
             if (q1 > q2)
             {
-               long t = q1;
+               BigInteger t = q1;
                q1 = q2;
                q2 = t;
             }

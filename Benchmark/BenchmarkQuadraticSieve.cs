@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -47,11 +48,11 @@ namespace Benchmark
 
          long n = f1 * f2;
          QuadraticSieve sieve = new QuadraticSieve(n);
-         (long g1, long g2) = sieve.Factor();
+         (BigInteger g1, BigInteger g2) = sieve.Factor();
 
          if (g1 > g2)
          {
-            long t = g1;
+            BigInteger t = g1;
             g1 = g2;
             g2 = t;
          }

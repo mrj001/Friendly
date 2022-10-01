@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Numerics;
 using Friendly.Library;
 
 namespace Factorize
@@ -28,7 +29,7 @@ namespace Factorize
          int powerWidth = 0;
          foreach (PrimeFactor f in factors)
          {
-            factorWidth = (int)Math.Max(Math.Ceiling(Math.Log10(f.Factor)), factorWidth);
+            factorWidth = (int)Math.Max(Math.Ceiling(BigInteger.Log10(f.Factor)), factorWidth);
             powerWidth = (int)Math.Max(Math.Ceiling(Math.Log10(f.Exponent)), powerWidth);
          }
 

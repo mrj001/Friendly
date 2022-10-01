@@ -20,8 +20,8 @@ namespace Friendly.Library.QuadraticSieve
 {
    public class MultiPolynomial : IEnumerable<Polynomial>
    {
-      private readonly long _kn;
-      private readonly long _rootkn;
+      private readonly BigInteger _kn;
+      private readonly BigInteger _rootkn;
       private readonly long _maxFactorBase;
 
       /// <summary>
@@ -30,7 +30,7 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="kn">The number being factored, pre-multiplied by the small constant.</param>
       /// <param name="rootkn"></param>
       /// <param name="maxFactorBase">The largest prime in the Factor Base.</param>
-      public MultiPolynomial(long kn, long rootkn, long maxFactorBase)
+      public MultiPolynomial(BigInteger kn, BigInteger rootkn, long maxFactorBase)
       {
          _kn = kn;
          _rootkn = rootkn;
@@ -50,8 +50,8 @@ namespace Friendly.Library.QuadraticSieve
       private class Enumerator : IEnumerator<Polynomial>
       {
          private int _serial;
-         private readonly long _kn;
-         private readonly long _rootkn;
+         private readonly BigInteger _kn;
+         private readonly BigInteger _rootkn;
          private readonly long _maxFactorBase;
          private IEnumerator<long> _primes;
 
@@ -61,7 +61,7 @@ namespace Friendly.Library.QuadraticSieve
          /// <param name="kn">The number being factored, premultiplied by a small constant.</param>
          /// <param name="rootkn"></param>
          /// <param name="maxFactorBase">The largest prime in the Factor Base.</param>
-         public Enumerator(long kn, long rootkn, long maxFactorBase)
+         public Enumerator(BigInteger kn, BigInteger rootkn, long maxFactorBase)
          {
             _kn = kn;
             _rootkn = rootkn;
@@ -118,11 +118,11 @@ namespace Friendly.Library.QuadraticSieve
             long a = d * d;
 
             // Ref. B, Equations 7a & 7b.
-            long h0 = LongCalculator.ModPow(_kn, (d - 3) / 4, d);
+            long h0 = (long)BigInteger.ModPow(_kn, (d - 3) / 4, d);
             if ((h0 & 1) == 1)
                h0 += d;
             //long h1 = ((_kn % d) * h0) % d;
-            long h1 = LongCalculator.ModPow(_kn, (d + 1) / 4, d);
+            long h1 = (long)BigInteger.ModPow(_kn, (d + 1) / 4, d);
             Assertions.True((h0 * h1) % d == 1);
 
             // Ref B. Equation 8
@@ -130,11 +130,11 @@ namespace Friendly.Library.QuadraticSieve
             Assertions.True(h1squared % d == _kn % d);
 
             // Ref B. Equation 9
-            long num = _kn - h1squared;
+            BigInteger num = _kn - h1squared;
             Assertions.True(num % d == 0);
             Assertions.True((h0 & 1) == 0);
             Assertions.True(((h0 / 2) * (2 * h1)) % d == 1);
-            long h2 = ((h0 / 2) * (num / d)) % d;
+            long h2 = (long)(((h0 / 2) * (num / d)) % d);
 
             // Ref B. Equation 10
             long b = (h1 + h2 * d) % a;
@@ -147,7 +147,7 @@ namespace Friendly.Library.QuadraticSieve
             Assertions.True(bsquared % a == _kn % a);
 
             // Ref B. Equation 12
-            long c = bsquared - _kn;
+            BigInteger c = bsquared - _kn;
             Assertions.True((c % (4 * a)) == 0);
             c /= 4 * a;
 
@@ -176,7 +176,7 @@ namespace Friendly.Library.QuadraticSieve
             //   4. D == 3 mod 4
             bool havePrimes = _primes.MoveNext();
             while (havePrimes && (_primes.Current <= _maxFactorBase ||
-                     1 != LongCalculator.JacobiSymbol(_kn, _primes.Current) ||
+                     1 != BigIntegerCalculator.JacobiSymbol(_kn, _primes.Current) ||
                      (_primes.Current & 3) != 3))
                havePrimes = _primes.MoveNext();
 

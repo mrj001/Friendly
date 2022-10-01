@@ -60,7 +60,7 @@ namespace Friendly.Library
             }
             else
             {
-               List<long> bigFactors = Factor(prime, nCopy);
+               List<BigInteger> bigFactors = Factor(prime, nCopy);
                bigFactors.Sort();
                int j = 0;
                int pow;
@@ -102,10 +102,10 @@ namespace Friendly.Library
       /// <param name="highestPrime">The highest prime used in trial division.</param>
       /// <param name="n">The number to factor.  This must not have any prime factors <= highestPrime.</param>
       /// <returns>A List of factors of n.  Factors may be repeated.</returns>
-      private static List<long> Factor(long highestPrime, long n)
+      private static List<BigInteger> Factor(long highestPrime, BigInteger n)
       {
-         List<long> rv = new List<long>();
-         long factor;
+         List<BigInteger> rv = new();
+         BigInteger factor;
          int exponent;
 
          if (IsAPower(highestPrime, n, out factor, out exponent))
@@ -117,7 +117,7 @@ namespace Friendly.Library
             }
             else
             {
-               List<long> factors = Factor(highestPrime, factor);
+               List<BigInteger> factors = Factor(highestPrime, factor);
                for (int j = 0; j < exponent; j++)
                   rv.AddRange(factors);
             }
@@ -125,7 +125,7 @@ namespace Friendly.Library
          else
          {
             QuadraticSieve.QuadraticSieve quadraticSieve = new QuadraticSieve.QuadraticSieve(n);
-            (long f1, long f2) = quadraticSieve.Factor();
+            (BigInteger f1, BigInteger f2) = quadraticSieve.Factor();
             if (Primes.IsPrime(f1))
                rv.Add(f1);
             else
@@ -148,16 +148,16 @@ namespace Friendly.Library
       /// <param name="factor">If n is a power, this returns the base of that power.</param>
       /// <param name="exponent">If n is a power, this returns the exponent.</param>
       /// <returns>True if the number, n, is a power.</returns>
-      private static bool IsAPower(long highestPrime, long n, out long factor, out int exponent)
+      private static bool IsAPower(long highestPrime, BigInteger n, out BigInteger factor, out int exponent)
       {
          factor = 0;
          exponent = 0;
          IEnumerator<long> j = Primes.GetEnumerator();
-         long root = long.MaxValue;
+         BigInteger root = long.MaxValue;
          while (j.MoveNext() && root > highestPrime)
          {
-            root = LongCalculator.Root(n, (int)j.Current);
-            long val = LongCalculator.Pow(root, (int)j.Current);
+            root = BigIntegerCalculator.Root(n, (int)j.Current);
+            BigInteger val = BigIntegerCalculator.Pow(root, (int)j.Current);
             if (val == n)
             {
                factor = root;
@@ -182,13 +182,13 @@ namespace Friendly.Library
          }
       }
 
-      public long Number
+      public BigInteger Number
       {
          get
          {
-            long rv = 1;
+            BigInteger rv = 1;
             foreach (IPrimeFactor f in _factors)
-               rv *= LongCalculator.Pow(f.Factor, f.Exponent);
+               rv *= BigIntegerCalculator.Pow(f.Factor, f.Exponent);
 
             return rv;
          }

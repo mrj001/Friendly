@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using System.Reflection;
 using Friendly.Library;
 using Friendly.Library.QuadraticSieve;
@@ -65,7 +66,7 @@ namespace Test.Library.QuadraticSieve
       {
          Polynomial poly = InvokeConstructor(a, b, c);
 
-         long actual = poly.Evaluate(x);
+         BigInteger actual = poly.Evaluate(x);
 
          Assert.Equal(expected, actual);
       }
