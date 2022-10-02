@@ -350,6 +350,7 @@ namespace Friendly.Library.QuadraticSieve
                   _xValues.Add(t);
                   _bSmoothValues.Add(t * t - _n);
                   int index = _bSmoothValues.Count - 1;
+                  Assertions.True((_bSmoothValues[index] - _xValues[index] * _xValues[index]) % _n == 0);
                   _matrix.ExpandColumns(index + 1);
                   for (int r = 0; r < fbSize; r++)
                      _matrix[r, index] = exponentVectors[x][r];
