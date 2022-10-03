@@ -10,12 +10,14 @@ namespace Friendly.Library.QuadraticSieve
       private readonly long _a;
       private readonly long _b;
       private readonly BigInteger _c;
+      private readonly BigInteger _inv2d;
 
-      internal Polynomial(long a, long b, BigInteger c)
+      internal Polynomial(long a, long b, BigInteger c, BigInteger inv2d)
       {
          _a = a;
          _b = b;
          _c = c;
+         _inv2d = inv2d;
       }
 
       public long A { get => _a; }
@@ -41,9 +43,11 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="x"></param>
       /// <returns></returns>
-      public long EvaluateLHS(long x)
+      public BigInteger EvaluateLHS(long x)
       {
-         return _a * x + _b;
+         BigInteger rv = 2 * _a * x + _b;
+         rv *= _inv2d;
+         return rv;
       }
    }
 }

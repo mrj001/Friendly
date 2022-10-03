@@ -151,7 +151,7 @@ namespace Friendly.Library.QuadraticSieve
             Assertions.True((c % (4 * a)) == 0);
             c /= 4 * a;
 
-            return new Polynomial(a, b, c);
+            return new Polynomial(a, b, c, BigIntegerCalculator.FindInverse(2 * d, _kn));
          }
 
          public void Dispose()

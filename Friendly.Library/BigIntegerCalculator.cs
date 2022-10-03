@@ -23,6 +23,33 @@ namespace Friendly.Library
          return GCDInternal(b, a % b);
       }
 
+      // See: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
+      public static BigInteger FindInverse(BigInteger a, BigInteger n)
+      {
+         BigInteger t = 0;
+         BigInteger newt = 1;
+         BigInteger r = n;
+         BigInteger newr = a;
+
+         while (newr != 0)
+         {
+            BigInteger quotient = r / newr;
+
+            BigInteger tmp = t;
+            t = newt;
+            newt = tmp - quotient * newt;
+
+            tmp = r;
+            r = newr;
+            newr = tmp - quotient * newr;
+         }
+         if (r > 1)
+            throw new ApplicationException($"{a} is not invertible mod {n}");
+         if (t < 0) t += n;
+
+         return t;
+      }
+
       private static long ModPow(BigInteger val, long exponent, long modulus)
       {
          val %= modulus;
