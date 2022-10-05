@@ -2,15 +2,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
+using Friendly.Library.Pollard;
 
 namespace Friendly.Library
 {
    public class PrimeFactorization : IList<IPrimeFactor>
    {
+      private static long _highestTrialDivisor = 397;
+
       private readonly List<IPrimeFactor> _factors;
 
-      // A prime just under 2**15.
-      private static long _highestPrime = 32_609;
+      private int _rhoInvocations;
 
       public PrimeFactorization(List<IPrimeFactor> factors)
       {
@@ -20,6 +22,25 @@ namespace Friendly.Library
                throw new ArgumentException("The prime factors must be unique and in increasing order.");
 #endif
          _factors = factors;
+         _rhoInvocations = 0;
+      }
+
+      /// <summary>
+      /// Gets or sets the largest prime number that will be used for trial
+      /// division.
+      /// </summary>
+      /// <remarks>If the value given is composite, it will be reduced to the
+      /// next largest prime number.</remarks>
+      public static long HighestTrialDivisor
+      {
+         get => _highestTrialDivisor;
+         set
+         {
+            long t = value;
+            while (!Primes.IsPrime(t))
+               t--;
+            _highestTrialDivisor = t;
+         }
       }
 
       /// <summary>
@@ -32,13 +53,16 @@ namespace Friendly.Library
          IEnumerator<long> primes = Primes.GetEnumerator();
          long nCopy = n;
          long prime = 0;
+         long lastPrimeSquared = 0;
          int exponent;
          long quotient, remainder;
          List<IPrimeFactor> factors = new List<IPrimeFactor>();
+         int rhoInvocations = 0;
 
-         while (primes.MoveNext() && nCopy != 1 && prime <= _highestPrime)
+         while (primes.MoveNext() && nCopy != 1 && lastPrimeSquared < nCopy && prime <= _highestTrialDivisor)
          {
             prime = primes.Current;
+            lastPrimeSquared = prime * prime;
             exponent = 0;
             quotient = Math.DivRem(nCopy, prime, out remainder);
             while (remainder == 0)
@@ -60,7 +84,8 @@ namespace Friendly.Library
             }
             else
             {
-               List<BigInteger> bigFactors = Factor(prime, nCopy);
+               (List<BigInteger> bigFactors, int tmp) = Factor(prime, nCopy);
+               rhoInvocations = tmp;
                bigFactors.Sort();
                int j = 0;
                int pow;
@@ -76,68 +101,80 @@ namespace Friendly.Library
          }
 
          PrimeFactorization rv = new PrimeFactorization(factors);
+         rv.RhoInvocations = rhoInvocations;
          Assertions.True(rv.Number == n);
          return rv;
-      }
-
-      /// <summary>
-      /// Gets or sets the highest prime number to be used in trial divison.
-      /// </summary>
-      public static long HighestPrime
-      {
-         get => _highestPrime;
-         set
-         {
-#if DEBUG
-            if (!Primes.IsPrime(value))
-               throw new ArgumentException("Value must be a prime number.");
-#endif
-            _highestPrime = value;
-         }
       }
 
       /// <summary>
       /// Factors the given number, n.
       /// </summary>
       /// <param name="highestPrime">The highest prime used in trial division.</param>
-      /// <param name="n">The number to factor.  This must not have any prime factors <= highestPrime.</param>
-      /// <returns>A List of factors of n.  Factors may be repeated.</returns>
-      private static List<BigInteger> Factor(long highestPrime, BigInteger n)
+      /// <param name="n">The number to factor.  This must be composite and
+      /// not have any prime factors <= highestPrime.</param>
+      /// <returns>The first item is a List of factors of n.  Factors may be repeated.  The second
+      /// item specifies the number of times the Pollard Rho algorithm was invoked.</returns>
+      private static (List<BigInteger>, int) Factor(long highestPrime, BigInteger n)
       {
          List<BigInteger> rv = new();
-         BigInteger factor;
-         int exponent;
+         BigInteger f1, f2;
+         int rhoInvocations = 0;
 
-         if (IsAPower(highestPrime, n, out factor, out exponent))
+         // Factor n into two factors
+         if (BigInteger.Log10(n) < 18) // TODO: optimize threshold
          {
-            if (Primes.IsPrime(factor))
-            {
-               for (int j = 0; j < exponent; j++)
-                  rv.Add(factor);
-            }
-            else
-            {
-               List<BigInteger> factors = Factor(highestPrime, factor);
-               for (int j = 0; j < exponent; j++)
-                  rv.AddRange(factors);
-            }
+            PollardRho rho = new PollardRho();
+            (f1, f2) = rho.Factor(n);
+            rhoInvocations++;
          }
          else
          {
-            QuadraticSieve.QuadraticSieve quadraticSieve = new QuadraticSieve.QuadraticSieve(n);
-            (BigInteger f1, BigInteger f2) = quadraticSieve.Factor();
-            if (Primes.IsPrime(f1))
-               rv.Add(f1);
-            else
-               rv.AddRange(Factor(highestPrime, f1));
-            if (Primes.IsPrime(f2))
-               rv.Add(f2);
-            else
-               rv.AddRange(Factor(highestPrime, f2));
+            BigInteger factor;
+            int exponent;
+            if (IsAPower(highestPrime, n, out factor, out exponent))
+            {
+               if (Primes.IsPrime(factor))
+               {
+                  for (int j = 0; j < exponent; j++)
+                     rv.Add(factor);
+               }
+               else
+               {
+                  (List<BigInteger> factors, int tmp) = Factor(highestPrime, n);
+                  rhoInvocations += tmp;
+                  for (int j = 0; j < exponent; j++)
+                     rv.AddRange(factors);
+               }
+
+               return (rv, rhoInvocations);
+            }
+
+            QuadraticSieve.QuadraticSieve sieve = new QuadraticSieve.QuadraticSieve(n);
+            (f1, f2) = sieve.Factor();
          }
 
-         return rv;
+         // Check if each factor is prime; if not factor it too.
+         if (Primes.IsPrime(f1))
+            rv.Add(f1);
+         else
+         {
+            (List<BigInteger> factors, int k) = Factor(highestPrime, f1);
+            rv.AddRange(factors);
+            rhoInvocations += k;
+         }
+
+         if (Primes.IsPrime(f2))
+            rv.Add(f2);
+         else
+         {
+            (List<BigInteger> factors, int k) = Factor(highestPrime, f2);
+            rv.AddRange(factors);
+            rhoInvocations += k;
+         }
+
+         return (rv, rhoInvocations);
       }
+
 
       /// <summary>
       /// Determines whether or not the given number, n, is a power of another number.
@@ -167,6 +204,19 @@ namespace Friendly.Library
          }
 
          return false;
+      }
+
+      /// <summary>
+      /// Gets the number of times the Pollard Rho algorithm was invoked during
+      /// the factorization of the given number.
+      /// </summary>
+      public int RhoInvocations
+      {
+         get => _rhoInvocations;
+         private set
+         {
+            _rhoInvocations = value;
+         }
       }
 
       public long SumOfFactors

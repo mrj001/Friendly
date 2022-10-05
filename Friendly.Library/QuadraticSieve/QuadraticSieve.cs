@@ -394,6 +394,7 @@ namespace Friendly.Library.QuadraticSieve
                   _xValues.Add(poly.EvaluateLHS(x));
                   _bSmoothValues.Add(poly.Evaluate(x));
                   int index = _bSmoothValues.Count - 1;
+                  Assertions.True((_bSmoothValues[index] - _xValues[index] * _xValues[index]) % _n == 0);
                   _matrix.ExpandColumns(index + 1);
                   for (int r = 0; r < fbSize; r++)
                      _matrix[r, index] = exponentVectors[idx][r];

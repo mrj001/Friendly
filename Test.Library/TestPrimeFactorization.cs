@@ -32,11 +32,21 @@ namespace Test.Library
                2L * 2 * 17 * 19 * 48661 * 55441);
 
             // 3 large prime factors remain after trial division.
-            rv.Add(new (long, int)[] { (2,1), (3, 2), (5, 1), (33119, 1), (33149 , 1), (33151 ,1) },
+            rv.Add(new (long, int)[] { (2, 1), (3, 2), (5, 1), (33119, 1), (33149, 1), (33151, 1) },
                2L * 3 * 3 * 5 * 33119 * 33149 * 33151);
 
             // A cube remains after trial division
             rv.Add(new (long, int)[] { (11, 2), (33151, 3) }, 11L * 11 * 33151 * 33151 * 33151);
+
+            // A sufficiently large cube remains after trial division to invoke the
+            // quadratic sieve branch.  Due to its being a power, the
+            // Quadratic Sieve is not actually invoked.
+            rv.Add(new (long, int)[] { (7, 1), (11, 1), (107_309, 3) }, 7L * 11 * 107_309 * 107_309 * 107_309);
+
+            // A sufficiently large value remains after trial division to
+            // invoke the Quadratic Sieve.
+            rv.Add(new (long, int)[] { (2, 1), (3, 1), (1_066_246_453, 1), (1_092_547_727, 1) }, 2L * 3 * 1_066_246_453 * 1_092_547_727);
+            
 
             return rv;
          }

@@ -5,10 +5,16 @@ namespace Friendly.Library
 {
    public static class BigIntegerCalculator
    {
+      /// <summary>
+      /// Calculates the Greatest Common Divisor of a and b
+      /// </summary>
+      /// <param name="a"></param>
+      /// <param name="b"></param>
+      /// <returns>The Greatest Common Divisor of a and b</returns>
       public static BigInteger GCD(BigInteger a, BigInteger b)
       {
-         Assertions.True(a >= BigInteger.Zero);
-         Assertions.True(b >= BigInteger.Zero);
+         Assertions.True(a >= 0);
+         Assertions.True(b >= 0);
          if (a < b)
             return GCDInternal(a, b);
          else
@@ -17,10 +23,14 @@ namespace Friendly.Library
 
       private static BigInteger GCDInternal(BigInteger a, BigInteger b)
       {
-         if (b == BigInteger.Zero)
-            return a;
+         while (b != BigInteger.Zero)
+         {
+            BigInteger t = b;
+            b = a % b;
+            a = t;
+         }
 
-         return GCDInternal(b, a % b);
+         return a;
       }
 
       // See: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
