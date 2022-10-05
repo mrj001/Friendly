@@ -17,11 +17,11 @@ namespace Test.Library.QuadraticSieve
       {
          ConstructorInfo? info = typeof(Polynomial).GetConstructor(
                   BindingFlags.NonPublic | BindingFlags.Instance, null,
-                  new Type[] { typeof(long), typeof(long), typeof(BigInteger), typeof(BigInteger) }, null);
+                  new Type[] { typeof(BigInteger), typeof(BigInteger), typeof(BigInteger), typeof(BigInteger) }, null);
          if (info is null)
             throw new ApplicationException("Failed to obtain ConstructorInfo object");
 
-         return (Polynomial)info.Invoke(new object[] { a, b, (BigInteger)c, (BigInteger)inv2d });
+         return (Polynomial)info.Invoke(new object[] { (BigInteger)a, (BigInteger)b, (BigInteger)c, (BigInteger)inv2d });
       }
 
       public static TheoryData<long, long, long, long> ctorTestData

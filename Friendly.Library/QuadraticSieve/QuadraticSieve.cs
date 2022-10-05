@@ -337,7 +337,7 @@ namespace Friendly.Library.QuadraticSieve
                //if (rem < 0) rem += _factorBase[factorIndex];
 
                // Find the roots of Q(x) mod p.
-               long inv2a = LongCalculator.FindInverse(2 * poly.A, _factorBase[factorIndex]);
+               BigInteger inv2a = BigIntegerCalculator.FindInverse(2 * poly.A, _factorBase[factorIndex]);
                long rootnModP = BigIntegerCalculator.SquareRoot(_n, _factorBase[factorIndex]);
                int x1 = (int)((-poly.B + rootnModP) * inv2a % _factorBase[factorIndex]);
                //if (x1 < 0) x1 += (int)_factorBase[factorIndex];

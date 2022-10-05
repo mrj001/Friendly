@@ -115,18 +115,18 @@ namespace Friendly.Library.QuadraticSieve
 
             // Finding Coefficients per Ref B.
             long d = _primes.Current;
-            long a = d * d;
+            BigInteger a = d * d;
 
             // Ref. B, Equations 7a & 7b.
-            long h0 = (long)BigInteger.ModPow(_kn, (d - 3) / 4, d);
+            BigInteger h0 = BigInteger.ModPow(_kn, (d - 3) / 4, d);
             if ((h0 & 1) == 1)
                h0 += d;
             //long h1 = ((_kn % d) * h0) % d;
-            long h1 = (long)BigInteger.ModPow(_kn, (d + 1) / 4, d);
+            BigInteger h1 = BigInteger.ModPow(_kn, (d + 1) / 4, d);
             Assertions.True((h0 * h1) % d == 1);
 
             // Ref B. Equation 8
-            long h1squared = h1 * h1;
+            BigInteger h1squared = h1 * h1;
             Assertions.True(h1squared % d == _kn % d);
 
             // Ref B. Equation 9
@@ -134,16 +134,16 @@ namespace Friendly.Library.QuadraticSieve
             Assertions.True(num % d == 0);
             Assertions.True((h0 & 1) == 0);
             Assertions.True(((h0 / 2) * (2 * h1)) % d == 1);
-            long h2 = (long)(((h0 / 2) * (num / d)) % d);
+            BigInteger h2 = (long)(((h0 / 2) * (num / d)) % d);
 
             // Ref B. Equation 10
-            long b = (h1 + h2 * d) % a;
+            BigInteger b = (h1 + h2 * d) % a;
             if ((b & 1) == 0) b = a - b;
 
             // Ref B. Equation 11
             //long bsquared = h1 * h1 + 2 * h1 * h2 * d + h2 * h2 * d * d;
             Assertions.True((h1 * h1 + 2 * h1 * h2 * d + h2 * h2 * d * d) % a == b * b % a);
-            long bsquared = b * b;
+            BigInteger bsquared = b * b;
             Assertions.True(bsquared % a == _kn % a);
 
             // Ref B. Equation 12

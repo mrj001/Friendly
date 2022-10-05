@@ -7,12 +7,12 @@ namespace Friendly.Library.QuadraticSieve
    /// </summary>
    public class Polynomial
    {
-      private readonly long _a;
-      private readonly long _b;
+      private readonly BigInteger _a;
+      private readonly BigInteger _b;
       private readonly BigInteger _c;
       private readonly BigInteger _inv2d;
 
-      internal Polynomial(long a, long b, BigInteger c, BigInteger inv2d)
+      internal Polynomial(BigInteger a, BigInteger b, BigInteger c, BigInteger inv2d)
       {
          _a = a;
          _b = b;
@@ -20,8 +20,8 @@ namespace Friendly.Library.QuadraticSieve
          _inv2d = inv2d;
       }
 
-      public long A { get => _a; }
-      public long B { get => _b; }
+      public BigInteger A { get => _a; }
+      public BigInteger B { get => _b; }
 
       /// <summary>
       /// Evaluates the full polynomial
