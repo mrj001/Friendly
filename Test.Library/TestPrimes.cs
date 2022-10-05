@@ -10,12 +10,12 @@ namespace Test.Library
       // The upper limit of the sieve is set to one less than a multiple of 64,
       // so we can use this constant in our tests.  This limit is inclusive
       // of the given value.
-      private const int _upperLimit = 25_023;
+      private const int _upperLimit = 108_159;
 
       /// <summary>
       /// The number of primes equal to or less than _upperLimit.
       /// </summary>
-      private const int _countOfPrimes = 2763;
+      private const int _countOfPrimes = 10_288;
 
       private static bool _initialized = false;
 
@@ -135,8 +135,7 @@ namespace Test.Library
          }
 
          Assert.Equal(_countOfPrimes, count);
-         Assert.Equal(25013, last);
-
+         Assert.Equal(108_139, last);
       }
 
       public static TheoryData<bool, long> MillerRabinTestData
