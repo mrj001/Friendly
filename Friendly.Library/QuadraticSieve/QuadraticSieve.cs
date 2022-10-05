@@ -286,7 +286,11 @@ namespace Friendly.Library.QuadraticSieve
          do
          {
             if (!_polynomials.MoveNext())
+            {
+               if (_bSmoothValues.Count > _factorBase.Count)
+                  return;
                throw new ApplicationException($"Ran out of polynomials while factoring {_n:N0}\nTotal B-Smooth Values Found: {_totalBSmoothValuesFound}\nFactor Base Count: {_factorBase.Count}");
+            }
             Polynomial poly = _polynomials.Current;
 
             // Calculate the values of Q(x)
