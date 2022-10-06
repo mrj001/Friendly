@@ -11,7 +11,9 @@ using Friendly.Library.QuadraticSieve;
 
 namespace Benchmark
 {
-   [SimpleJob(RunStrategy.Throughput)]
+   // warmupCount maps to "WorkloadWarmup" in the output.
+   // targetCount maps to "WorkloadActual" in the output.
+   [SimpleJob(RunStrategy.Throughput, warmupCount: 2, targetCount: 10)]
    public class BenchmarkQuadraticSieve
    {
       public BenchmarkQuadraticSieve()
