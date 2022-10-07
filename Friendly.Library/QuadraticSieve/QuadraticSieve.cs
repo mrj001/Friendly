@@ -18,7 +18,7 @@ using Friendly.Library;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class QuadraticSieve
+   public class QuadraticSieve : INotifyProgress
    {
       /// <summary>
       /// The original number being factored.
@@ -54,6 +54,9 @@ namespace Friendly.Library.QuadraticSieve
       private int _sieveIntervals;
 
       private IEnumerator<Polynomial> _polynomials;
+      private int _totalPolynomials;
+
+      public event EventHandler<NotifyProgressEventArgs> Progress;
 
       /// <summary>
       /// 
@@ -74,6 +77,7 @@ namespace Friendly.Library.QuadraticSieve
 
          _sieveIntervals = 0;
          _polynomials = null;
+         _totalPolynomials = 0;
       }
 
       private static Matrix AllocateMatrix(int fbSize)
@@ -83,6 +87,14 @@ namespace Friendly.Library.QuadraticSieve
          return new Matrix(fbSize, fbSize, 20);
       }
 
+      protected void OnNotifyProgress(string message)
+      {
+         Progress?.Invoke(this, new NotifyProgressEventArgs(message));
+      }
+
+      public int TotalBSmoothValuesFound { get => _totalBSmoothValuesFound; }
+
+      public int TotalPolynomials { get => _totalPolynomials; }
 
       /// <summary>
       /// Factors the given number into two factors.
@@ -102,6 +114,7 @@ namespace Friendly.Library.QuadraticSieve
       public (BigInteger, BigInteger) Factor()
       {
          FindFactorBase();
+         OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
 
          _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase[_factorBase.Count - 1])).GetEnumerator();
 
@@ -111,8 +124,10 @@ namespace Friendly.Library.QuadraticSieve
          int retryLimit = 100;
          while (retryCount < retryLimit)
          {
+            OnNotifyProgress($"Found {_bSmoothValues.Count} relations; reducing Matrix");
             _matrix.Reduce();
             List<BigBitArray> nullVectors = _matrix.FindNullVectors();
+            OnNotifyProgress($"Found {nullVectors.Count} Null Vectors");
 
             BigInteger x, y;
             foreach (BigBitArray nullVector in nullVectors)
@@ -155,6 +170,7 @@ namespace Friendly.Library.QuadraticSieve
             }
 
             retryCount++;
+            OnNotifyProgress($"Retry number: {retryCount}");
             PrepareToResieve();
             FindBSmooth();
          }
@@ -292,6 +308,7 @@ namespace Friendly.Library.QuadraticSieve
                throw new ApplicationException($"Ran out of polynomials while factoring {_n:N0}\nTotal B-Smooth Values Found: {_totalBSmoothValuesFound}\nFactor Base Count: {_factorBase.Count}");
             }
             Polynomial poly = _polynomials.Current;
+            _totalPolynomials++;
 
             // Calculate the values of Q(x)
             List<BigInteger> Q = new(2 * M + 1);
@@ -441,6 +458,7 @@ namespace Friendly.Library.QuadraticSieve
       {
          if (!_polynomials.MoveNext())
             throw new ApplicationException("Ran out of polynomials");
+         _totalPolynomials++;
 
          // Remove the free columns which generated the non-useful null vectors.
          List<int> freeColumns = _matrix.FindFreeColumns();
