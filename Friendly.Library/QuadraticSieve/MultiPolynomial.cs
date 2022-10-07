@@ -23,28 +23,31 @@ namespace Friendly.Library.QuadraticSieve
       private readonly BigInteger _kn;
       private readonly BigInteger _rootkn;
       private readonly long _maxFactorBase;
+      private readonly int _M;
 
       /// <summary>
       /// Constructs a new Enumerable object for the Multiple Polynomials.
       /// </summary>
       /// <param name="kn">The number being factored, pre-multiplied by the small constant.</param>
-      /// <param name="rootkn"></param>
+      /// <param name="rootkn">The ceiling of the square root of kn.</param>
       /// <param name="maxFactorBase">The largest prime in the Factor Base.</param>
-      public MultiPolynomial(BigInteger kn, BigInteger rootkn, long maxFactorBase)
+      /// <param name="M">The Sieve Interval</param>
+      public MultiPolynomial(BigInteger kn, BigInteger rootkn, long maxFactorBase, int M)
       {
          _kn = kn;
          _rootkn = rootkn;
          _maxFactorBase = maxFactorBase;
+         _M = M;
       }
 
       public IEnumerator<Polynomial> GetEnumerator()
       {
-         return new Enumerator(_kn, _rootkn, _maxFactorBase);
+         return new Enumerator(_kn, _rootkn, _maxFactorBase, _M);
       }
 
       IEnumerator IEnumerable.GetEnumerator()
       {
-         return new Enumerator(_kn, _rootkn, _maxFactorBase);
+         return new Enumerator(_kn, _rootkn, _maxFactorBase, _M);
       }
 
       private class Enumerator : IEnumerator<Polynomial>
@@ -53,21 +56,37 @@ namespace Friendly.Library.QuadraticSieve
          private readonly BigInteger _kn;
          private readonly BigInteger _rootkn;
          private readonly long _maxFactorBase;
-         private IEnumerator<long> _primes;
+         private readonly int _M;
+
+         /// <summary>
+         /// The "ideal" choice of D in Ref. B, section 3.
+         /// </summary>
+         private readonly long _idealD;
+         private long _currentD = 0;
+         private long _lowerD = long.MaxValue;
+         private long _higherD = long.MinValue;
+         private bool _nextDHigher = false;
 
          /// <summary>
          /// 
          /// </summary>
          /// <param name="kn">The number being factored, premultiplied by a small constant.</param>
-         /// <param name="rootkn"></param>
+         /// <param name="rootkn">The ceiling of the square root of kn.</param>
          /// <param name="maxFactorBase">The largest prime in the Factor Base.</param>
-         public Enumerator(BigInteger kn, BigInteger rootkn, long maxFactorBase)
+         /// <param name="M">The Sieve Interval</param>
+         public Enumerator(BigInteger kn, BigInteger rootkn, long maxFactorBase, int M)
          {
             _kn = kn;
             _rootkn = rootkn;
             _serial = -1;
             _maxFactorBase = maxFactorBase;
-            _primes = Primes.GetEnumerator();
+            _M = M;
+
+            BigInteger t = _rootkn / (4 * M);
+            _idealD = (long)BigIntegerCalculator.SquareRoot(t);
+            if ((_idealD & 1) == 0)
+               _idealD--;
+            Reset();
          }
 
          public Polynomial Current => InternalCurrent();
@@ -114,7 +133,7 @@ namespace Friendly.Library.QuadraticSieve
 
 
             // Finding Coefficients per Ref B.
-            long d = _primes.Current;
+            long d = _currentD;
             BigInteger a = d * d;
 
             // Ref. B, Equations 7a & 7b.
@@ -161,33 +180,54 @@ namespace Friendly.Library.QuadraticSieve
 
          public bool MoveNext()
          {
-            if (_serial < 0)
-            {
-               _serial = 0;
-               _primes.MoveNext();  // Advance to first prime
-            }
-
-            // Per Ref. B
-            // D will be represented by _primes.Current.
-            // Choose D to be:
-            //   1. A prime
-            //   2. Larger than the Factor Base
-            //   3. Legendre(kN/D) == 1 (i.e. kN is a quadratic residue mod D)
-            //   4. D == 3 mod 4
-            bool havePrimes = _primes.MoveNext();
-            while (havePrimes && (_primes.Current <= _maxFactorBase ||
-                     1 != BigIntegerCalculator.JacobiSymbol(_kn, _primes.Current) ||
-                     (_primes.Current & 3) != 3))
-               havePrimes = _primes.MoveNext();
+            long d;
 
             _serial++;
-            return havePrimes;
+
+            if (!_nextDHigher)
+            {
+               d = _lowerD;
+               do
+                  d -= 2;
+               while (d > _maxFactorBase && !IsSuitablePrime(d));
+               _lowerD = d;
+               _nextDHigher = true;
+               if (d > _maxFactorBase)
+               {
+                  _currentD = _lowerD;
+                  return true;
+               }
+            }
+
+            d = _higherD;
+            do
+               d += 2;
+            while (!IsSuitablePrime(d));
+            _higherD = d;
+            _currentD = d;
+            _nextDHigher = _lowerD > _maxFactorBase;
+
+            return true;
+         }
+
+         private bool IsSuitablePrime(long p)
+         {
+            // A suitable prime must meet all of the following conditions:
+            //   1. Be Prime.
+            //   2. Be larger than the Factor Base
+            //   3. Legendre(kN/D) == 1 (i.e. kN is a quadratic residue mod D)
+            //   4. D == 3 mod 4
+            return Primes.IsPrime(p) && p > _maxFactorBase &&
+               1 == BigIntegerCalculator.JacobiSymbol(_kn, p) && (p & 3) == 3;
          }
 
          public void Reset()
          {
-            _serial = -1;
-            _primes.Reset();
+            _serial = 0;
+            _currentD = long.MinValue;
+            _lowerD = _idealD + 2;
+            _higherD = Math.Max(_idealD, _maxFactorBase);
+            _nextDHigher = _lowerD <= _maxFactorBase;
          }
       }
    }

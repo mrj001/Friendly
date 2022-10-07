@@ -37,6 +37,11 @@ namespace Friendly.Library.QuadraticSieve
       private BigInteger _n;
 
       /// <summary>
+      /// The Sieve Interval.
+      /// </summary>
+      private int _M;
+
+      /// <summary>
       /// Ceiling(sqrt(_n))
       /// </summary>
       private BigInteger _rootN;
@@ -116,7 +121,8 @@ namespace Friendly.Library.QuadraticSieve
          FindFactorBase();
          OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
 
-         _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase[_factorBase.Count - 1])).GetEnumerator();
+         _M = FindSieveInterval(_n);
+         _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase[_factorBase.Count - 1], _M)).GetEnumerator();
 
          FindBSmooth();
 
@@ -297,7 +303,6 @@ namespace Friendly.Library.QuadraticSieve
       private void FindBSmooth()
       {
          int fbSize = _factorBase.Count;
-         int M = FindSieveInterval(_n);
 
          do
          {
@@ -311,8 +316,8 @@ namespace Friendly.Library.QuadraticSieve
             _totalPolynomials++;
 
             // Calculate the values of Q(x)
-            List<BigInteger> Q = new(2 * M + 1);
-            for (int x = -M; x <= M; x++)
+            List<BigInteger> Q = new(2 * _M + 1);
+            for (int x = -_M; x <= _M; x++)
                Q.Add(poly.Evaluate(x));
 
             //
@@ -322,12 +327,12 @@ namespace Friendly.Library.QuadraticSieve
             // Each bit in a bit array corresponds to one factor in the factor base.
             // The bit indices are the same as the indices into the factorBase.
             // There is one exponent vector for each value of Q.
-            List<BigBitArray> exponentVectors = new List<BigBitArray>(2 * M);
-            for (long j = -M; j <= M; j++)
+            List<BigBitArray> exponentVectors = new List<BigBitArray>(2 * _M);
+            for (long j = -_M; j <= _M; j++)
                exponentVectors.Add(new BigBitArray(fbSize));
 
             // Sieve out the special case of p == -1
-            for (int j = -M, idx = 0; j <= M; j ++, idx ++)
+            for (int j = -_M, idx = 0; j <= _M; j ++, idx ++)
             {
                if (Q[idx] < 0)
                {
@@ -338,7 +343,7 @@ namespace Friendly.Library.QuadraticSieve
 
             // Sieve out the special case of p == 2;
             // the zero'th element of the Factor Base.
-            for (int j = -M, idx = 0; j <= M; j++, idx ++)
+            for (int j = -_M, idx = 0; j <= _M; j++, idx ++)
                while ((Q[idx] & 1) == 0 && Q[idx] != 0)
                {
                   Q[idx] >>= 1;
@@ -363,7 +368,7 @@ namespace Friendly.Library.QuadraticSieve
 
                // Translate to the first index of Q and exponentVectors where
                // the values will divide evenly
-               int offset = (int)(M % _factorBase[factorIndex]);
+               int offset = (int)(_M % _factorBase[factorIndex]);
                int index1 = x1 + offset;
                if (index1 < 0) index1 += (int)_factorBase[factorIndex];
                if (index1 >= _factorBase[factorIndex]) index1 -= (int)_factorBase[factorIndex];
@@ -403,7 +408,7 @@ namespace Friendly.Library.QuadraticSieve
 
             // Collect up the B-Smooth numbers and their Exponent Vectors.
             // Each Exponent Vector becomes a column in the output Matrix.
-            for (int x = -M, idx = 0; x < M; x++, idx ++)
+            for (int x = -_M, idx = 0; x < _M; x++, idx ++)
             {
                if (Q[idx] == 1)
                {
