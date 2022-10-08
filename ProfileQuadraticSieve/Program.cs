@@ -12,6 +12,8 @@ namespace ProfileQuadraticSieve
       {
          Console.WriteLine("1. Factoring a 30-digit number.");
          Console.WriteLine("2. Factoring a 38-digit number.");
+         Console.WriteLine("3. Factor Fermat #7.");
+         Console.WriteLine("4. Factor the product of 2 random primes.");
          Console.Write("Enter number of choice: ");
          string? s = Console.ReadLine();
          int choice;
@@ -51,11 +53,44 @@ namespace ProfileQuadraticSieve
                f2 = 9_631_131_476_434_794_037;
                break;
 
+            case 3:  // Start with the known factors of F7
+               f1 = 59_649_589_127_497_217;
+               f2 = BigInteger.Parse("5704689200685129054721");
+               break;
+
+            case 4:
+               (f1, f2) = DoRandom();
+               if (f1 == BigInteger.Zero)
+                  return;
+               break;
+
             default:
                throw new ApplicationException($"Unknown value for {nameof(choice)}: {choice}");
          }
 
          Factor(f1, f2);
+      }
+
+      private static (BigInteger, BigInteger) DoRandom()
+      {
+         int numDigits;
+         string? s;
+         do
+         {
+            Console.WriteLine("Enter the number of digits of the product (>= 20): ");
+            s = Console.ReadLine();
+         } while (!int.TryParse(s, out numDigits));
+
+         if (numDigits < 20)
+         {
+            Console.WriteLine("Too small a number");
+            return (BigInteger.Zero, BigInteger.Zero);
+         }
+
+         BigInteger f1 = BigIntegerCalculator.RandomPrime(numDigits / 2 + (numDigits & 1));
+         BigInteger f2 = BigIntegerCalculator.RandomPrime(numDigits / 2);
+
+         return (f1, f2);
       }
 
       private static Stopwatch? sw;
@@ -68,6 +103,9 @@ namespace ProfileQuadraticSieve
             f2 = f1;
             f1 = tmp;
          }
+
+         Console.WriteLine($"f1 = {f1}");
+         Console.WriteLine($"f2 = {f2}");
 
          try
          {

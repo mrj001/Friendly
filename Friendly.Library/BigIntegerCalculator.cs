@@ -33,6 +33,50 @@ namespace Friendly.Library
          return a;
       }
 
+      /// <summary>
+      /// Generates a random prime number with the given number of digits.
+      /// </summary>
+      /// <param name="numDigits">The number of digits</param>
+      /// <returns></returns>
+      public static BigInteger RandomPrime(int numDigits)
+      {
+         BigInteger rv = BigInteger.Zero;
+
+         // Add digits in groups of three
+         int j = numDigits;
+         while (j > 3)
+         {
+            rv *= 1000;
+            rv += Random.Shared.NextInt64(0, 1000);
+            j -= 3;
+         }
+
+         // Add remaining single digits
+         while (j > 0)
+         {
+            rv *= 10;
+            rv += Random.Shared.NextInt64(0, 10);
+            j -= 1;
+         }
+
+         // Handle possible leading zeroes
+         while (1 + (int)Math.Floor(BigInteger.Log10(rv)) < numDigits)
+         {
+            rv *= 10;
+            rv += Random.Shared.NextInt64(0, 10);
+         }
+
+         // Make sure it's odd
+         if (rv.IsEven)
+            rv += 1;
+
+         // Make sure it's prime
+         while (!Primes.IsPrime(rv))
+            rv -= 2;
+
+         return rv;
+      }
+
       // See: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
       public static BigInteger FindInverse(BigInteger a, BigInteger n)
       {
