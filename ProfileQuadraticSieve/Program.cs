@@ -25,7 +25,7 @@ namespace ProfileQuadraticSieve
             }
             catch (Exception ex)
             {
-               Console.WriteLine($"Exception caught at: {sw?.Elapsed:mm\\:ss\\.ffff}");
+               Console.WriteLine($"Exception caught at: {sw?.Elapsed:d\\:hh\\:mm\\:ss\\.ffff}");
                Console.WriteLine(ex.Message);
                Console.WriteLine(ex.StackTrace);
             }
@@ -153,7 +153,7 @@ namespace ProfileQuadraticSieve
 
       private static void HandleProgress(object? sender, NotifyProgressEventArgs e)
       {
-         Console.WriteLine($"{sw?.Elapsed:mm\\:ss\\.ffff}: {e.Message}");
+         Console.WriteLine($"{sw?.Elapsed:d\\:hh\\:mm\\:ss\\.ffff}: {e.Message}");
       }
    }
 }
