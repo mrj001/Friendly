@@ -36,9 +36,10 @@ namespace Friendly.Library
       /// <summary>
       /// Generates a random prime number with the given number of digits.
       /// </summary>
+      /// <param name="rng">The random number generator to use.</param>
       /// <param name="numDigits">The number of digits</param>
       /// <returns></returns>
-      public static BigInteger RandomPrime(int numDigits)
+      public static BigInteger RandomPrime(Random rng, int numDigits)
       {
          BigInteger rv = BigInteger.Zero;
 
@@ -47,7 +48,7 @@ namespace Friendly.Library
          while (j > 3)
          {
             rv *= 1000;
-            rv += Random.Shared.NextInt64(0, 1000);
+            rv += rng.NextInt64(0, 1000);
             j -= 3;
          }
 
@@ -55,7 +56,7 @@ namespace Friendly.Library
          while (j > 0)
          {
             rv *= 10;
-            rv += Random.Shared.NextInt64(0, 10);
+            rv += rng.NextInt64(0, 10);
             j -= 1;
          }
 
@@ -63,7 +64,7 @@ namespace Friendly.Library
          while (1 + (int)Math.Floor(BigInteger.Log10(rv)) < numDigits)
          {
             rv *= 10;
-            rv += Random.Shared.NextInt64(0, 10);
+            rv += rng.NextInt64(0, 10);
          }
 
          // Make sure it's odd

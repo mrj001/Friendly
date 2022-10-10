@@ -46,57 +46,94 @@ namespace ProfileQuadraticSieve
             case 1:
                f1 = 500_111_274_667_351;
                f2 = 299_456_570_077_393;
+               Factor(f1, f2);
                break;
 
             case 2:
                f1 = 5_626_527_389_734_197_521;
                f2 = 9_631_131_476_434_794_037;
+               Factor(f1, f2);
                break;
 
             case 3:  // Start with the known factors of F7
                f1 = 59_649_589_127_497_217;
                f2 = BigInteger.Parse("5704689200685129054721");
+               Factor(f1, f2);
                break;
 
             case 4:
-               (f1, f2) = DoRandom();
-               if (f1 == BigInteger.Zero)
-                  return;
+               DoRandom();
                break;
 
             default:
                throw new ApplicationException($"Unknown value for {nameof(choice)}: {choice}");
          }
-
-         Factor(f1, f2);
       }
 
-      private static (BigInteger, BigInteger) DoRandom()
+      private static void DoRandom()
       {
          int numDigits;
          string? s;
          do
          {
-            Console.WriteLine("Enter the number of digits of the product (>= 20): ");
+            Console.Write("Enter the number of digits of the product (>= 20): ");
             s = Console.ReadLine();
          } while (!int.TryParse(s, out numDigits));
 
          if (numDigits < 20)
          {
             Console.WriteLine("Too small a number");
-            return (BigInteger.Zero, BigInteger.Zero);
+            return;
          }
 
-         BigInteger f1 = BigIntegerCalculator.RandomPrime(numDigits / 2 + (numDigits & 1));
-         BigInteger f2 = BigIntegerCalculator.RandomPrime(numDigits / 2);
+         int repeats;
+         do
+         {
+            Console.Write("Enter the number of repetitions: ");
+            s = Console.ReadLine();
+         } while (!int.TryParse(s, out repeats));
 
-         return (f1, f2);
+         if (repeats < 1)
+            return;
+
+         Random rng = new Random(1234);
+         double seconds;
+         double totalSeconds = 0;
+         double minSeconds = double.MaxValue;
+         double maxSeconds = double.MinValue;
+
+         for (int j = 0; j < repeats; j++)
+         {
+            Console.WriteLine($"Iteration: {j}");
+            BigInteger f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
+            BigInteger f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
+            seconds = Factor(f1, f2);
+            totalSeconds += seconds;
+            minSeconds = Math.Min(seconds, minSeconds);
+            maxSeconds = Math.Max(seconds, maxSeconds);
+         }
+         Console.WriteLine("====  Summary  ====");
+         Console.WriteLine($"Size of integers: {numDigits}");
+         Console.WriteLine($"Number of iterations: {repeats}");
+         Console.WriteLine($"Total time in seconds: {totalSeconds:0.000}");
+         Console.WriteLine($"Average time per iteration: {totalSeconds / repeats:0.000}");
+         Console.WriteLine($"Maximum iteration time: {maxSeconds:0.000}");
+         Console.WriteLine($"Minimum iteration time: {minSeconds:0.000}");
       }
 
       private static Stopwatch? sw;
 
-      private static void Factor(BigInteger f1, BigInteger f2)
+      /// <summary>
+      /// Multiplies the two given (assumed) primes and then factors the produce
+      /// using the Quadratic Sieve.
+      /// </summary>
+      /// <param name="f1"></param>
+      /// <param name="f2"></param>
+      /// <returns>The number of seconds taken to factor the product.</returns>
+      private static double Factor(BigInteger f1, BigInteger f2)
       {
+         double rv = -1;
+
          if (f1 > f2)
          {
             BigInteger tmp = f2;
@@ -146,9 +183,12 @@ namespace ProfileQuadraticSieve
             if (sw is not null)
             {
                sw.Stop();
+               rv = sw.Elapsed.TotalSeconds;
                sw = null;
             }
          }
+
+         return rv;
       }
 
       private static void HandleProgress(object? sender, NotifyProgressEventArgs e)
