@@ -154,7 +154,7 @@ namespace ProfileQuadraticSieve
                   _progressLogger.WriteLine("Terminating: time limit exceeded.");
                   break;
                }
-               if (swTotalTime.Elapsed.TotalSeconds + iterationSeconds > _performanceTimeLimit.TotalSeconds)
+               if (swTotalTime.Elapsed.TotalSeconds + iterationSeconds / repeats[repeatIndex] > _performanceTimeLimit.TotalSeconds)
                {
                   _progressLogger.WriteLine("Terminating: next iteration expected to exceed time limit.");
                   break;
