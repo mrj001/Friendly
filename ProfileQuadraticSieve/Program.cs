@@ -145,9 +145,9 @@ namespace ProfileQuadraticSieve
 
                RunFactorings(_performanceTimeLimit.TotalSeconds - swTotalTime.Elapsed.TotalSeconds,
                   numDigits, ref repeats[repeatIndex], out iterationSeconds, out minSeconds, out maxSeconds);
+
                resultLogger.WriteLine($"{numDigits}\t{repeats[repeatIndex]}\t{iterationSeconds}\t{minSeconds}\t{maxSeconds}");
                resultLogger.Flush();
-               repeatIndex++;
 
                if (swTotalTime.Elapsed > _performanceTimeLimit)
                {
@@ -159,6 +159,8 @@ namespace ProfileQuadraticSieve
                   _progressLogger.WriteLine("Terminating: next iteration expected to exceed time limit.");
                   break;
                }
+
+               repeatIndex++;
             }
          }
          finally
