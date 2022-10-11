@@ -38,7 +38,7 @@ namespace Friendly.Library.Logging
       protected virtual void Dispose(bool disposing)
       {
          _tw?.Flush();
-         _tw?.Dispose();
+         _tw?.Close();
          _tw = null;
       }
 
