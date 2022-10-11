@@ -274,15 +274,12 @@ namespace Friendly.Library.QuadraticSieve
          // Additionally, for numbers smaller than 24 digits, the size has
          // been extrapolated based upon halving the size of the factor base
          // for each 6 digit reduction in size.
-         // Note that almost all of the entries here are far too large to fit
-         // in a long.  They are included in anticipation of a future update to
-         // using BigIntegers.
          int[] digits = new int[] { 12, 18, 24, 30, 36, 42, 48, 54, 60, 66 };
          int[] sz = new int[] { 25, 50, 100, 200, 400, 900, 1200, 2000, 3000, 4500 };
 
-         double d = BigInteger.Log10(kn);
+         int numDigits = 1 + (int)Math.Floor(BigInteger.Log10(kn));
          int j = 0;
-         while (j < digits.Length && digits[j] < d)
+         while (j < digits.Length && digits[j] < numDigits)
             j++;
 
          if (j == digits.Length)
