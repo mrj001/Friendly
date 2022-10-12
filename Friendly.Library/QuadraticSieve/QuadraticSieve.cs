@@ -196,6 +196,8 @@ namespace Friendly.Library.QuadraticSieve
 
          int[] nSmallMultipliersToConsider = new int[] { 1, 3, 5, 7, 11, 13, 17, 19 };
          List<long>[] rv = new List<long>[nSmallMultipliersToConsider.Length];
+         int indexOfMax = int.MinValue;
+         double maxKnuthSchroeppel = double.MinValue;
 
          long maxPrime = 0;
          for (int j = 0; j < nSmallMultipliersToConsider.Length; j ++)
@@ -227,29 +229,14 @@ namespace Friendly.Library.QuadraticSieve
                      maxPrime = Math.Max(prime, maxPrime);
                   }
                }
-            }
-         }
 
-         // The goals of this phase are
-         //  1. Maximize the number of small primes in the factor base
-         //  2. Keep the multiplier small
-         //  TODO: Should "Minimize the number of factors in the factor base"
-         //        be a goal?
-         //  TODO: Is this too much emphasis on keeping the multiplier small?
-         double bestCost = double.MaxValue;
-         int indexOfBest = int.MinValue;
-         for (int j = 0; j < rv.Length; j ++)
-         {
-            if (rv[j] is not null)
-            {
-               int smallPrimeCount = 0;
-               for (int k = 0; k < rv[j].Count && rv[j][k] < 100; k++)
-                  smallPrimeCount++;
-               double cost = (double)nSmallMultipliersToConsider[j] / smallPrimeCount;
-               if (cost < bestCost)
+               // Evaluate the Knuth-Schroeppel function and find its maximum value
+               // over the potential Factor Bases.
+               double knuthSchroeppel = KnuthSchroeppel(nSmallMultipliersToConsider[j], _nOrig, rv[j]);
+               if (knuthSchroeppel > maxKnuthSchroeppel)
                {
-                  bestCost = cost;
-                  indexOfBest = j;
+                  indexOfMax = j;
+                  maxKnuthSchroeppel = knuthSchroeppel;
                }
             }
          }
@@ -257,11 +244,47 @@ namespace Friendly.Library.QuadraticSieve
          // TODO There exists a possibility that no small multiplier satisfied
          //  the condition _nOrig * m mod 4 == 1;  In this event, this will
          //  throw an exception.
-         _multiplier = nSmallMultipliersToConsider[indexOfBest];
+         _multiplier = nSmallMultipliersToConsider[indexOfMax];
          _n = _multiplier * _nOrig;
          _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);  // assumes _n is not square.
-         _factorBase = rv[indexOfBest];
+         _factorBase = rv[indexOfMax];
          _matrix = AllocateMatrix(_factorBase.Count);
+      }
+
+      /// <summary>
+      /// Evaluates the Knuth-Schroeppel function for a given potential multiplier
+      /// and Factor Base.
+      /// </summary>
+      /// <param name="k">The multiplier being considered</param>
+      /// <param name="n">The number being factored</param>
+      /// <param name="factorBase">The factor base being considerd.</param>
+      /// <returns>The value of the Knuth-Schroeppel function.</returns>
+      private static double KnuthSchroeppel(int k, BigInteger n, List<long> factorBase)
+      {
+         double rv = 0;
+
+         foreach (long p in factorBase)
+         {
+            if (p < 0) continue;
+
+            double logp = Math.Log(p);
+            double g;
+            if (p == 2)
+            {
+               g = (n & 7) == 1 ? 2 : 0;
+            }
+            else
+            {
+               if (k % p == 0)
+                  g = 2.0 / p;
+               else
+                  g = 1.0 / p;
+            }
+
+            rv += logp * g;
+         }
+
+         return rv - 0.5 * Math.Log(k);
       }
 
       private static int FindSizeOfFactorBase(BigInteger kn)
