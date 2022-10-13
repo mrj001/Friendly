@@ -203,7 +203,7 @@ namespace Friendly.Library.QuadraticSieve
          for (int j = 0; j < nSmallMultipliersToConsider.Length; j ++)
          {
             n = _nOrig * nSmallMultipliersToConsider[j];
-            if ((n & 3) == 1)  // n == 1 mod 4.
+            if ((n & 7) == 1)  // n == 1 mod 8.
             {
                int sz = FindSizeOfFactorBase(n);
                rv[j] = new List<long>(sz);
@@ -211,8 +211,8 @@ namespace Friendly.Library.QuadraticSieve
                // Always add -1
                rv[j].Add(-1);
 
-               // We can always include 2 because any odd number squared will have 1 as a
-               // Quadratic Residue modulo 2.
+               // We can always include 2 because of the condition that
+               // n == 1 mod 8
                rv[j].Add(2);
 
                // Add primes p such that (n % p) is a quadratic residue modulo p.
