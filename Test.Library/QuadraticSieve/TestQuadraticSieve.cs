@@ -145,5 +145,48 @@ namespace Test.Library.QuadraticSieve
             Assert.Equal(p2, q2);
          }
       }
+
+      public static TheoryData<int, BigInteger, BigInteger> FactorBigTestData
+      {
+         get
+         {
+            var rv = new TheoryData<int, BigInteger, BigInteger>();
+
+            rv.Add(0,
+               BigInteger.Parse("326971659889765076797128839"),
+               BigInteger.Parse("528807794908360128130942333"));
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(FactorBigTestData))]
+#pragma warning disable xUnit1026 // Theory methods should use all of their parameters
+      public void FactorBig(int serial, BigInteger f1, BigInteger f2)
+#pragma warning restore xUnit1026 // Theory methods should use all of their parameters
+      {
+         if (f1 > f2)
+         {
+            BigInteger t = f1;
+            f1 = f2;
+            f2 = t;
+         }
+
+         BigInteger product = f1 * f2;
+
+         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(product);
+         (BigInteger actual1, BigInteger actual2) = sieve.Factor();
+
+         if (actual1 > actual2)
+         {
+            BigInteger t = actual1;
+            actual1 = actual2;
+            actual2 = t;
+         }
+
+         Assert.Equal(f1, actual1);
+         Assert.Equal(f2, actual2);
+      }
    }
 }
