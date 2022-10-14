@@ -46,7 +46,7 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private BigInteger _rootN;
 
-      private List<long> _factorBase;
+      private FactorBase _factorBase;
 
       private readonly List<BigInteger> _xValues;
       private readonly List<BigInteger> _bSmoothValues;
@@ -122,7 +122,7 @@ namespace Friendly.Library.QuadraticSieve
          OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
 
          _M = FindSieveInterval(_n);
-         _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase[_factorBase.Count - 1], _M)).GetEnumerator();
+         _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M)).GetEnumerator();
 
          FindBSmooth();
 
@@ -194,45 +194,24 @@ namespace Friendly.Library.QuadraticSieve
       {
          BigInteger n;
 
-         int[] nSmallMultipliersToConsider = new int[] { 1, 3, 5, 7, 11, 13, 17, 19 };
-         List<long>[] rv = new List<long>[nSmallMultipliersToConsider.Length];
+         int[] nSmallMultipliersToConsider = new int[] { 1, 3, 5, 7, 11, 13, 17,
+            19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97 };
+         //List<long>[] rv = new List<long>[nSmallMultipliersToConsider.Length];
+         FactorBase[] factorBases = new FactorBase[nSmallMultipliersToConsider.Length];
          int indexOfMax = int.MinValue;
          double maxKnuthSchroeppel = double.MinValue;
 
-         long maxPrime = 0;
          for (int j = 0; j < nSmallMultipliersToConsider.Length; j ++)
          {
             n = _nOrig * nSmallMultipliersToConsider[j];
             if ((n & 7) == 1)  // n == 1 mod 8.
             {
                int sz = FindSizeOfFactorBase(n);
-               rv[j] = new List<long>(sz);
-
-               // Always add -1
-               rv[j].Add(-1);
-
-               // We can always include 2 because of the condition that
-               // n == 1 mod 8
-               rv[j].Add(2);
-
-               // Add primes p such that (n % p) is a quadratic residue modulo p.
-               // Note that for primes in the second argument, the Jacobi Symbol
-               // reduces to the Legendre Symbol.
-               IEnumerator<long> primes = Primes.GetEnumerator();
-               primes.MoveNext();  // Skip 2
-               while (primes.MoveNext() && rv[j].Count < sz)
-               {
-                  long prime = primes.Current;
-                  if (1 == LongCalculator.JacobiSymbol((long)(n % prime), prime))
-                  {
-                     rv[j].Add(prime);
-                     maxPrime = Math.Max(prime, maxPrime);
-                  }
-               }
+               factorBases[j] = new FactorBase(nSmallMultipliersToConsider[j], n, sz);
 
                // Evaluate the Knuth-Schroeppel function and find its maximum value
                // over the potential Factor Bases.
-               double knuthSchroeppel = KnuthSchroeppel(nSmallMultipliersToConsider[j], _nOrig, rv[j]);
+               double knuthSchroeppel = factorBases[j].KnuthSchroeppel();
                if (knuthSchroeppel > maxKnuthSchroeppel)
                {
                   indexOfMax = j;
@@ -242,49 +221,14 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          // TODO There exists a possibility that no small multiplier satisfied
-         //  the condition _nOrig * m mod 4 == 1;  In this event, this will
+         //  the condition _nOrig * m mod 8 == 1;  In this event, this will
          //  throw an exception.
          _multiplier = nSmallMultipliersToConsider[indexOfMax];
          _n = _multiplier * _nOrig;
          _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);  // assumes _n is not square.
-         _factorBase = rv[indexOfMax];
+         _factorBase = factorBases[indexOfMax];
+         _factorBase.CalculateSquareRoots();
          _matrix = AllocateMatrix(_factorBase.Count);
-      }
-
-      /// <summary>
-      /// Evaluates the Knuth-Schroeppel function for a given potential multiplier
-      /// and Factor Base.
-      /// </summary>
-      /// <param name="k">The multiplier being considered</param>
-      /// <param name="n">The number being factored</param>
-      /// <param name="factorBase">The factor base being considerd.</param>
-      /// <returns>The value of the Knuth-Schroeppel function.</returns>
-      private static double KnuthSchroeppel(int k, BigInteger n, List<long> factorBase)
-      {
-         double rv = 0;
-
-         foreach (long p in factorBase)
-         {
-            if (p < 0) continue;
-
-            double logp = Math.Log(p);
-            double g;
-            if (p == 2)
-            {
-               g = (n & 7) == 1 ? 2 : 0;
-            }
-            else
-            {
-               if (k % p == 0)
-                  g = 2.0 / p;
-               else
-                  g = 1.0 / p;
-            }
-
-            rv += logp * g;
-         }
-
-         return rv - 0.5 * Math.Log(k);
       }
 
       private static int FindSizeOfFactorBase(BigInteger kn)
@@ -379,50 +323,51 @@ namespace Friendly.Library.QuadraticSieve
                //if (rem < 0) rem += _factorBase[factorIndex];
 
                // Find the roots of Q(x) mod p.
-               BigInteger inv2a = BigIntegerCalculator.FindInverse(2 * poly.A, _factorBase[factorIndex]);
-               long rootnModP = BigIntegerCalculator.SquareRoot(_n, _factorBase[factorIndex]);
-               int x1 = (int)((-poly.B + rootnModP) * inv2a % _factorBase[factorIndex]);
+               int curPrime = _factorBase[factorIndex].Prime;
+               long rootnModP = _factorBase[factorIndex].RootNModP;
+               BigInteger inv2a = BigIntegerCalculator.FindInverse(2 * poly.A, curPrime);
+               int x1 = (int)((-poly.B + rootnModP) * inv2a % curPrime);
                //if (x1 < 0) x1 += (int)_factorBase[factorIndex];
-               int x2 = (int)((-poly.B - rootnModP) * inv2a % _factorBase[factorIndex]);
+               int x2 = (int)((-poly.B - rootnModP) * inv2a % curPrime);
                //if (x2 < 0) x2 += (int)_factorBase[factorIndex];
 
                // Translate to the first index of Q and exponentVectors where
                // the values will divide evenly
-               int offset = (int)(_M % _factorBase[factorIndex]);
+               int offset = (int)(_M % curPrime);
                int index1 = x1 + offset;
-               if (index1 < 0) index1 += (int)_factorBase[factorIndex];
-               if (index1 >= _factorBase[factorIndex]) index1 -= (int)_factorBase[factorIndex];
+               if (index1 < 0) index1 += curPrime;
+               if (index1 >= curPrime) index1 -= curPrime;
                int index2 = x2 + offset;
-               if (index2 < 0) index2 += (int)_factorBase[factorIndex];
-               if (index2 >= _factorBase[factorIndex]) index2 -= (int)_factorBase[factorIndex];
+               if (index2 < 0) index2 += curPrime;
+               if (index2 >= curPrime) index2 -= curPrime;
 
                // Sieve out these factors
                while (index1 < Q.Count)
                {
                   BigInteger q, r;
-                  q = BigInteger.DivRem(Q[index1], _factorBase[factorIndex], out r);
+                  q = BigInteger.DivRem(Q[index1], curPrime, out r);
                   Assertions.True(r == 0);
                   do
                   {
                      Q[index1] = q;
                      exponentVectors[index1].FlipBit(factorIndex);
-                     q = BigInteger.DivRem(Q[index1], _factorBase[factorIndex], out r);
+                     q = BigInteger.DivRem(Q[index1], curPrime, out r);
                   } while (r == 0);
-                  index1 += (int)_factorBase[factorIndex];
+                  index1 += curPrime;
                }
 
                while (index2 < Q.Count)
                {
                   BigInteger q, r;
-                  q = BigInteger.DivRem(Q[index2], _factorBase[factorIndex], out r);
+                  q = BigInteger.DivRem(Q[index2], curPrime, out r);
                   Assertions.True(r == 0);
                   do
                   {
                      Q[index2] = q;
                      exponentVectors[index2].FlipBit(factorIndex);
-                     q = BigInteger.DivRem(Q[index2], _factorBase[factorIndex], out r);
+                     q = BigInteger.DivRem(Q[index2], curPrime, out r);
                   } while (r == 0);
-                  index2 += (int)_factorBase[factorIndex];
+                  index2 += curPrime;
                }
             }
 
@@ -510,12 +455,12 @@ namespace Friendly.Library.QuadraticSieve
             BigInteger q, r;
             while (row < kul && bSmooth != 1)
             {
-               q = BigInteger.DivRem(bSmooth, _factorBase[row], out r);
+               q = BigInteger.DivRem(bSmooth, _factorBase[row].Prime, out r);
                while (r == 0)
                {
                   bSmooth = q;
                   _matrix.FlipBit(row, col);
-                  q = BigInteger.DivRem(bSmooth, _factorBase[row], out r);
+                  q = BigInteger.DivRem(bSmooth, _factorBase[row].Prime, out r);
                }
                row++;
             }
