@@ -279,57 +279,24 @@ namespace Friendly.Library.QuadraticSieve
             Polynomial poly = _polynomials.Current;
             _totalPolynomials++;
 
-            // Calculate the values of Q(x)
-            List<BigInteger> Q = new(2 * _M + 1);
-            for (int x = -_M; x <= _M; x++)
-               Q.Add(poly.Evaluate(x));
+            // Initialize a Sieve array to zero over the range [-M, M]
+            int sieveSize = 2 * _M + 1;
+            float[] sieve = new float[sieveSize];
+            // The Sieve Threshold is per Ref. B, Section 4 (iii) with T == 2.
+            float sieveThreshold = (float)(Math.Log(_M * Math.Sqrt((double)_n / 2) / (_factorBase[_factorBase.Count - 1].Prime * _factorBase[_factorBase.Count - 1].Prime)));
 
-            //
-            // Sieve for B-Smooth values
-            //
-
-            // Each bit in a bit array corresponds to one factor in the factor base.
-            // The bit indices are the same as the indices into the factorBase.
-            // There is one exponent vector for each value of Q.
-            List<BigBitArray> exponentVectors = new List<BigBitArray>(2 * _M);
-            for (long j = -_M; j <= _M; j++)
-               exponentVectors.Add(new BigBitArray(fbSize));
-
-            // Sieve out the special case of p == -1
-            for (int j = -_M, idx = 0; j <= _M; j ++, idx ++)
+            // for all primes in the factor base (other than -1 and 2) add Add log(p) to the sieve
+            for (int j = 2, jul = _factorBase.Count; j < jul; j ++)
             {
-               if (Q[idx] < 0)
-               {
-                  Q[idx] *= -1;
-                  exponentVectors[idx].FlipBit(0);
-               }
-            }
-
-            // Sieve out the special case of p == 2;
-            // the zero'th element of the Factor Base.
-            for (int j = -_M, idx = 0; j <= _M; j++, idx ++)
-               while ((Q[idx] & 1) == 0 && Q[idx] != 0)
-               {
-                  Q[idx] >>= 1;
-                  exponentVectors[idx].FlipBit(1);
-               }
-
-            // Sieve the remaining Factor Base
-            for (int factorIndex = 2; factorIndex < fbSize; factorIndex++)
-            {
-               // Calculate ceiling(a/p) * p - a
-               // where a is the start of the Sieve Interval.
-               //long rem = -M % _factorBase[factorIndex];
-               //if (rem < 0) rem += _factorBase[factorIndex];
+               FactorBasePrime prime = _factorBase[j];
+               float log = prime.Log;
 
                // Find the roots of Q(x) mod p.
-               int curPrime = _factorBase[factorIndex].Prime;
-               long rootnModP = _factorBase[factorIndex].RootNModP;
-               BigInteger inv2a = BigIntegerCalculator.FindInverse(2 * poly.A, curPrime);
+               int curPrime = prime.Prime;
+               int rootnModP = prime.RootNModP;
+               BigInteger inv2a = BigIntegerCalculator.FindInverse(2 * poly.A, curPrime);  // BUG 2 is not invertible
                int x1 = (int)((-poly.B + rootnModP) * inv2a % curPrime);
-               //if (x1 < 0) x1 += (int)_factorBase[factorIndex];
                int x2 = (int)((-poly.B - rootnModP) * inv2a % curPrime);
-               //if (x2 < 0) x2 += (int)_factorBase[factorIndex];
 
                // Translate to the first index of Q and exponentVectors where
                // the values will divide evenly
@@ -341,50 +308,61 @@ namespace Friendly.Library.QuadraticSieve
                if (index2 < 0) index2 += curPrime;
                if (index2 >= curPrime) index2 -= curPrime;
 
-               // Sieve out these factors
-               while (index1 < Q.Count)
+               // Add the Log of the Prime to each r +/- p location.
+               while (index1 < sieveSize)
                {
-                  BigInteger q, r;
-                  q = BigInteger.DivRem(Q[index1], curPrime, out r);
-                  Assertions.True(r == 0);
-                  do
-                  {
-                     Q[index1] = q;
-                     exponentVectors[index1].FlipBit(factorIndex);
-                     q = BigInteger.DivRem(Q[index1], curPrime, out r);
-                  } while (r == 0);
+                  sieve[index1] += log;
                   index1 += curPrime;
                }
-
-               while (index2 < Q.Count)
+               while (index2 < sieveSize)
                {
-                  BigInteger q, r;
-                  q = BigInteger.DivRem(Q[index2], curPrime, out r);
-                  Assertions.True(r == 0);
-                  do
-                  {
-                     Q[index2] = q;
-                     exponentVectors[index2].FlipBit(factorIndex);
-                     q = BigInteger.DivRem(Q[index2], curPrime, out r);
-                  } while (r == 0);
+                  sieve[index2] += log;
                   index2 += curPrime;
                }
             }
 
-            // Collect up the B-Smooth numbers and their Exponent Vectors.
-            // Each Exponent Vector becomes a column in the output Matrix.
-            for (int x = -_M, idx = 0; x < _M; x++, idx ++)
+            // Find all sieve locations which exceed the Sieve Threshold
+            BigBitArray[] exponentVectors = new BigBitArray[sieveSize];
+            for (int x = -_M, idx = 0; x <= _M; x ++, idx++)
             {
-               if (Q[idx] == 1)
+               if (sieve[idx] > sieveThreshold)
                {
-                  _totalBSmoothValuesFound++;
-                  _xValues.Add(poly.EvaluateLHS(x));
-                  _bSmoothValues.Add(poly.Evaluate(x));
-                  int index = _bSmoothValues.Count - 1;
-                  Assertions.True((_bSmoothValues[index] - _xValues[index] * _xValues[index]) % _n == 0);
-                  _matrix.ExpandColumns(index + 1);
-                  for (int r = 0; r < fbSize; r++)
-                     _matrix[r, index] = exponentVectors[idx][r];
+                  exponentVectors[idx] = new BigBitArray(_factorBase.Count);
+                  BigInteger Q = poly.Evaluate(x);
+
+                  // Handle the -1 prime
+                  if (Q < 0)
+                  {
+                     Q *= -1;
+                     exponentVectors[idx].FlipBit(0);
+                  }
+
+                  // Handle the remaining primes
+                  for (int j = 1, jul = _factorBase.Count; j < jul; j ++)
+                  {
+                     int curPrime = _factorBase[j].Prime;
+                     BigInteger q, r;
+                     q = BigInteger.DivRem(Q, curPrime, out r);
+                     while (r == 0)
+                     {
+                        Q = q;
+                        exponentVectors[idx].FlipBit(j);
+                        q = BigInteger.DivRem(Q, curPrime, out r);
+                     }
+                  }
+
+                  // Is the number B-Smooth?
+                  if (Q == 1)
+                  {
+                     _totalBSmoothValuesFound++;
+                     _xValues.Add(poly.EvaluateLHS(x));
+                     _bSmoothValues.Add(poly.Evaluate(x));
+                     int index = _bSmoothValues.Count - 1;
+                     Assertions.True((_bSmoothValues[index] - _xValues[index] * _xValues[index]) % _n == 0);
+                     _matrix.ExpandColumns(index + 1);
+                     for (int r = 0; r < fbSize; r++)
+                        _matrix[r, index] = exponentVectors[idx][r];
+                  }
                }
             }
 
