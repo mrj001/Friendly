@@ -133,7 +133,7 @@ namespace Friendly.Library.QuadraticSieve
 
 
             // Finding Coefficients per Ref B.
-            long d = _currentD;
+            BigInteger d = _currentD;
             BigInteger a = d * d;
 
             // Ref. B, Equations 7a & 7b.
