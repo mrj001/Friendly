@@ -29,6 +29,11 @@ namespace Friendly.Library.QuadraticSieve
       /// Gets the natural logarithm of the FactorBasePrime.
       /// </summary>
       public float Log { get => _log; }
+
+      public override string ToString()
+      {
+         return $"{_prime}";
+      }
    }
 }
 
