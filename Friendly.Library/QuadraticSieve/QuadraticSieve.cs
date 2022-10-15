@@ -283,7 +283,7 @@ namespace Friendly.Library.QuadraticSieve
             int sieveSize = 2 * _M + 1;
             float[] sieve = new float[sieveSize];
             // The Sieve Threshold is per Ref. B, Section 4 (iii) with T == 2.
-            float sieveThreshold = (float)(Math.Log(_M * Math.Sqrt((double)_n / 2) / (_factorBase[_factorBase.Count - 1].Prime * _factorBase[_factorBase.Count - 1].Prime)));
+            float sieveThreshold = (float)(Math.Log(_M * Math.Sqrt((double)_n / 2) / ((long)_factorBase[_factorBase.Count - 1].Prime * _factorBase[_factorBase.Count - 1].Prime)));
 
             // for all primes in the factor base (other than -1 and 2) add Add log(p) to the sieve
             for (int j = 2, jul = _factorBase.Count; j < jul; j ++)
