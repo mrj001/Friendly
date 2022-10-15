@@ -387,7 +387,7 @@ namespace Friendly.Library.QuadraticSieve
             j++;
 
          if (j == digits.Length)
-            return interval[interval.Length];
+            return interval[interval.Length - 1];
 
          return interval[j];
       }

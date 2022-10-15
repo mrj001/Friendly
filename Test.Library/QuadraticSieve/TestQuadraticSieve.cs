@@ -168,7 +168,7 @@ namespace Test.Library.QuadraticSieve
          }
       }
 
-      [Theory]
+      [Theory(Skip ="Very slow running.")]
       [MemberData(nameof(FactorBigTestData))]
 #pragma warning disable xUnit1026 // Theory methods should use all of their parameters
       public void FactorBig(int serial, BigInteger f1, BigInteger f2)
