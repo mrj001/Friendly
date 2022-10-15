@@ -156,6 +156,10 @@ namespace Test.Library.QuadraticSieve
                BigInteger.Parse("326971659889765076797128839"),
                BigInteger.Parse("528807794908360128130942333"));
 
+            rv.Add(1,
+               BigInteger.Parse("770607400433253661528625143"),
+               BigInteger.Parse("915047396402611445606787673"));
+
             return rv;
          }
       }
