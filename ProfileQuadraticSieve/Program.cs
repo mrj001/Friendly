@@ -109,8 +109,10 @@ namespace ProfileQuadraticSieve
          double totalSeconds = 0;
          double minSeconds = double.MaxValue;
          double maxSeconds = double.MinValue;
+         int polyCount = 0;
 
-         RunFactorings(double.MaxValue, numDigits, ref repeats, out totalSeconds, out minSeconds, out maxSeconds);
+         RunFactorings(double.MaxValue, numDigits, ref repeats, out totalSeconds,
+            out minSeconds, out maxSeconds, out polyCount);
 
          _progressLogger.WriteLine("====  Summary  ====");
          _progressLogger.WriteLine($"Size of integers: {numDigits}");
@@ -119,6 +121,7 @@ namespace ProfileQuadraticSieve
          _progressLogger.WriteLine($"Average time per iteration: {totalSeconds / repeats:0.000}");
          _progressLogger.WriteLine($"Maximum iteration time: {maxSeconds:0.000}");
          _progressLogger.WriteLine($"Minimum iteration time: {minSeconds:0.000}");
+         _progressLogger.WriteLine($"Polynomials used: {polyCount}");
       }
 
       private static void DoPerformanceTest()
@@ -133,7 +136,7 @@ namespace ProfileQuadraticSieve
          {
             _progressLogger = new FileLogger("progress.log");
             resultLogger = new FileLogger("results.log");
-            resultLogger.WriteLine("Digits\tRepetitions\tTotal Seconds\tMinimum\tMaximum\t");
+            resultLogger.WriteLine("Digits\tRepetitions\tTotalSeconds\tMinimum\tMaximum\tPolynomials");
 
             swTotalTime.Start();
             for (int numDigits = 24; numDigits <= 66; numDigits += 6)
@@ -142,11 +145,13 @@ namespace ProfileQuadraticSieve
                double iterationSeconds;
                double minSeconds;
                double maxSeconds;
+               int polyCount;
 
                RunFactorings(_performanceTimeLimit.TotalSeconds - swTotalTime.Elapsed.TotalSeconds,
-                  numDigits, ref repeats[repeatIndex], out iterationSeconds, out minSeconds, out maxSeconds);
+                  numDigits, ref repeats[repeatIndex], out iterationSeconds, out minSeconds, out maxSeconds,
+                  out polyCount);
 
-               resultLogger.WriteLine($"{numDigits}\t{repeats[repeatIndex]}\t{iterationSeconds}\t{minSeconds}\t{maxSeconds}");
+               resultLogger.WriteLine($"{numDigits}\t{repeats[repeatIndex]}\t{iterationSeconds}\t{minSeconds}\t{maxSeconds}\t{polyCount}");
                resultLogger.Flush();
 
                if (swTotalTime.Elapsed > _performanceTimeLimit)
@@ -174,23 +179,26 @@ namespace ProfileQuadraticSieve
 
       private static void RunFactorings(double timeLimit, int numDigits,
          ref int repeats, out double totalSeconds,
-         out double minSeconds, out double maxSeconds)
+         out double minSeconds, out double maxSeconds, out int totalPolynomials)
       {
          Random rng = new Random(1234);
          double seconds;
+         int polyCount;
          totalSeconds = 0;
          minSeconds = double.MaxValue;
          maxSeconds = double.MinValue;
+         totalPolynomials = 0;
 
          for (int j = 0; j < repeats; j++)
          {
             _progressLogger.WriteLine($"Iteration: {j}");
             BigInteger f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
             BigInteger f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
-            seconds = Factor(f1, f2);
+            (seconds, polyCount) = Factor(f1, f2);
             totalSeconds += seconds;
             minSeconds = Math.Min(seconds, minSeconds);
             maxSeconds = Math.Max(seconds, maxSeconds);
+            totalPolynomials += polyCount;
             if (totalSeconds > timeLimit)
                repeats = j + 1;
          }
@@ -205,10 +213,16 @@ namespace ProfileQuadraticSieve
       /// <param name="logger"></param>
       /// <param name="f1"></param>
       /// <param name="f2"></param>
-      /// <returns>The number of seconds taken to factor the product.</returns>
-      private static double Factor(BigInteger f1, BigInteger f2)
+      /// <returns>
+      /// <list type="number">
+      /// <item>The number of seconds taken to factor the product.</item>
+      /// <item>The number of polynomials used to factor the product.</item>
+      /// </list>
+      /// </returns>
+      private static (double, int) Factor(BigInteger f1, BigInteger f2)
       {
          double rv = -1;
+         int polyCount = 0;
 
          if (Primes.SieveLimit == 0)
          {
@@ -237,6 +251,7 @@ namespace ProfileQuadraticSieve
             QuadraticSieve sieve = new(n);
             sieve.Progress += HandleProgress;
             (BigInteger g1, BigInteger g2) = sieve.Factor();
+            polyCount = sieve.TotalPolynomials;
 
             if (g1 > g2)
             {
@@ -264,7 +279,7 @@ namespace ProfileQuadraticSieve
             }
          }
 
-         return rv;
+         return (rv, polyCount);
       }
 
       private static void HandleProgress(object? sender, NotifyProgressEventArgs e)
