@@ -81,22 +81,22 @@ namespace Friendly.Library
       // See: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
       public static BigInteger FindInverse(BigInteger a, BigInteger n)
       {
-         BigInteger t = 0;
+         BigInteger t = BigInteger.Zero;
          BigInteger newt = 1;
          BigInteger r = n;
          BigInteger newr = a;
+         BigInteger remainder;
 
          while (newr != 0)
          {
-            BigInteger quotient = r / newr;
+            BigInteger quotient = BigInteger.DivRem(r, newr, out remainder);
 
             BigInteger tmp = t;
             t = newt;
             newt = tmp - quotient * newt;
 
-            tmp = r;
             r = newr;
-            newr = tmp - quotient * newr;
+            newr = remainder;
          }
          if (r > 1)
             throw new ApplicationException($"{a} is not invertible mod {n}");
