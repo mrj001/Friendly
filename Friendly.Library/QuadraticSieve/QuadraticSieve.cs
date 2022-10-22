@@ -281,15 +281,15 @@ namespace Friendly.Library.QuadraticSieve
 
             // Initialize a Sieve array to zero over the range [-M, M]
             int sieveSize = 2 * _M + 1;
-            float[] sieve = new float[sieveSize];
+            ushort[] sieve = new ushort[sieveSize];
             // The Sieve Threshold is per Ref. B, Section 4 (iii) with T == 2.
-            float sieveThreshold = (float)(Math.Log(_M * Math.Sqrt((double)_n / 2) / ((long)_factorBase[_factorBase.Count - 1].Prime * _factorBase[_factorBase.Count - 1].Prime)));
+            ushort sieveThreshold = (ushort)Math.Round(Math.Log(_M * Math.Sqrt((double)_n / 2) / ((long)_factorBase[_factorBase.Count - 1].Prime * _factorBase[_factorBase.Count - 1].Prime)));
 
             // for all primes in the factor base (other than -1 and 2) add Add log(p) to the sieve
             for (int j = 2, jul = _factorBase.Count; j < jul; j ++)
             {
                FactorBasePrime prime = _factorBase[j];
-               float log = prime.Log;
+               ushort log = (ushort)prime.Log;
 
                // Find the roots of Q(x) mod p.
                int curPrime = prime.Prime;
