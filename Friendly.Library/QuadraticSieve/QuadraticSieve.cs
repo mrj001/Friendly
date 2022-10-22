@@ -322,19 +322,18 @@ namespace Friendly.Library.QuadraticSieve
             }
 
             // Find all sieve locations which exceed the Sieve Threshold
-            BigBitArray[] exponentVectors = new BigBitArray[sieveSize];
             for (int x = -_M, idx = 0; x <= _M; x ++, idx++)
             {
                if (sieve[idx] > sieveThreshold)
                {
-                  exponentVectors[idx] = new BigBitArray(_factorBase.Count);
+                  BigBitArray exponentVector = new BigBitArray(_factorBase.Count);
                   BigInteger Q = poly.Evaluate(x);
 
                   // Handle the -1 prime
                   if (Q < 0)
                   {
                      Q *= -1;
-                     exponentVectors[idx].FlipBit(0);
+                     exponentVector.FlipBit(0);
                   }
 
                   // Handle the remaining primes
@@ -346,7 +345,7 @@ namespace Friendly.Library.QuadraticSieve
                      while (r == 0)
                      {
                         Q = q;
-                        exponentVectors[idx].FlipBit(j);
+                        exponentVector.FlipBit(j);
                         q = BigInteger.DivRem(Q, curPrime, out r);
                      }
                   }
@@ -361,7 +360,7 @@ namespace Friendly.Library.QuadraticSieve
                      Assertions.True((_bSmoothValues[index] - _xValues[index] * _xValues[index]) % _n == 0);
                      _matrix.ExpandColumns(index + 1);
                      for (int r = 0; r < fbSize; r++)
-                        _matrix[r, index] = exponentVectors[idx][r];
+                        _matrix[r, index] = exponentVector[r];
                   }
                }
             }
