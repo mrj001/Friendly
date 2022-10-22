@@ -267,6 +267,8 @@ namespace Friendly.Library.QuadraticSieve
       private void FindBSmooth()
       {
          int fbSize = _factorBase.Count;
+         int sieveSize = 2 * _M + 1;
+         ushort[] sieve = new ushort[sieveSize];
 
          do
          {
@@ -279,9 +281,10 @@ namespace Friendly.Library.QuadraticSieve
             Polynomial poly = _polynomials.Current;
             _totalPolynomials++;
 
-            // Initialize a Sieve array to zero over the range [-M, M]
-            int sieveSize = 2 * _M + 1;
-            ushort[] sieve = new ushort[sieveSize];
+            // Initialize the Sieve array to zero over the range [-M, M]
+            for (int j = 0; j < sieveSize; j++)
+               sieve[j] = 0;
+
             // The Sieve Threshold is per Ref. B, Section 4 (iii) with T == 2.
             ushort sieveThreshold = (ushort)Math.Round(Math.Log(_M * Math.Sqrt((double)_n / 2) / ((long)_factorBase[_factorBase.Count - 1].Prime * _factorBase[_factorBase.Count - 1].Prime)));
 
