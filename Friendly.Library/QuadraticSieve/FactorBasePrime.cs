@@ -3,25 +3,20 @@ using System.Numerics;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class FactorBasePrime
+   public struct FactorBasePrime
    {
       private readonly int _prime;
       private readonly float _log;
+      private readonly int _rootNModP = -1;
 
-      private int _rootNModP = -1;
-
-      public FactorBasePrime(int prime)
+      public FactorBasePrime(int prime, int rootNModP)
       {
          _prime = prime;
          _log = (float)Math.Log(_prime);
+         _rootNModP = rootNModP;
       }
 
       public int Prime { get => _prime; }
-
-      public void InitRootN(int rootNModP)
-      {
-         _rootNModP = rootNModP;
-      }
 
       public int RootNModP { get => _rootNModP; }
 

@@ -192,67 +192,11 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private void FindFactorBase()
       {
-         BigInteger n;
-
-         int[] nSmallMultipliersToConsider = new int[] { 1, 3, 5, 7, 11, 13, 17,
-            19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97 };
-         //List<long>[] rv = new List<long>[nSmallMultipliersToConsider.Length];
-         FactorBase[] factorBases = new FactorBase[nSmallMultipliersToConsider.Length];
-         int indexOfMax = int.MinValue;
-         double maxKnuthSchroeppel = double.MinValue;
-
-         for (int j = 0; j < nSmallMultipliersToConsider.Length; j ++)
-         {
-            n = _nOrig * nSmallMultipliersToConsider[j];
-            if ((n & 7) == 1)  // n == 1 mod 8.
-            {
-               int sz = FindSizeOfFactorBase(n);
-               factorBases[j] = new FactorBase(nSmallMultipliersToConsider[j], n, sz);
-
-               // Evaluate the Knuth-Schroeppel function and find its maximum value
-               // over the potential Factor Bases.
-               double knuthSchroeppel = factorBases[j].KnuthSchroeppel();
-               if (knuthSchroeppel > maxKnuthSchroeppel)
-               {
-                  indexOfMax = j;
-                  maxKnuthSchroeppel = knuthSchroeppel;
-               }
-            }
-         }
-
-         // TODO There exists a possibility that no small multiplier satisfied
-         //  the condition _nOrig * m mod 8 == 1;  In this event, this will
-         //  throw an exception.
-         _multiplier = nSmallMultipliersToConsider[indexOfMax];
+         _factorBase = FactorBaseCandidate.GetFactorBase(_nOrig);
+         _multiplier = _factorBase.Multiplier;
          _n = _multiplier * _nOrig;
          _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);  // assumes _n is not square.
-         _factorBase = factorBases[indexOfMax];
-         _factorBase.CalculateSquareRoots();
          _matrix = AllocateMatrix(_factorBase.Count);
-      }
-
-      private static int FindSizeOfFactorBase(BigInteger kn)
-      {
-         // Table 1 of Ref B is unclear as to the meaning of "Factor Base Size".
-         // Is this the number of primes in the Factor Base?  Or is it the
-         // maximum size of the primes to consider for membership in the
-         // Factor Base?
-         // Here, the first option is chosen.
-         // Additionally, for numbers smaller than 24 digits, the size has
-         // been extrapolated based upon halving the size of the factor base
-         // for each 6 digit reduction in size.
-         int[] digits = new int[] { 12, 18, 24, 30, 36, 42, 48, 54, 60, 66 };
-         int[] sz = new int[] { 25, 50, 100, 200, 400, 900, 1200, 2000, 3000, 4500 };
-
-         int numDigits = 1 + (int)Math.Floor(BigInteger.Log10(kn));
-         int j = 0;
-         while (j < digits.Length && digits[j] < numDigits)
-            j++;
-
-         if (j == digits.Length)
-            return sz[sz.Length - 1];
-
-         return sz[j];
       }
 
       /// <summary>
