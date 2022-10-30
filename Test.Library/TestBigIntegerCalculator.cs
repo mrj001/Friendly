@@ -9,6 +9,7 @@ namespace Test.Library
    {
       public TestBigIntegerCalculator()
       {
+         TestPrimes.EnsureInitialized();
       }
 
       public static TheoryData<BigInteger, BigInteger, BigInteger> GCDTestData
@@ -64,6 +65,56 @@ namespace Test.Library
 
          Assert.Equal(expectedNumberOfDigits, actual);
       }
+
+      #region "IsQuadraticResidue"
+      public static TheoryData<bool, BigInteger, long> IsQuadraticResidueTestData
+      {
+         get
+         {
+            var rv = new TheoryData<bool, BigInteger, long>();
+
+            rv.Add(false, 43, 79);
+            rv.Add(false, 54, 79);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(IsQuadraticResidueTestData))]
+      public void IsQuadraticResidue(bool expected, BigInteger a, long p)
+      {
+         bool actual = BigIntegerCalculator.IsQuadraticResidue(a, p);
+
+         Assert.Equal(expected, actual);
+      }
+      #endregion
+
+      #region "Jacobi Symbol"
+      public static TheoryData<int, BigInteger, long> JacobiSymbolTestData
+      {
+         get
+         {
+            var rv = new TheoryData<int, BigInteger, long>();
+
+            rv.Add(-1, (BigInteger)299456570077393, 79);
+            rv.Add(-1, (BigInteger)500111274667351, 79);
+            rv.Add(1, (BigInteger)299456570077393 * 500111274667351, 79);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(JacobiSymbolTestData))]
+      public void JacobiSymbol(int expected, BigInteger a, long n)
+      {
+         int actual = (int)BigIntegerCalculator.JacobiSymbol(a, n);
+
+         Assert.Equal(expected, actual);
+      }
+
+      #endregion
 
       public static TheoryData<long, long> SquareRootTestData
       {
