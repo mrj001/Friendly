@@ -281,6 +281,7 @@ namespace Friendly.Library.QuadraticSieve
                {
                   BigBitArray exponentVector = new BigBitArray(_factorBase.Count);
                   BigInteger Q = poly.Evaluate(x);
+                  BigInteger origQ = Q;
 
                   // Handle the -1 prime
                   if (Q < 0)
@@ -308,7 +309,7 @@ namespace Friendly.Library.QuadraticSieve
                   {
                      _totalBSmoothValuesFound++;
                      _xValues.Add(poly.EvaluateLHS(x));
-                     _bSmoothValues.Add(poly.Evaluate(x));
+                     _bSmoothValues.Add(origQ);
                      int index = _bSmoothValues.Count - 1;
                      Assertions.True((_bSmoothValues[index] - _xValues[index] * _xValues[index]) % _n == 0);
                      _matrix.ExpandColumns(index + 1);
