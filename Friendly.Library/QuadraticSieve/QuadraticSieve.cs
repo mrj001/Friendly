@@ -214,6 +214,10 @@ namespace Friendly.Library.QuadraticSieve
          int sieveSize = 2 * _M + 1;
          ushort[] sieve = new ushort[sieveSize];
 
+         double T = FindLargePrimeTolerance(_n);
+         long pmax = _factorBase[_factorBase.Count - 1].Prime;
+         double pmaxt = Math.Pow(pmax, T);
+
          do
          {
             if (!_polynomials.MoveNext())
@@ -229,8 +233,8 @@ namespace Friendly.Library.QuadraticSieve
             for (int j = 0; j < sieveSize; j++)
                sieve[j] = 0;
 
-            // The Sieve Threshold is per Ref. B, Section 4 (iii) with T == 2.
-            ushort sieveThreshold = (ushort)Math.Round(Math.Log(_M * Math.Sqrt((double)_n / 2) / ((long)_factorBase[_factorBase.Count - 1].Prime * _factorBase[_factorBase.Count - 1].Prime)));
+            // The Sieve Threshold is per Ref. B, Section 4 (iii)
+            ushort sieveThreshold = (ushort)Math.Round(Math.Log(_M * Math.Sqrt((double)_n / 2) / pmaxt));
 
             // for all primes in the factor base (other than -1 and 2) add Add log(p) to the sieve
             for (int j = 2, jul = _factorBase.Count; j < jul; j ++)
@@ -336,6 +340,27 @@ namespace Friendly.Library.QuadraticSieve
             return interval[interval.Length - 1];
 
          return interval[j];
+      }
+
+      /// <summary>
+      /// Finds the value of T, the large prime tolerance in Ref. B
+      /// </summary>
+      /// <param name="kn"></param>
+      /// <returns></returns>
+      private static double FindLargePrimeTolerance(BigInteger kn)
+      {
+         int[] digits = new int[] { 24, 30, 36, 42, 48, 54, 60, 66 };
+         double[] T = new double[] { 1.5, 1.5, 1.75, 2.0, 2.0, 2.2, 2.4, 2.6 };
+
+         int numDigits = BigIntegerCalculator.GetNumberOfDigits(kn);
+         int j = 0;
+         while (j < digits.Length && digits[j] < numDigits)
+            j++;
+
+         if (j == digits.Length)
+            return T[T.Length - 1];
+
+         return T[j];
       }
 
       /// <summary>
