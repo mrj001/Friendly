@@ -218,6 +218,8 @@ namespace Friendly.Library.QuadraticSieve
          long pmax = _factorBase[_factorBase.Count - 1].Prime;
          double pmaxt = Math.Pow(pmax, T);
 
+         int numRelationsNeeded = (int)Math.Round(0.96 * fbSize);
+
          do
          {
             if (!_polynomials.MoveNext())
@@ -318,9 +320,7 @@ namespace Friendly.Library.QuadraticSieve
 
             _sieveIntervals ++;
 
-            // 10 gives a worst-case of 1 chance in 1024 of none of the squares
-            // being useful.
-         } while (_bSmoothValues.Count < fbSize + 10);
+         } while (_bSmoothValues.Count < numRelationsNeeded);
       }
 
       private static int FindSieveInterval(BigInteger kn)
