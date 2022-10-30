@@ -40,6 +40,31 @@ namespace Test.Library
          Assert.Equal(expectedGcd, actualGcd);
       }
 
+      public static TheoryData<int, long> GetNumberOfDigitsTestData
+      {
+         get
+         {
+            var rv = new TheoryData<int, long>();
+
+            rv.Add(6, 999_999);
+            rv.Add(7, 1_000_000);
+
+            rv.Add(9, 999_999_999);
+            rv.Add(10, 1_000_000_000);
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(GetNumberOfDigitsTestData))]
+      public void GetNumberofDigits(int expectedNumberOfDigits, long n)
+      {
+         int actual = BigIntegerCalculator.GetNumberOfDigits(n);
+
+         Assert.Equal(expectedNumberOfDigits, actual);
+      }
+
       public static TheoryData<long, long> SquareRootTestData
       {
          get

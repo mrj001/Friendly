@@ -34,6 +34,19 @@ namespace Friendly.Library
       }
 
       /// <summary>
+      /// Gets the approximate number of digits in the base-10 representation of n.
+      /// </summary>
+      /// <param name="n">The BigInteger to check.</param>
+      /// <returns>The approximate number of digits in the base-10 representation of n.</returns>
+      public static int GetNumberOfDigits(BigInteger n)
+      {
+         // TODO: The "+ 2e-15" is a cheat.
+         // See https://github.com/dotnet/runtime/issues/77633
+         double log = BigInteger.Log10(n) + 2e-15;
+         return 1 + (int)Math.Floor(log);
+      }
+
+      /// <summary>
       /// Generates a random prime number with the given number of digits.
       /// </summary>
       /// <param name="rng">The random number generator to use.</param>
