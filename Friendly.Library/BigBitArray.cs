@@ -33,6 +33,18 @@ namespace Friendly.Library
       }
 
       /// <summary>
+      /// Constructs a new BigBitArray that is a duplicate of the given one.
+      /// </summary>
+      /// <param name="other">The BigBitArray instance to duplicate.</param>
+      public BigBitArray(BigBitArray other)
+      {
+         _capacity = other._capacity;
+         _bits = new ulong[other._bits.Length];
+         for (int j = 0; j < _bits.Length; j++)
+            _bits[j] = other._bits[j];
+      }
+
+      /// <summary>
       /// Gets the number of bits in this BigBitArray.
       /// </summary>
       public long Capacity { get => _capacity; }

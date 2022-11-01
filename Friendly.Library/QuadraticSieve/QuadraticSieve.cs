@@ -48,9 +48,8 @@ namespace Friendly.Library.QuadraticSieve
 
       private FactorBase _factorBase;
 
-      private readonly List<BigInteger> _xValues;
-      private readonly List<BigInteger> _bSmoothValues;
-      private int _totalBSmoothValuesFound;
+      private Relations _relations;
+
       private Matrix _matrix;
 
       /// <summary>
@@ -75,9 +74,7 @@ namespace Friendly.Library.QuadraticSieve
          _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);  // assumes _n is not square.
 
          _factorBase = null;
-         _xValues = new();
-         _bSmoothValues = new();
-         _totalBSmoothValuesFound = 0;
+         _relations = null;
          _matrix = null;
 
          _sieveIntervals = 0;
@@ -97,7 +94,7 @@ namespace Friendly.Library.QuadraticSieve
          Progress?.Invoke(this, new NotifyProgressEventArgs(message));
       }
 
-      public int TotalBSmoothValuesFound { get => _totalBSmoothValuesFound; }
+      public int TotalBSmoothValuesFound { get => _relations.TotalRelationsFound; }
 
       public int TotalPolynomials { get => _totalPolynomials; }
 
@@ -121,6 +118,8 @@ namespace Friendly.Library.QuadraticSieve
          FindFactorBase();
          OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
 
+         _relations = new Relations(_n, _factorBase.Count);
+
          _M = FindSieveInterval(_n);
          _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M)).GetEnumerator();
 
@@ -130,7 +129,8 @@ namespace Friendly.Library.QuadraticSieve
          int retryLimit = 100;
          while (retryCount < retryLimit)
          {
-            OnNotifyProgress($"Found {_bSmoothValues.Count} relations; reducing Matrix");
+            OnNotifyProgress($"Have {_relations.RelationCount} relations; reducing Matrix");
+            _matrix = _relations.GetMatrix();
             _matrix.Reduce();
             List<BigBitArray> nullVectors = _matrix.FindNullVectors();
             OnNotifyProgress($"Found {nullVectors.Count} Null Vectors");
@@ -140,12 +140,13 @@ namespace Friendly.Library.QuadraticSieve
             {
                x = BigInteger.One;
                y = BigInteger.One;
-               for (int j = 0; j < _bSmoothValues.Count; j++)
+               for (int j = 0, jul = _matrix.Columns; j < jul; j++)
                {
                   if (nullVector[j])
                   {
-                     x *= _xValues[j];
-                     y *= _bSmoothValues[j];
+                     Relation relation = _relations[j];
+                     x *= relation.X;
+                     y *= relation.QOfX;
                   }
                }
                BigInteger t = BigIntegerCalculator.SquareRoot(y);
@@ -181,10 +182,9 @@ namespace Friendly.Library.QuadraticSieve
             FindBSmooth();
          }
 
-         // TODO We've gone back and retried 100 times and run out of squares each
-         //  time.  That's a minimum of 2**1000 : 1 odds of finding a factor.
-         //  This is cause for suspicion.
-         throw new ApplicationException($"Ran out of squares while factoring {_n:N0}\nTotal B-Smooth Values Found: {_totalBSmoothValuesFound}\nFactor Base Count: {_factorBase.Count}");
+         // We've gone back and retried 100 times and run out of squares each
+         // time. This is cause for suspicion.
+         throw new ApplicationException($"Ran out of squares while factoring {_n:N0}\nTotal B-Smooth Values Found: {_relations.TotalRelationsFound}\nFactor Base Count: {_factorBase.Count}");
       }
 
       /// <summary>
@@ -196,7 +196,6 @@ namespace Friendly.Library.QuadraticSieve
          _multiplier = _factorBase.Multiplier;
          _n = _multiplier * _nOrig;
          _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);  // assumes _n is not square.
-         _matrix = AllocateMatrix(_factorBase.Count);
       }
 
       /// <summary>
@@ -218,16 +217,13 @@ namespace Friendly.Library.QuadraticSieve
          long pmax = _factorBase[_factorBase.Count - 1].Prime;
          double pmaxt = Math.Pow(pmax, T);
 
-         int numRelationsNeeded = (int)Math.Round(0.96 * fbSize);
+         int numRelationsNeeded = fbSize + 1;
 
          do
          {
             if (!_polynomials.MoveNext())
-            {
-               if (_bSmoothValues.Count > _factorBase.Count)
-                  return;
-               throw new ApplicationException($"Ran out of polynomials while factoring {_n:N0}\nTotal B-Smooth Values Found: {_totalBSmoothValuesFound}\nFactor Base Count: {_factorBase.Count}");
-            }
+               throw new ApplicationException($"Ran out of polynomials while factoring {_n:N0}\nTotal B-Smooth Values Found: {_relations.TotalRelationsFound}\nFactor Base Count: {_factorBase.Count}");
+
             Polynomial poly = _polynomials.Current;
             _totalPolynomials++;
 
@@ -306,22 +302,15 @@ namespace Friendly.Library.QuadraticSieve
 
                   // Is the number B-Smooth?
                   if (Q == 1)
-                  {
-                     _totalBSmoothValuesFound++;
-                     _xValues.Add(poly.EvaluateLHS(x));
-                     _bSmoothValues.Add(origQ);
-                     int index = _bSmoothValues.Count - 1;
-                     Assertions.True((_bSmoothValues[index] - _xValues[index] * _xValues[index]) % _n == 0);
-                     _matrix.ExpandColumns(index + 1);
-                     for (int r = 0; r < fbSize; r++)
-                        _matrix[r, index] = exponentVector[r];
-                  }
+                     _relations.AddRelation(new Relation(origQ, poly.EvaluateLHS(x), exponentVector));
+                  else if (Q < (long)pmaxt && Q > _factorBase[_factorBase.Count - 1].Prime)
+                     _relations.AddPartialRelation(new PartialRelation(origQ, poly.EvaluateLHS(x), exponentVector, (long)Q));
                }
             }
 
             _sieveIntervals ++;
 
-         } while (_bSmoothValues.Count < numRelationsNeeded);
+         } while (_relations.RelationCount < numRelationsNeeded);
       }
 
       private static int FindSieveInterval(BigInteger kn)
@@ -382,39 +371,9 @@ namespace Friendly.Library.QuadraticSieve
 
          // Remove the free columns which generated the non-useful null vectors.
          List<int> freeColumns = _matrix.FindFreeColumns();
-         _matrix = AllocateMatrix(_factorBase.Count);
+         _matrix = null;
          for (int j = freeColumns.Count - 1; j >= 0; j--)
-         {
-            _bSmoothValues.RemoveAt(j);
-            _xValues.RemoveAt(j);
-         }
-
-         // Recalculate the Exponent Vectors.
-         for (int col = 0, jul = _bSmoothValues.Count; col < jul; col++)
-         {
-            BigInteger bSmooth = _bSmoothValues[col];
-
-            // Handle factor of -1
-            if (bSmooth < 0)
-            {
-               _matrix.FlipBit(0, col);
-               bSmooth *= -1;
-            }
-
-            int row = 1, kul = _factorBase.Count;
-            BigInteger q, r;
-            while (row < kul && bSmooth != 1)
-            {
-               q = BigInteger.DivRem(bSmooth, _factorBase[row].Prime, out r);
-               while (r == 0)
-               {
-                  bSmooth = q;
-                  _matrix.FlipBit(row, col);
-                  q = BigInteger.DivRem(bSmooth, _factorBase[row].Prime, out r);
-               }
-               row++;
-            }
-         }
+            _relations.RemoveRelationAt(j);
       }
    }
 }
