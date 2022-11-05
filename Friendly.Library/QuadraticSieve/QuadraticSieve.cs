@@ -20,6 +20,8 @@ namespace Friendly.Library.QuadraticSieve
 {
    public class QuadraticSieve : INotifyProgress
    {
+      private readonly IParameters _parameters;
+
       /// <summary>
       /// The original number being factored.
       /// </summary>
@@ -63,11 +65,14 @@ namespace Friendly.Library.QuadraticSieve
       public event EventHandler<NotifyProgressEventArgs> Progress;
 
       /// <summary>
-      /// 
+      /// Initializes an instance of the Quadratic Sieve algorithm.
       /// </summary>
+      /// <param name="parameters">An IParameters instance to supply the
+      /// algorithm's parameters.</param>
       /// <param name="n">The number to be factored by this Quadratic Sieve.</param>
-      public QuadraticSieve(BigInteger n)
+      public QuadraticSieve(IParameters parameters, BigInteger n)
       {
+         _parameters = parameters;
          _nOrig = n;
          _multiplier = 1;
          _n = n;
@@ -120,7 +125,7 @@ namespace Friendly.Library.QuadraticSieve
 
          _relations = new Relations(_n, _factorBase.Count);
 
-         _M = FindSieveInterval(_n);
+         _M = _parameters.FindSieveInterval(_n);
          _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M)).GetEnumerator();
 
          FindBSmooth();
@@ -192,7 +197,7 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private void FindFactorBase()
       {
-         _factorBase = FactorBaseCandidate.GetFactorBase(_nOrig);
+         _factorBase = FactorBaseCandidate.GetFactorBase(_parameters, _nOrig);
          _multiplier = _factorBase.Multiplier;
          _n = _multiplier * _nOrig;
          _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);  // assumes _n is not square.
@@ -213,7 +218,7 @@ namespace Friendly.Library.QuadraticSieve
          int sieveSize = 2 * _M + 1;
          ushort[] sieve = new ushort[sieveSize];
 
-         double T = FindLargePrimeTolerance(_n);
+         double T = _parameters.FindLargePrimeTolerance(_n);
          long pmax = _factorBase[_factorBase.Count - 1].Prime;
          double pmaxt = Math.Pow(pmax, T);
 
@@ -258,16 +263,8 @@ namespace Friendly.Library.QuadraticSieve
                if (index2 >= curPrime) index2 -= curPrime;
 
                // Add the Log of the Prime to each r +/- p location.
-               while (index1 < sieveSize)
-               {
-                  sieve[index1] += log;
-                  index1 += curPrime;
-               }
-               while (index2 < sieveSize)
-               {
-                  sieve[index2] += log;
-                  index2 += curPrime;
-               }
+               AddLogs(sieve, index1, curPrime, log);
+               AddLogs(sieve, index2, curPrime, log);
             }
 
             // Find all sieve locations which exceed the Sieve Threshold
@@ -313,44 +310,10 @@ namespace Friendly.Library.QuadraticSieve
          } while (_relations.RelationCount < numRelationsNeeded);
       }
 
-      private static int FindSieveInterval(BigInteger kn)
+      private static void AddLogs(ushort[] sieve, int startIndex, int stride, ushort log)
       {
-         // See Table 1 of Ref B
-         // Note that these entries are too large to fit into a long.
-         // They are included in anticipation of updating to a BigInteger.
-         int[] digits = new int[] { 24, 30, 36, 42, 48, 54, 60, 66 };
-         int[] interval = new int[] { 5000, 25000, 25000, 50000, 100_000, 250_000, 350_000, 500_000 };
-
-         double numDigits = BigInteger.Log10(kn);
-         int j = 0;
-         while (j < digits.Length && digits[j] < numDigits)
-            j++;
-
-         if (j == digits.Length)
-            return interval[interval.Length - 1];
-
-         return interval[j];
-      }
-
-      /// <summary>
-      /// Finds the value of T, the large prime tolerance in Ref. B
-      /// </summary>
-      /// <param name="kn"></param>
-      /// <returns></returns>
-      private static double FindLargePrimeTolerance(BigInteger kn)
-      {
-         int[] digits = new int[] { 24, 30, 36, 42, 48, 54, 60, 66 };
-         double[] T = new double[] { 1.5, 1.5, 1.75, 2.0, 2.0, 2.2, 2.4, 2.6 };
-
-         int numDigits = BigIntegerCalculator.GetNumberOfDigits(kn);
-         int j = 0;
-         while (j < digits.Length && digits[j] < numDigits)
-            j++;
-
-         if (j == digits.Length)
-            return T[T.Length - 1];
-
-         return T[j];
+         for (int j = startIndex; j < sieve.Length; j += stride)
+            sieve[j] += log;
       }
 
       /// <summary>

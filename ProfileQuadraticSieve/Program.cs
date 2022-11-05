@@ -248,7 +248,8 @@ namespace ProfileQuadraticSieve
 
             sw = new();
             sw.Start();
-            QuadraticSieve sieve = new(n);
+            IParameters parameters = new Parameters();
+            QuadraticSieve sieve = new(parameters, n);
             sieve.Progress += HandleProgress;
             (BigInteger g1, BigInteger g2) = sieve.Factor();
             polyCount = sieve.TotalPolynomials;

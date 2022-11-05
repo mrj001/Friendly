@@ -18,6 +18,9 @@ namespace Test.Library.QuadraticSieve
 {
    public class TestQuadraticSieve
    {
+      // TODO: Should be mocked.
+      private readonly IParameters _parameters = new Parameters();
+
       public TestQuadraticSieve()
       {
          TestPrimes.EnsureInitialized();
@@ -81,7 +84,7 @@ namespace Test.Library.QuadraticSieve
 
          long product = f1 * f2;
 
-         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(product);
+         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(_parameters, product);
          (BigInteger actual1, BigInteger actual2) = sieve.Factor();
 
          if (actual1 > actual2)
@@ -132,7 +135,7 @@ namespace Test.Library.QuadraticSieve
                p2 = t;
             }
 
-            Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(n);
+            Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(_parameters, n);
             (BigInteger q1, BigInteger q2) = sieve.Factor();
             if (q1 > q2)
             {
@@ -183,7 +186,7 @@ namespace Test.Library.QuadraticSieve
 
          BigInteger product = f1 * f2;
 
-         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(product);
+         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(_parameters, product);
          (BigInteger actual1, BigInteger actual2) = sieve.Factor();
 
          if (actual1 > actual2)

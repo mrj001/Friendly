@@ -44,7 +44,14 @@ namespace Friendly.Library.QuadraticSieve
          }
       }
 
-      public static FactorBase GetFactorBase(BigInteger nOrig)
+      /// <summary>
+      /// Gets a suitable Factor Base for factoring the given integer. 
+      /// </summary>
+      /// <param name="parameters">An instance of IParameters which supplies
+      /// the Quadratic Sieve algorithm parameters.</param>
+      /// <param name="nOrig">The original number being factored. </param>
+      /// <returns>An instance of a FactorBase.</returns>
+      public static FactorBase GetFactorBase(IParameters parameters, BigInteger nOrig)
       {
          BigInteger n;
          int[] nSmallMultipliersToConsider = new int[] { 1, 3, 5, 7, 11, 13, 17,
@@ -58,7 +65,7 @@ namespace Friendly.Library.QuadraticSieve
             n = nOrig * nSmallMultipliersToConsider[j];
             if ((n & 7) == 1)  // n == 1 mod 8.
             {
-               int sz = FindSizeOfFactorBase(n);
+               int sz = parameters.FindSizeOfFactorBase(n);
                factorBases[j] = new FactorBaseCandidate(nSmallMultipliersToConsider[j], n, sz);
 
                // Evaluate the Knuth-Schroeppel function and find its maximum value
@@ -78,30 +85,6 @@ namespace Friendly.Library.QuadraticSieve
          return new FactorBase(nSmallMultipliersToConsider[indexOfMax],
             nOrig * nSmallMultipliersToConsider[indexOfMax],
             factorBases[indexOfMax]._factors.Count, factorBases[indexOfMax]._factors);
-      }
-
-      private static int FindSizeOfFactorBase(BigInteger kn)
-      {
-         // Table 1 of Ref B is unclear as to the meaning of "Factor Base Size".
-         // Is this the number of primes in the Factor Base?  Or is it the
-         // maximum size of the primes to consider for membership in the
-         // Factor Base?
-         // Here, the first option is chosen.
-         // Additionally, for numbers smaller than 24 digits, the size has
-         // been extrapolated based upon halving the size of the factor base
-         // for each 6 digit reduction in size.
-         int[] digits = new int[] { 12, 18, 24, 30, 36, 42, 48, 54, 60, 66 };
-         int[] sz = new int[] { 25, 50, 100, 200, 400, 900, 1200, 2000, 3000, 4500 };
-
-         int numDigits = 1 + (int)Math.Floor(BigInteger.Log10(kn));
-         int j = 0;
-         while (j < digits.Length && digits[j] < numDigits)
-            j++;
-
-         if (j == digits.Length)
-            return sz[sz.Length - 1];
-
-         return sz[j];
       }
 
       /// <summary>

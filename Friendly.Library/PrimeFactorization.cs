@@ -149,7 +149,8 @@ namespace Friendly.Library
                return (rv, rhoInvocations);
             }
 
-            QuadraticSieve.QuadraticSieve sieve = new QuadraticSieve.QuadraticSieve(n);
+            QuadraticSieve.IParameters parameters = new QuadraticSieve.Parameters();
+            QuadraticSieve.QuadraticSieve sieve = new QuadraticSieve.QuadraticSieve(parameters, n);
             (f1, f2) = sieve.Factor();
          }
 

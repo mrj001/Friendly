@@ -58,7 +58,8 @@ namespace Benchmark
          }
 
          BigInteger n = f1 * f2;
-         QuadraticSieve sieve = new QuadraticSieve(n);
+         IParameters parameters = new Parameters();
+         QuadraticSieve sieve = new QuadraticSieve(parameters, n);
          (BigInteger g1, BigInteger g2) = sieve.Factor();
 
          if (g1 > g2)
