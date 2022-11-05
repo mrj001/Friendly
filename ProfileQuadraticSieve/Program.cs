@@ -126,7 +126,7 @@ namespace ProfileQuadraticSieve
 
       private static void DoPerformanceTest()
       {
-         int[] repeats = new int[] { 50, 50, 50, 50, 50, 50, 40, 25 };
+         int[] repeats = new int[] { 50, 50, 50, 50, 50, 50, 40, 25, 25 };
          int repeatIndex = 0;
          Stopwatch swTotalTime = new();
 
@@ -139,7 +139,7 @@ namespace ProfileQuadraticSieve
             resultLogger.WriteLine("Digits\tRepetitions\tTotalSeconds\tMinimum\tMaximum\tPolynomials");
 
             swTotalTime.Start();
-            for (int numDigits = 24; numDigits <= 66; numDigits += 6)
+            for (int numDigits = 24; numDigits <= 72; numDigits += 6)
             {
                Random rng = new Random(1234);
                double iterationSeconds;
