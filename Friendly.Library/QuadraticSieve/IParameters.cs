@@ -31,7 +31,12 @@ namespace Friendly.Library.QuadraticSieve
       /// <returns>The value of the Large Prime Tolerance.</returns>
       double FindLargePrimeTolerance(BigInteger n);
 
-
+      /// <summary>
+      /// Finds the limit of the small primes to exclude from sieving.
+      /// </summary>
+      /// <param name="n">The number being factored.</param>
+      /// <returns>A threshold below which primes from the Factor Base are not sieved.</returns>
+      int FindSmallPrimeLimit(BigInteger n);
    }
 }
 

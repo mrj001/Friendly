@@ -222,6 +222,15 @@ namespace Friendly.Library.QuadraticSieve
          long pmax = _factorBase[_factorBase.Count - 1].Prime;
          double pmaxt = Math.Pow(pmax, T);
 
+         int smallPrimeLimit = _parameters.FindSmallPrimeLimit(_n);
+         float smallPrimeLog = 0;
+         int firstPrimeIndex = 2;
+         while (_factorBase[firstPrimeIndex].Prime < smallPrimeLimit)
+         {
+            smallPrimeLog += _factorBase[firstPrimeIndex].Log / _factorBase[firstPrimeIndex].Prime;
+            firstPrimeIndex++;
+         }
+
          int numRelationsNeeded = fbSize + 1;
 
          do
@@ -236,11 +245,12 @@ namespace Friendly.Library.QuadraticSieve
             for (int j = 0; j < sieveSize; j++)
                sieve[j] = 0;
 
-            // The Sieve Threshold is per Ref. B, Section 4 (iii)
-            ushort sieveThreshold = (ushort)Math.Round(Math.Log(_M * Math.Sqrt((double)_n / 2) / pmaxt));
+            // The Sieve Threshold is per Ref. B, Section 4 (iii),
+            // adjusted for the exclusion of small primes from sieving.
+            ushort sieveThreshold = (ushort)Math.Round(Math.Log(_M * Math.Sqrt((double)_n / 2) / pmaxt) - smallPrimeLog);
 
             // for all primes in the factor base (other than -1 and 2) add Add log(p) to the sieve
-            for (int j = 2, jul = _factorBase.Count; j < jul; j ++)
+            for (int j = firstPrimeIndex, jul = _factorBase.Count; j < jul; j ++)
             {
                FactorBasePrime prime = _factorBase[j];
                ushort log = (ushort)prime.Log;
