@@ -20,6 +20,7 @@ namespace ProfileQuadraticSieve
          Console.WriteLine("3. Factor Fermat #7.");
          Console.WriteLine("4. Factor the product of 2 random primes.");
          Console.WriteLine("5. Performance Test (long running).");
+         Console.WriteLine("6. Parameter optimization (long running)");
          Console.Write("Enter number of choice: ");
          string? s = Console.ReadLine();
          int choice;
@@ -52,19 +53,19 @@ namespace ProfileQuadraticSieve
             case 1:
                f1 = 500_111_274_667_351;
                f2 = 299_456_570_077_393;
-               Factor(f1, f2);
+               Factor(new Parameters(), f1, f2);
                break;
 
             case 2:
                f1 = 5_626_527_389_734_197_521;
                f2 = 9_631_131_476_434_794_037;
-               Factor(f1, f2);
+               Factor(new Parameters(), f1, f2);
                break;
 
             case 3:  // Start with the known factors of F7
                f1 = 59_649_589_127_497_217;
                f2 = BigInteger.Parse("5704689200685129054721");
-               Factor(f1, f2);
+               Factor(new Parameters(), f1, f2);
                break;
 
             case 4:
@@ -73,6 +74,10 @@ namespace ProfileQuadraticSieve
 
             case 5:
                DoPerformanceTest();
+               break;
+
+            case 6:
+               DoOptimizationTest();
                break;
 
             default:
@@ -111,8 +116,9 @@ namespace ProfileQuadraticSieve
          double maxSeconds = double.MinValue;
          int polyCount = 0;
 
-         RunFactorings(double.MaxValue, numDigits, ref repeats, out totalSeconds,
-            out minSeconds, out maxSeconds, out polyCount);
+         IParameters parameters = new Parameters();
+         RunFactorings(parameters, double.MaxValue, numDigits, ref repeats,
+            out totalSeconds, out minSeconds, out maxSeconds, out polyCount);
 
          _progressLogger.WriteLine("====  Summary  ====");
          _progressLogger.WriteLine($"Size of integers: {numDigits}");
@@ -129,6 +135,7 @@ namespace ProfileQuadraticSieve
          int[] repeats = new int[] { 50, 50, 50, 50, 50, 50, 40, 25, 25 };
          int repeatIndex = 0;
          Stopwatch swTotalTime = new();
+         IParameters parameters = new Parameters();
 
          ILog origProgressLogger = _progressLogger;
          FileLogger? resultLogger = null;
@@ -147,7 +154,7 @@ namespace ProfileQuadraticSieve
                double maxSeconds;
                int polyCount;
 
-               RunFactorings(_performanceTimeLimit.TotalSeconds - swTotalTime.Elapsed.TotalSeconds,
+               RunFactorings(parameters, _performanceTimeLimit.TotalSeconds - swTotalTime.Elapsed.TotalSeconds,
                   numDigits, ref repeats[repeatIndex], out iterationSeconds, out minSeconds, out maxSeconds,
                   out polyCount);
 
@@ -177,7 +184,79 @@ namespace ProfileQuadraticSieve
          }
       }
 
-      private static void RunFactorings(double timeLimit, int numDigits,
+      private static void DoOptimizationTest()
+      {
+         Console.WriteLine("Choose parameter to optimize:");
+         Console.WriteLine("1. Size of Factor Base (TODO)");
+         Console.WriteLine("2. Sieve Interval (TODO)");
+         Console.WriteLine("3. Large Prime Tolerance (TODO)");
+         Console.WriteLine("4. Small Prime Limit");
+         string? s;
+         int choice;
+         do
+         {
+            s = Console.ReadLine();
+         } while (!int.TryParse(s, out choice));
+         if (choice < 1 || choice > 4)
+            return;
+
+         Console.Write("Number of digits: ");
+         int numDigits;
+         do
+         {
+            s = Console.ReadLine();
+         } while (!int.TryParse(s, out numDigits));
+
+         Console.Write("Enter the number of trials per parameter value: ");
+         int repeats;
+         do
+         {
+            s = Console.ReadLine();
+         } while (!int.TryParse(s, out repeats));
+
+         Console.Write("Enter the minimum parameter value: ");
+         double minValue;
+         do
+         {
+            s = Console.ReadLine();
+         } while (!double.TryParse(s, out minValue));
+         if (choice != 3 && minValue != Math.Round(minValue))
+         {
+            minValue = Math.Round(minValue);
+            Console.WriteLine($"Rounding to {minValue}");
+         }
+
+         Console.Write("Enter the maximum parameter value: ");
+         double maxValue;
+         do
+         {
+            s = Console.ReadLine();
+         } while (!double.TryParse(s, out maxValue));
+         if (choice != 3 && maxValue != Math.Round(maxValue))
+         {
+            maxValue = Math.Round(maxValue);
+            Console.WriteLine($"Rounding to {maxValue}");
+         }
+
+         double step = 1;
+         if ((ParameterToOptimize)choice != ParameterToOptimize.SmallPrimeLimit)
+         {
+            Console.WriteLine("Enter the step value: ");
+            do
+            {
+               s = Console.ReadLine();
+            } while (!double.TryParse(s, out step));
+            if (choice != 3 && step != Math.Round(step))
+            {
+               step = Math.Round(step);
+               Console.WriteLine($"Rounding to {step}");
+            }
+         }
+
+         ParameterOptimizer.Optimize((ParameterToOptimize)choice, numDigits, repeats, minValue, maxValue, step);
+      }
+
+      public static void RunFactorings(IParameters parameters, double timeLimit, int numDigits,
          ref int repeats, out double totalSeconds,
          out double minSeconds, out double maxSeconds, out int totalPolynomials)
       {
@@ -194,7 +273,7 @@ namespace ProfileQuadraticSieve
             _progressLogger.WriteLine($"Iteration: {j}");
             BigInteger f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
             BigInteger f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
-            (seconds, polyCount) = Factor(f1, f2);
+            (seconds, polyCount) = Factor(parameters, f1, f2);
             totalSeconds += seconds;
             minSeconds = Math.Min(seconds, minSeconds);
             maxSeconds = Math.Max(seconds, maxSeconds);
@@ -219,7 +298,7 @@ namespace ProfileQuadraticSieve
       /// <item>The number of polynomials used to factor the product.</item>
       /// </list>
       /// </returns>
-      private static (double, int) Factor(BigInteger f1, BigInteger f2)
+      private static (double, int) Factor(IParameters parameters, BigInteger f1, BigInteger f2)
       {
          double rv = -1;
          int polyCount = 0;
@@ -248,7 +327,6 @@ namespace ProfileQuadraticSieve
 
             sw = new();
             sw.Start();
-            IParameters parameters = new Parameters();
             QuadraticSieve sieve = new(parameters, n);
             sieve.Progress += HandleProgress;
             (BigInteger g1, BigInteger g2) = sieve.Factor();
