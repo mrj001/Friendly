@@ -225,7 +225,7 @@ namespace Friendly.Library.QuadraticSieve
          int smallPrimeLimit = _parameters.FindSmallPrimeLimit(_n);
          float smallPrimeLog = 0;
          int firstPrimeIndex = 2;
-         while (_factorBase[firstPrimeIndex].Prime < smallPrimeLimit)
+         while (_factorBase[firstPrimeIndex].Prime <= smallPrimeLimit)
          {
             smallPrimeLog += _factorBase[firstPrimeIndex].Log / _factorBase[firstPrimeIndex].Prime;
             firstPrimeIndex++;

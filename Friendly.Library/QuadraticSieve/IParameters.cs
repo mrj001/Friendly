@@ -35,7 +35,7 @@ namespace Friendly.Library.QuadraticSieve
       /// Finds the limit of the small primes to exclude from sieving.
       /// </summary>
       /// <param name="n">The number being factored.</param>
-      /// <returns>A threshold below which primes from the Factor Base are not sieved.</returns>
+      /// <returns>Factor Base Primes equal to or less than this value are not sieved.</returns>
       int FindSmallPrimeLimit(BigInteger n);
    }
 }
