@@ -144,9 +144,9 @@ namespace Friendly.Library.QuadraticSieve
 
       public int PartialRelationCount { get => _partialRelations.Count; }
 
-      public IMatrix GetMatrix()
+      public IMatrix GetMatrix(IMatrixFactory matrixFactory)
       {
-         Matrix rv = new(_factorBaseSize, _relations.Count, 0);
+         IMatrix rv = matrixFactory.GetMatrix(_factorBaseSize, _relations.Count);
 
          for (int col = 0; col < _relations.Count; col ++)
          {

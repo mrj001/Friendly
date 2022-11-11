@@ -53,6 +53,7 @@ namespace Friendly.Library.QuadraticSieve
       private Relations _relations;
 
       private IMatrix _matrix;
+      private IMatrixFactory _matrixFactory;
 
       /// <summary>
       /// A count of the number of completed iterations of sieving.
@@ -81,6 +82,7 @@ namespace Friendly.Library.QuadraticSieve
          _factorBase = null;
          _relations = null;
          _matrix = null;
+         _matrixFactory = new MatrixFactory();
 
          _sieveIntervals = 0;
          _polynomials = null;
@@ -129,7 +131,7 @@ namespace Friendly.Library.QuadraticSieve
          while (retryCount < retryLimit)
          {
             OnNotifyProgress($"Have {_relations.RelationCount} relations; reducing Matrix");
-            _matrix = _relations.GetMatrix();
+            _matrix = _relations.GetMatrix(_matrixFactory);
             _matrix.Reduce();
             List<BigBitArray> nullVectors = _matrix.FindNullVectors();
             OnNotifyProgress($"Found {nullVectors.Count} Null Vectors");
