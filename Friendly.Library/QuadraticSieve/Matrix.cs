@@ -103,30 +103,6 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <summary>
-      /// Flips the specified bit.
-      /// </summary>
-      /// <param name="rowIndex">The row in which to flip the bit.</param>
-      /// <param name="columnIndex">The column in which to flip the bit.</param>
-      public void FlipBit(int rowIndex, int columnIndex)
-      {
-         ValidateRow(rowIndex);
-         ValidateColumn(columnIndex);
-         _rows[rowIndex].FlipBit(columnIndex);
-      }
-
-      /// <summary>
-      /// Augments this Matrix by appending the Identity Matrix on its
-      /// right hand side.
-      /// </summary>
-      public void AugmentIdentity()
-      {
-         int oldColumns = Columns;
-         ExpandColumns(Columns + Rows);
-         for (int r = 0, rul = Rows, c = oldColumns; r < rul; r++, c++)
-            this[r, c] = true;
-      }
-
-      /// <summary>
       /// Performs Gauss-Jordan reduction on the Matrix.
       /// </summary>
       public void Reduce()
