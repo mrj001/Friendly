@@ -4,10 +4,11 @@ using System.Diagnostics;
 
 namespace Friendly.Library.QuadraticSieve
 {
-      /// <summary>
-      /// A matrix modulo 2.
-      /// </summary>
-   public class Matrix
+   /// <summary>
+   /// A Matrix modulo 2, which is implemented by storing one bit per entry
+   /// of the Matrix.
+   /// </summary>
+   public class Matrix : IMatrix
    {
       private readonly List<BigBitArray> _rows;
       private int _columns;
@@ -33,23 +34,13 @@ namespace Friendly.Library.QuadraticSieve
             _rows.Add(new BigBitArray(columnSize + columnBuffer));
       }
 
-      /// <summary>
-      /// Gets the number of Rows in the Matrix
-      /// </summary>
+      /// <inheritdoc />
       public int Rows { get => _rows.Count; }
 
-      /// <summary>
-      /// Gets the number of Columns in the Matrix.
-      /// </summary>
+      /// <inheritdoc />
       public int Columns { get => _columns; }
 
-      /// <summary>
-      /// Expands the number of Columns to the given amount.
-      /// </summary>
-      /// <param name="newColumnSize">The number of columns to expand to.</param>
-      /// <remarks>
-      /// Any attempt to shrink the number of columns is silently ignored.
-      /// </remarks>
+      /// <inheritdoc />
       public void ExpandColumns(int newColumnSize)
       {
          if (newColumnSize < _columns)
@@ -80,12 +71,7 @@ namespace Friendly.Library.QuadraticSieve
             throw new ArgumentOutOfRangeException($"{nameof(columnIndex)} = {columnIndex} is out of bounds [0, {_columns}).");
       }
 
-      /// <summary>
-      /// Gets or sets the specified Bit in the Matrix
-      /// </summary>
-      /// <param name="rowIndex">The row to operate on.</param>
-      /// <param name="columnIndex">The column to operate on.</param>
-      /// <returns>True if the bit is set; false if the bit is clear.</returns>
+      /// <inheritdoc />
       public bool this[int rowIndex, int columnIndex]
       {
          get
@@ -102,9 +88,7 @@ namespace Friendly.Library.QuadraticSieve
          }
       }
 
-      /// <summary>
-      /// Performs Gauss-Jordan reduction on the Matrix.
-      /// </summary>
+      /// <inheritdoc />
       public void Reduce()
       {
          ReduceForward();
@@ -117,9 +101,9 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private void ReduceForward()
       {
-         for (int col = 0, curRow = 0; col < Columns; col ++)
+         for (int col = 0, curRow = 0; col < Columns; col++)
          {
-            if (!this[curRow,col])
+            if (!this[curRow, col])
             {
                // find a row below to swap with.
                int rw = curRow + 1;
@@ -161,7 +145,7 @@ namespace Friendly.Library.QuadraticSieve
       {
          int maxCols = Columns;
 
-         for (int row = Rows - 1; row >= 0; row --)
+         for (int row = Rows - 1; row >= 0; row--)
          {
             // Find leading non-zero coefficient.  The search starts at the
             // diagonal.
@@ -183,11 +167,7 @@ namespace Friendly.Library.QuadraticSieve
       }
 
 
-      /// <summary>
-      /// 
-      /// </summary>
-      /// <returns>A list of vectors satisfying the equation Ax = 0, where A represents this Matrix.</returns>
-      /// <remarks>This Matrix must already have been reduced to Reduced Row Echelon Form.</remarks>
+      /// <inheritdoc />
       public List<BigBitArray> FindNullVectors()
       {
          Assertions.True(_rref);
@@ -199,7 +179,7 @@ namespace Friendly.Library.QuadraticSieve
          List<BigBitArray> nullVectors = new List<BigBitArray>();
 
          // Handle leading free variables.
-         while(!this[0, freeCol])
+         while (!this[0, freeCol])
          {
             BigBitArray nullVector = new BigBitArray(Columns);
             // Note: there are no bits to copy in this column.  This indicates
@@ -219,7 +199,7 @@ namespace Friendly.Library.QuadraticSieve
 
             freeCol = curPivotCol + 1;
             while (freeCol < Columns && ((curPivotRow + 1 < Rows && !this[curPivotRow + 1, freeCol]) || curPivotRow == Rows - 1))
-               {
+            {
                int freeIndex = 0;
                BigBitArray nullVector = new BigBitArray(Columns);
 
@@ -247,10 +227,7 @@ namespace Friendly.Library.QuadraticSieve
          return nullVectors;
       }
 
-      /// <summary>
-      /// Returns a list of Column indices which specify the free variables.
-      /// </summary>
-      /// <returns></returns>
+      /// <inheritdoc />
       public List<int> FindFreeColumns()
       {
          Assertions.True(_rref);

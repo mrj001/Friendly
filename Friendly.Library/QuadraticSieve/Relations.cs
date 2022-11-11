@@ -144,7 +144,7 @@ namespace Friendly.Library.QuadraticSieve
 
       public int PartialRelationCount { get => _partialRelations.Count; }
 
-      public Matrix GetMatrix()
+      public IMatrix GetMatrix()
       {
          Matrix rv = new(_factorBaseSize, _relations.Count, 0);
 

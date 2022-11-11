@@ -52,7 +52,7 @@ namespace Friendly.Library.QuadraticSieve
 
       private Relations _relations;
 
-      private Matrix _matrix;
+      private IMatrix _matrix;
 
       /// <summary>
       /// A count of the number of completed iterations of sieving.
@@ -85,13 +85,6 @@ namespace Friendly.Library.QuadraticSieve
          _sieveIntervals = 0;
          _polynomials = null;
          _totalPolynomials = 0;
-      }
-
-      private static Matrix AllocateMatrix(int fbSize)
-      {
-         // The buffer of 20 is twice the number of extra exponent vectors
-         // that will end the sieving loop.
-         return new Matrix(fbSize, fbSize, 20);
       }
 
       protected void OnNotifyProgress(string message)
