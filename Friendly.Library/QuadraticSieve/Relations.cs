@@ -127,18 +127,12 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          // We know that:
-         // p == _partialRelations[index]
+         //   p == _partialRelations[index].LargePrime
          PartialRelation prev = _partialRelations[index];
          _partialRelations.RemoveAt(index);   // TODO: do we have to remove it?
                                               // TODO: can we extract a relationship from every pair with the same large prime?
-         //BigInteger invLargePrime = BigIntegerCalculator.FindInverse(p, _kn);
 
-         BigInteger q = newPartialRelation.QOfX * prev.QOfX;
-         BigInteger x = newPartialRelation.X * prev.X;
-         BigBitArray exponentVector = new BigBitArray(newPartialRelation.ExponentVector);
-         exponentVector.Xor(prev.ExponentVector);
-
-         _relations.Add(new Relation(q, x, exponentVector));
+         _relations.Add(new Relation(prev, newPartialRelation));
          _totalRelationsFound++;
       }
 
@@ -157,6 +151,27 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          return rv;
+      }
+
+      /// <summary>
+      /// Gets an array indicating how many relations were obtained by the number
+      /// of large primes involved.
+      /// </summary>
+      /// <returns></returns>
+      /// <remarks>
+      /// <para>
+      /// The zero'th element indicates that zero large primes were involved.
+      /// These values were fully factored during the sieve.  Subsequent indices
+      /// correspond to the maximum number of large primes in the constituent
+      /// Partial Relations (and Partial Partial and Triples).
+      /// </para>
+      /// </remarks>
+      public int[] GetStats()
+      {
+         int[] counts = new int[4];
+         foreach (Relation j in _relations)
+            counts[(int)j.Origin]++;
+         return counts;
       }
    }
 }

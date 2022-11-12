@@ -99,6 +99,15 @@ namespace Friendly.Library.QuadraticSieve
       public int TotalPolynomials { get => _totalPolynomials; }
 
       /// <summary>
+      /// 
+      /// </summary>
+      /// <returns></returns>
+      public int[] GetRelationsStats()
+      {
+         return _relations.GetStats();
+      }
+
+      /// <summary>
       /// Factors the given number into two factors.
       /// </summary>
       /// <param name="n">The number to factor.</param>

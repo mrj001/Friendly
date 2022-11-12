@@ -347,6 +347,11 @@ namespace ProfileQuadraticSieve
 
             _progressLogger.WriteLine($"Number of B-Smooth values found: {sieve.TotalBSmoothValuesFound}");
             _progressLogger.WriteLine($"Number of Polynomials used: {sieve.TotalPolynomials}");
+            _progressLogger.WriteLine("Relations Stats:");
+            _progressLogger.WriteLine("LargePrimes\tCount");
+            int[] stats = sieve.GetRelationsStats();
+            for (int j = 0; j < stats.Length; j++)
+               _progressLogger.WriteLine($"{j}\t{stats[j]}");
          }
          finally
          {
