@@ -129,8 +129,10 @@ namespace Friendly.Library.QuadraticSieve
          // We know that:
          //   p == _partialRelations[index].LargePrime
          PartialRelation prev = _partialRelations[index];
-         _partialRelations.RemoveAt(index);   // TODO: do we have to remove it?
-                                              // TODO: can we extract a relationship from every pair with the same large prime?
+         // If we do not remove the Partial Relation, when we get several
+         // later ones with the same Large Prime, we will introduce linear
+         // dependencies.
+         _partialRelations.RemoveAt(index);
 
          _relations.Add(new Relation(prev, newPartialRelation));
          _totalRelationsFound++;
