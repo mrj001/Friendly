@@ -46,6 +46,7 @@ namespace ProfileQuadraticSieve
                Program.RunFactorings(parameters, 3600, numDigits, ref actualRepeats,
                   out totalSeconds, out minSeconds, out maxSeconds, out totalPolynomials);
                resultLogger.WriteLine($"{parameters.CurrentParameter:0.######}\t{actualRepeats}\t{totalSeconds:0.######}\t{minSeconds:0.######}\t{maxSeconds:0.######}\t{totalPolynomials}\t");
+               resultLogger.Flush();
 
                if (parameter != ParameterToOptimize.SmallPrimeLimit)
                {
