@@ -132,6 +132,7 @@ namespace Friendly.Library.QuadraticSieve
 
          int retryCount = 0;
          int retryLimit = 100;
+         int nullVectorsChecked = 0;
          while (retryCount < retryLimit)
          {
             OnNotifyProgress($"Have {_relations.RelationCount} relations; reducing Matrix");
@@ -143,6 +144,7 @@ namespace Friendly.Library.QuadraticSieve
             BigInteger x, y;
             foreach (BigBitArray nullVector in nullVectors)
             {
+               nullVectorsChecked++;
                x = BigInteger.One;
                y = BigInteger.One;
                for (int j = 0, jul = _matrix.Columns; j < jul; j++)
@@ -177,6 +179,7 @@ namespace Friendly.Library.QuadraticSieve
                   BigInteger q = BigInteger.DivRem(f1, _multiplier, out BigInteger remainder);
                   if (remainder == 0)
                      f1 = q;
+                  OnNotifyProgress($"Factored after checking {nullVectorsChecked} Null Vectors.");
                   return (f1, _nOrig / f1);
                }
             }
