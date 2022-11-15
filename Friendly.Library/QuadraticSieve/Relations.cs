@@ -6,7 +6,6 @@ namespace Friendly.Library.QuadraticSieve
 {
    public class Relations
    {
-      private readonly BigInteger _kn;
       private readonly List<Relation> _relations;
       private int _fullyFactoredRelations;
       private int _removedRelations;
@@ -17,11 +16,9 @@ namespace Friendly.Library.QuadraticSieve
       /// <summary>
       /// Constructs a collection of Relations.
       /// </summary>
-      /// <param name="kn">The integer being factored, with the pre-multiplier applied.</param>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
-      public Relations(BigInteger kn, int factorBaseSize)
+      public Relations(int factorBaseSize)
       {
-         _kn = kn;
          _relations = new();
          _fullyFactoredRelations = 0;
          _removedRelations = 0;

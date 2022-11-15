@@ -127,7 +127,7 @@ namespace Friendly.Library.QuadraticSieve
          FindFactorBase();
          OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
 
-         _relations = new Relations(_n, _factorBase.Count);
+         _relations = new Relations(_factorBase.Count);
 
          _M = _parameters.FindSieveInterval(_n);
          _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M)).GetEnumerator();
