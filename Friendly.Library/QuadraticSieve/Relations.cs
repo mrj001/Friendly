@@ -8,7 +8,6 @@ namespace Friendly.Library.QuadraticSieve
    {
       private readonly List<Relation> _relations;
 
-      private int _removedRelations;
       private readonly List<PartialRelation> _partialRelations;
       private readonly int _factorBaseSize;
 
@@ -19,7 +18,6 @@ namespace Friendly.Library.QuadraticSieve
       public Relations(int factorBaseSize)
       {
          _relations = new();
-         _removedRelations = 0;
          _partialRelations = new();
          _factorBaseSize = factorBaseSize;
       }
@@ -65,21 +63,9 @@ namespace Friendly.Library.QuadraticSieve
       public void RemoveRelationAt(int index)
       {
          _relations.RemoveAt(index);
-         _removedRelations++;
       }
 
       public int RelationCount { get => _relations.Count; }
-
-      /// <summary>
-      /// Gets the count of Removed Relation Objects.
-      /// </summary>
-      /// <remarks>
-      /// <para>
-      /// It is not tracked whether the removed Relation Objects originated
-      /// from Fully Factored values or from Large Primes.
-      /// </para>
-      /// </remarks>
-      public int RemovedRelations { get => _removedRelations; }
 
       public void AddPartialRelation(PartialRelation newPartialRelation)
       {
