@@ -7,9 +7,8 @@ namespace Friendly.Library.QuadraticSieve
    public class Relations
    {
       private readonly List<Relation> _relations;
-      private int _fullyFactoredRelations;
+
       private int _removedRelations;
-      private int _totalRelationsFound;
       private readonly List<PartialRelation> _partialRelations;
       private readonly int _factorBaseSize;
 
@@ -20,9 +19,7 @@ namespace Friendly.Library.QuadraticSieve
       public Relations(int factorBaseSize)
       {
          _relations = new();
-         _fullyFactoredRelations = 0;
          _removedRelations = 0;
-         _totalRelationsFound = 0;
          _partialRelations = new();
          _factorBaseSize = factorBaseSize;
       }
@@ -40,8 +37,6 @@ namespace Friendly.Library.QuadraticSieve
       public void AddRelation(Relation newRelation)
       {
          _relations.Add(newRelation);
-         _fullyFactoredRelations++;
-         _totalRelationsFound++;
       }
 
       /// <summary>
@@ -74,23 +69,6 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       public int RelationCount { get => _relations.Count; }
-
-      /// <summary>
-      /// Gets the total number of fully factored Relation objects that were
-      /// added.
-      /// </summary>
-      public int FullyFactoredRelations { get => _fullyFactoredRelations; }
-
-      /// <summary>
-      /// Gets the total number of Relation objects that were found.
-      /// </summary>
-      /// <remarks>
-      /// <para>
-      /// This includes both fully factored relations, relations from Large Primes
-      /// and remove relations.
-      /// </para>
-      /// </remarks>
-      public int TotalRelationsFound { get => _totalRelationsFound; }
 
       /// <summary>
       /// Gets the count of Removed Relation Objects.
@@ -132,7 +110,6 @@ namespace Friendly.Library.QuadraticSieve
          _partialRelations.RemoveAt(index);
 
          _relations.Add(new Relation(prev, newPartialRelation));
-         _totalRelationsFound++;
       }
 
       public int PartialRelationCount { get => _partialRelations.Count; }

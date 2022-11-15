@@ -94,8 +94,6 @@ namespace Friendly.Library.QuadraticSieve
          Progress?.Invoke(this, new NotifyProgressEventArgs(message));
       }
 
-      public int TotalBSmoothValuesFound { get => _relations.TotalRelationsFound; }
-
       public int TotalPolynomials { get => _totalPolynomials; }
 
       /// <summary>
@@ -196,7 +194,7 @@ namespace Friendly.Library.QuadraticSieve
 
          // We've gone back and retried 100 times and run out of squares each
          // time. This is cause for suspicion.
-         throw new ApplicationException($"Ran out of squares while factoring {_n:N0}\nTotal B-Smooth Values Found: {_relations.TotalRelationsFound}\nFactor Base Count: {_factorBase.Count}");
+         throw new ApplicationException($"Ran out of squares while factoring {_n:N0}\nFactor Base Count: {_factorBase.Count}");
       }
 
       /// <summary>
@@ -243,7 +241,7 @@ namespace Friendly.Library.QuadraticSieve
          do
          {
             if (!_polynomials.MoveNext())
-               throw new ApplicationException($"Ran out of polynomials while factoring {_n:N0}\nTotal B-Smooth Values Found: {_relations.TotalRelationsFound}\nFactor Base Count: {_factorBase.Count}");
+               throw new ApplicationException($"Ran out of polynomials while factoring {_n:N0}\nFactor Base Count: {_factorBase.Count}");
 
             Polynomial poly = _polynomials.Current;
             _totalPolynomials++;
