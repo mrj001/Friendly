@@ -7,15 +7,16 @@ namespace Friendly.Library.QuadraticSieve
    {
       private readonly ParameterTableEntry[] _parameters = new ParameterTableEntry[]
       {
-         // These are the values from Table 1 of the Silverman paper (Ref. B).
-         new ParameterTableEntry(24,  100,   5_000, 1.5, 3),
-         new ParameterTableEntry(30,  200,  25_000, 1.5, 5),
-         new ParameterTableEntry(36,  400,  25_000, 1.75, 5),
-         new ParameterTableEntry(42,  900,  50_000, 2.0, 5),
-         new ParameterTableEntry(48, 1200, 100_000, 2.0, 7),
+         // These values were initially from Table 1 of the Silverman paper (Ref. B).
+         // I've added the small prime cutoff, and altered some for optimization.
+         new ParameterTableEntry(24,  100,   5_000, 1.5,  3),
+         new ParameterTableEntry(30,  200,  25_000, 1.5,  5),
+         new ParameterTableEntry(36,  400,  25_000, 1.61, 5),
+         new ParameterTableEntry(42,  900,  50_000, 1.75, 5),
+         new ParameterTableEntry(48, 1200, 100_000, 2.07, 7),
          new ParameterTableEntry(54, 2000, 250_000, 2.2, 11),
-         new ParameterTableEntry(60, 3000, 350_000, 2.4, 17),
-         new ParameterTableEntry(66, 4500, 500_000, 2.6, 17)
+         new ParameterTableEntry(60, 3000, 350_000, 2.22, 17),
+         new ParameterTableEntry(66, 4500, 500_000, 2.6, 17)    // TODO: Optimization runs for Large Prime Tolerance
       };
 
       private int GetIndex(int numDigits)

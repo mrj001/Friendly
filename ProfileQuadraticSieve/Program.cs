@@ -187,9 +187,9 @@ namespace ProfileQuadraticSieve
       private static void DoOptimizationTest()
       {
          Console.WriteLine("Choose parameter to optimize:");
-         Console.WriteLine("1. Size of Factor Base (TODO)");
-         Console.WriteLine("2. Sieve Interval (TODO)");
-         Console.WriteLine("3. Large Prime Tolerance (TODO)");
+         Console.WriteLine("1. Size of Factor Base");
+         Console.WriteLine("2. Sieve Interval");
+         Console.WriteLine("3. Large Prime Tolerance");
          Console.WriteLine("4. Small Prime Limit");
          string? s;
          int choice;
