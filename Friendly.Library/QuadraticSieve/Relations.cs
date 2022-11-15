@@ -98,8 +98,6 @@ namespace Friendly.Library.QuadraticSieve
          _relations.Add(new Relation(prev, newPartialRelation));
       }
 
-      public int PartialRelationCount { get => _partialRelations.Count; }
-
       public IMatrix GetMatrix(IMatrixFactory matrixFactory)
       {
          IMatrix rv = matrixFactory.GetMatrix(_factorBaseSize, _relations.Count);
