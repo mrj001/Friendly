@@ -15,6 +15,10 @@ using Friendly.Library;
 //    Mathematics of Computation, Volume 48, Number 177, January 1987,
 //    pages 329-339.
 //
+// C. A. K. Lenstra & M. S. Manasse, Factoring With Two Large Primes,
+//    Mathematics of Computation, Volume 63, Number 208, October 1994,
+//    pages 785-798.
+//
 
 namespace Friendly.Library.QuadraticSieve
 {
@@ -50,7 +54,7 @@ namespace Friendly.Library.QuadraticSieve
 
       private FactorBase _factorBase;
 
-      private Relations _relations;
+      private IRelations _relations;
 
       private IMatrix _matrix;
       private IMatrixFactory _matrixFactory;
@@ -125,7 +129,9 @@ namespace Friendly.Library.QuadraticSieve
          FindFactorBase();
          OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
 
-         _relations = new Relations(_factorBase.Count);
+         int numDigits = BigIntegerCalculator.GetNumberOfDigits(_nOrig);
+         int pmax = _factorBase[_factorBase.Count - 1].Prime;
+         _relations = (new RelationsFactory()).GetRelations(numDigits, _factorBase.Count, pmax, pmax * pmax);
 
          _M = _parameters.FindSieveInterval(_n);
          _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M)).GetEnumerator();
@@ -137,7 +143,7 @@ namespace Friendly.Library.QuadraticSieve
          int nullVectorsChecked = 0;
          while (retryCount < retryLimit)
          {
-            OnNotifyProgress($"Have {_relations.RelationCount} relations; reducing Matrix");
+            OnNotifyProgress($"Have {_relations.Count} relations; reducing Matrix");
             _matrix = _relations.GetMatrix(_matrixFactory);
             _matrix.Reduce();
             List<BigBitArray> nullVectors = _matrix.FindNullVectors();
@@ -312,17 +318,13 @@ namespace Friendly.Library.QuadraticSieve
                      }
                   }
 
-                  // Is the number B-Smooth?
-                  if (Q == 1)
-                     _relations.AddRelation(new Relation(origQ, poly.EvaluateLHS(x), exponentVector));
-                  else if (Q < (long)pmaxt && Q > _factorBase[_factorBase.Count - 1].Prime)
-                     _relations.AddPartialRelation(new PartialRelation(origQ, poly.EvaluateLHS(x), exponentVector, (long)Q));
+                  _relations.TryAddRelation(origQ, poly.EvaluateLHS(x), exponentVector, Q);
                }
             }
 
             _sieveIntervals ++;
 
-         } while (_relations.RelationCount < numRelationsNeeded);
+         } while (_relations.Count < numRelationsNeeded);
       }
 
       private static void AddLogs(ushort[] sieve, int startIndex, int stride, ushort log)

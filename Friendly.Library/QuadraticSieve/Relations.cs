@@ -4,37 +4,51 @@ using System.Numerics;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class Relations
+   /// <summary>
+   /// An implementation of the IRelations interface to be used with the Single
+   /// Large Prime variation.
+   /// </summary>
+   public class Relations : IRelations
    {
       private readonly List<Relation> _relations;
 
       private readonly List<PartialRelation> _partialRelations;
       private readonly int _factorBaseSize;
+      private readonly int _maxFactor;
+      private readonly long _maxLargePrime;
 
       /// <summary>
       /// Constructs a collection of Relations.
       /// </summary>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
-      public Relations(int factorBaseSize)
+      /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
+      /// <param name="maxLargePrime">The maximum value of a residual that will be
+      /// considered for the Single Large Prime.</param>
+      public Relations(int factorBaseSize, int maxFactor, int maxLargePrime)
       {
          _relations = new();
          _partialRelations = new();
          _factorBaseSize = factorBaseSize;
+         _maxFactor = maxFactor;
+         _maxLargePrime = maxLargePrime;
       }
 
-      /// <summary>
-      /// Adds a Relation
-      /// </summary>
-      /// <param name="newRelation">The new Relation to add.</param>
-      /// <remarks>
-      /// <para>
-      /// Adding a Relation via this method increments the FullyFactoredRelations
-      /// property.
-      /// </para>
-      /// </remarks>
-      public void AddRelation(Relation newRelation)
+      /// <inheritdoc />
+      public bool TryAddRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector,
+         BigInteger residual)
       {
-         _relations.Add(newRelation);
+         if (residual == BigInteger.One)
+         {
+            _relations.Add(new Relation(QofX, x, exponentVector));
+            return true;
+         }
+         else if(residual < _maxLargePrime && residual > _maxFactor)
+         {
+            AddPartialRelation(new PartialRelation(QofX, x, exponentVector, (long)residual));
+            return true;
+         }
+
+         return false;
       }
 
       /// <summary>
@@ -65,9 +79,10 @@ namespace Friendly.Library.QuadraticSieve
          _relations.RemoveAt(index);
       }
 
-      public int RelationCount { get => _relations.Count; }
+      /// <inheritdoc />
+      public int Count { get => _relations.Count; }
 
-      public void AddPartialRelation(PartialRelation newPartialRelation)
+      private void AddPartialRelation(PartialRelation newPartialRelation)
       {
          long p = newPartialRelation.LargePrime;
 
@@ -102,10 +117,10 @@ namespace Friendly.Library.QuadraticSieve
       {
          IMatrix rv = matrixFactory.GetMatrix(_factorBaseSize, _relations.Count);
 
-         for (int col = 0; col < _relations.Count; col ++)
+         for (int col = 0; col < _relations.Count; col++)
          {
             Relation rel = _relations[col];
-            for (int row = 0; row < _factorBaseSize; row ++)
+            for (int row = 0; row < _factorBaseSize; row++)
                if (rel.ExponentVector[row])
                   rv[row, col] = true;
          }
