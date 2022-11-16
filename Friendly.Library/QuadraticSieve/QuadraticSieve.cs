@@ -131,7 +131,8 @@ namespace Friendly.Library.QuadraticSieve
 
          int numDigits = BigIntegerCalculator.GetNumberOfDigits(_nOrig);
          int pmax = _factorBase[_factorBase.Count - 1].Prime;
-         _relations = (new RelationsFactory()).GetRelations(numDigits, _factorBase.Count, pmax, pmax * pmax);
+         _relations = (new RelationsFactory()).GetRelations(numDigits, _factorBase.Count,
+            pmax, ((long)pmax) * pmax);
 
          _M = _parameters.FindSieveInterval(_n);
          _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M)).GetEnumerator();

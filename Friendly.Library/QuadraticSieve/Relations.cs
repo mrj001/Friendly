@@ -24,7 +24,7 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
       /// <param name="maxLargePrime">The maximum value of a residual that will be
       /// considered for the Single Large Prime.</param>
-      public Relations(int factorBaseSize, int maxFactor, int maxLargePrime)
+      public Relations(int factorBaseSize, int maxFactor, long maxLargePrime)
       {
          _relations = new();
          _partialRelations = new();

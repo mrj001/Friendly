@@ -13,6 +13,6 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="maxLargePrime">The maximum value of the first Large Prime.</param>
       /// <returns>An instance of IRelations.</returns>
       IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor,
-         int maxLargePrime);
+         long maxLargePrime);
    }
 }
