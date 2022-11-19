@@ -49,6 +49,23 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <summary>
+      /// Constructs a Relation object where at least one Partial Partial
+      /// Relation was used in determining the values.
+      /// </summary>
+      /// <param name="QofX"></param>
+      /// <param name="x"></param>
+      /// <param name="exponentVector"></param>
+      /// <param name="origin"></param>
+      public Relation(BigInteger QofX, BigInteger x, BigBitArray exponentVector,
+         RelationOrigin origin)
+      {
+         _qOfX = QofX;
+         _x = x;
+         _exponentVector = exponentVector;
+         _origin = origin;
+      }
+
+      /// <summary>
       /// Constructs a Relation object from two Relations containing a single
       /// large prime each.
       /// </summary>

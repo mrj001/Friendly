@@ -19,7 +19,75 @@ namespace Test.Library.QuadraticSieve
    public class TestQuadraticSieve
    {
       // TODO: Should be mocked.
-      private readonly IParameters _parameters = new Parameters();
+      /// <summary>
+      /// A fake Relations Factory that ONLY uses the Single Large Prime Variaion.
+      /// </summary>
+      private class FakeRelationsFactory : IRelationsFactory
+      {
+         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor, long maxLargePrime)
+         {
+            return new Relations(factorBaseSize, maxFactor, maxLargePrime);
+         }
+      }
+
+      /// <summary>
+      /// A fake Relations Factory that ONLY uses the Double Large Prime Variation.
+      /// </summary>
+      private class FakeRelationsFactory2P : IRelationsFactory
+      {
+         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor, long maxLargePrime)
+         {
+            return new Relations2P(factorBaseSize, maxFactor, maxLargePrime);
+         }
+      }
+
+      private enum LargePrimeType
+      {
+         OneLargePrime,
+         TwoLargePrimes
+      }
+
+      private class FakeParameters : IParameters
+      {
+         private readonly IParameters _parameters;
+         private readonly IRelationsFactory _relationsFactory;
+
+         public FakeParameters(LargePrimeType largePrimeType)
+         {
+            _parameters = new Parameters();
+            if (largePrimeType == LargePrimeType.OneLargePrime)
+               _relationsFactory = new FakeRelationsFactory();
+            else if (largePrimeType == LargePrimeType.TwoLargePrimes)
+               _relationsFactory = new FakeRelationsFactory2P();
+            else
+               throw new ArgumentException();
+         }
+
+         public double FindLargePrimeTolerance(BigInteger n)
+         {
+            return _parameters.FindLargePrimeTolerance(n);
+         }
+
+         public int FindSieveInterval(BigInteger n)
+         {
+            return _parameters.FindSieveInterval(n);
+         }
+
+         public int FindSizeOfFactorBase(BigInteger n)
+         {
+            return _parameters.FindSizeOfFactorBase(n);
+         }
+
+         public int FindSmallPrimeLimit(BigInteger n)
+         {
+            return _parameters.FindSmallPrimeLimit(n);
+         }
+
+         public IRelationsFactory GetRelationsFactory()
+         {
+            return _relationsFactory;
+         }
+      }
 
       public TestQuadraticSieve()
       {
@@ -71,9 +139,7 @@ namespace Test.Library.QuadraticSieve
          }
       }
 
-      [Theory]
-      [MemberData(nameof(FactorTestData))]
-      public void Factor(long f1, long f2)
+      private void InternalFactor(IParameters parameters, long f1, long f2)
       {
          if (f1 > f2)
          {
@@ -84,7 +150,7 @@ namespace Test.Library.QuadraticSieve
 
          long product = f1 * f2;
 
-         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(_parameters, product);
+         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(parameters, product);
          (BigInteger actual1, BigInteger actual2) = sieve.Factor();
 
          if (actual1 > actual2)
@@ -98,10 +164,33 @@ namespace Test.Library.QuadraticSieve
          Assert.Equal(f2, actual2);
       }
 
-      // Multiply a bunch of pseudo-randomly chosen pairs of primes together and
-      // factor the resulting number to make sure it works.
-      [Fact]
-      public void Factor2()
+      /// <summary>
+      /// Test Factoring of specified primes using the Single Large Prime Variation.
+      /// </summary>
+      /// <param name="f1"></param>
+      /// <param name="f2"></param>
+      [Theory]
+      [MemberData(nameof(FactorTestData))]
+      public void Factor(long f1, long f2)
+      {
+         IParameters parameters = new FakeParameters(LargePrimeType.OneLargePrime);
+         InternalFactor(parameters, f1, f2);
+      }
+
+      /// <summary>
+      /// Test Factoring of specified primes using the Double Large Prime Variation.
+      /// </summary>
+      /// <param name="f1"></param>
+      /// <param name="f2"></param>
+      [Theory]
+      [MemberData(nameof(FactorTestData))]
+      public void Factor2P(long f1, long f2)
+      {
+         IParameters parameters = new FakeParameters(LargePrimeType.TwoLargePrimes);
+         InternalFactor(parameters, f1, f2);
+      }
+
+      private void InternalFactor2(IParameters parameters)
       {
          IEnumerator<long> j = Primes.GetEnumerator();
          List<long> primes = new List<long>();
@@ -115,7 +204,7 @@ namespace Test.Library.QuadraticSieve
          int p1Index, p2Index;
          Random rnd = new Random(123);
 
-         for (int k = 0; k < 100; k ++)
+         for (int k = 0; k < 100; k++)
          {
             p1Index = rnd.Next(primes.Count);
             do
@@ -135,7 +224,7 @@ namespace Test.Library.QuadraticSieve
                p2 = t;
             }
 
-            Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(_parameters, n);
+            Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(parameters, n);
             (BigInteger q1, BigInteger q2) = sieve.Factor();
             if (q1 > q2)
             {
@@ -147,6 +236,26 @@ namespace Test.Library.QuadraticSieve
             Assert.Equal(p1, q1);
             Assert.Equal(p2, q2);
          }
+      }
+
+      // Multiply a bunch of pseudo-randomly chosen pairs of primes together and
+      // factor the resulting number to make sure it works.
+      // Uses the Single Large Prime variation.
+      [Fact]
+      public void Factor2()
+      {
+         IParameters parameters = new FakeParameters(LargePrimeType.OneLargePrime);
+         InternalFactor2(parameters);
+      }
+
+      // Multiply a bunch of pseudo-randomly chosen pairs of primes together and
+      // factor the resulting number to make sure it works.
+      // Uses the Double Large Prime variation.
+      [Fact]
+      public void Factor2_2P()
+      {
+         IParameters parameters = new FakeParameters(LargePrimeType.TwoLargePrimes);
+         InternalFactor2(parameters);
       }
 
       public static TheoryData<int, BigInteger, BigInteger> FactorBigTestData
@@ -171,11 +280,7 @@ namespace Test.Library.QuadraticSieve
          }
       }
 
-      [Theory(Skip ="Very slow running.")]
-      [MemberData(nameof(FactorBigTestData))]
-#pragma warning disable xUnit1026 // Theory methods should use all of their parameters
-      public void FactorBig(int serial, BigInteger f1, BigInteger f2)
-#pragma warning restore xUnit1026 // Theory methods should use all of their parameters
+      private void InternalFactorBig(IParameters parameters, BigInteger f1, BigInteger f2)
       {
          if (f1 > f2)
          {
@@ -186,7 +291,7 @@ namespace Test.Library.QuadraticSieve
 
          BigInteger product = f1 * f2;
 
-         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(_parameters, product);
+         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(parameters, product);
          (BigInteger actual1, BigInteger actual2) = sieve.Factor();
 
          if (actual1 > actual2)
@@ -198,6 +303,26 @@ namespace Test.Library.QuadraticSieve
 
          Assert.Equal(f1, actual1);
          Assert.Equal(f2, actual2);
+      }
+
+      [Theory(Skip ="Very slow running.")]
+      [MemberData(nameof(FactorBigTestData))]
+#pragma warning disable xUnit1026 // Theory methods should use all of their parameters
+      public void FactorBig1P(int serial, BigInteger f1, BigInteger f2)
+#pragma warning restore xUnit1026 // Theory methods should use all of their parameters
+      {
+         IParameters parameters = new FakeParameters(LargePrimeType.OneLargePrime);
+         InternalFactorBig(parameters, f1, f2);
+      }
+
+      [Theory(Skip = "Very slow running.")]
+      [MemberData(nameof(FactorBigTestData))]
+#pragma warning disable xUnit1026 // Theory methods should use all of their parameters
+      public void FactorBig2P(int serial, BigInteger f1, BigInteger f2)
+#pragma warning restore xUnit1026 // Theory methods should use all of their parameters
+      {
+         IParameters parameters = new FakeParameters(LargePrimeType.TwoLargePrimes);
+         InternalFactorBig(parameters, f1, f2);
       }
    }
 }
