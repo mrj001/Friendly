@@ -59,6 +59,12 @@ namespace Friendly.Library.QuadraticSieve
          return _parameters[index].SmallPrimeLimit;
       }
 
+      /// <inheritdoc/>
+      public IRelationsFactory GetRelationsFactory()
+      {
+         return new RelationsFactory();
+      }
+
       private class ParameterTableEntry
       {
          public ParameterTableEntry(int numDigits, int factorBaseSize,

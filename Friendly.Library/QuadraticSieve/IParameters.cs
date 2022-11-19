@@ -37,6 +37,12 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="n">The number being factored.</param>
       /// <returns>Factor Base Primes equal to or less than this value are not sieved.</returns>
       int FindSmallPrimeLimit(BigInteger n);
+
+      /// <summary>
+      /// Gets the Relations Factory to use to create the Relations object.
+      /// </summary>
+      /// <returns></returns>
+      IRelationsFactory GetRelationsFactory();
    }
 }
 

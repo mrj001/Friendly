@@ -124,6 +124,11 @@ namespace ProfileQuadraticSieve
             else
                return _parameters.FindSmallPrimeLimit(n);
          }
+
+         public IRelationsFactory GetRelationsFactory()
+         {
+            return new RelationsFactory();
+         }
       }
    }
 }
