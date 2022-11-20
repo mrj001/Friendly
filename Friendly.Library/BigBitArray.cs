@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 
 namespace Friendly.Library
 {
@@ -122,6 +123,18 @@ namespace Friendly.Library
          long jul = Math.Min(this.Capacity, other.Capacity) / 64;
          for (long j = 0; j < jul; j++)
             _bits[j] ^= other._bits[j];
+      }
+
+      /// <summary>
+      /// Counts the set bits.
+      /// </summary>
+      /// <returns>The number of set bits in this BigBitArray object</returns>
+      public int PopCount()
+      {
+         int rv = 0;
+         foreach (ulong j in _bits)
+            rv += BitOperations.PopCount(j);
+         return rv;
       }
    }
 }

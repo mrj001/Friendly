@@ -169,5 +169,31 @@ namespace Test.Library
          for (int j = 0; j < a.Capacity; j++)
             Assert.False(a[j]);
       }
+
+      //--------------------------------------------------------------------
+      [Fact]
+      public void PopCount()
+      {
+         Random random = new Random(123);
+
+         for (int j = 0; j < 16; j ++)
+         {
+            int capacity = 64 * random.Next(1, 71);
+            int expectedSetBits = (capacity / 64) * random.Next(1, 10);
+            BigBitArray bitVector = new BigBitArray(capacity);
+            for (int k = 0; k < expectedSetBits; k++)
+            {
+               int bit;
+               do
+               {
+                  bit = random.Next(0, capacity);
+               } while (bitVector[bit]);
+               bitVector[bit] = true;
+            }
+
+            // Assert that setBits number of bits were set
+            int actualSetBits = bitVector.PopCount();
+         }
+      }
    }
 }
