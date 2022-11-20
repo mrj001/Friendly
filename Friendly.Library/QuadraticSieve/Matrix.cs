@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 
 namespace Friendly.Library.QuadraticSieve
 {
@@ -258,6 +259,172 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          return rv;
+      }
+
+      /// <inheritdoc />
+      public void SaveBitMap(string filename)
+      {
+         BitMap bm = new BitMap(this);
+         bm.Save(filename);
+      }
+
+      /// <summary>
+      /// Unfortunately, System.Drawing.Bitmap class is not available
+      /// post .Net Framework.
+      /// </summary>
+      /// <remarks>
+      /// <para>
+      /// See https://en.wikipedia.org/wiki/BMP_file_format
+      /// </para>
+      /// <para>
+      /// I've left "struct-like FieldOffset attributes" in comments as
+      /// documentation of precisely where the bytes go in the file.
+      /// </para>
+      /// </remarks>
+      private class BitMap
+      {
+         //
+         // Header
+         //
+         //[FieldOffset(0)]
+         private readonly byte[] Header = new byte[] { (byte)'B', (byte)'M' };
+
+         /// <summary>
+         /// The size of the Bitmap file in Bytes
+         /// </summary>
+         //[FieldOffset(2)]
+         private readonly uint Size;
+
+         //[FieldOffset(6)]
+         private readonly ushort Reserved1 = 0;
+
+         //[FieldOffset(8)]
+         private readonly ushort Reserved2 = 0;
+
+         /// <summary>
+         /// The offset of the byte where the bitmap image data start
+         /// </summary>
+         //[FieldOffset(10)]
+         private readonly uint Offset = 32;
+
+         //
+         // Bitmap header information (AKA DIB Header)
+         // This is hte OS/2 1.x / Windows 2.0 BITMAPCOREHEADER
+         //
+         //[FieldOffset(14)]
+         private readonly uint CoreHeaderSize = 12;
+
+         /// <summary>
+         /// Bitmap Width in Pixels.
+         /// </summary>
+         //[FieldOffset(18)]
+         private readonly ushort Width;
+
+         /// <summary>
+         /// Bitmap Height in Pixels.
+         /// </summary>
+         //[FieldOffset(20)]
+         private readonly ushort Height;
+
+         // Must be 1.
+         //[FieldOffset(22)]
+         private readonly ushort ColorPlanes = 1;
+
+         /// <summary>
+         /// Number of bits per pixel.
+         /// </summary>
+         //[FieldOffset(24)]
+         private readonly ushort BitsPerPixel = 1;
+
+         //
+         // Color Table
+         // Note: it isn't clear that the ordering of RGB24 is actually
+         // Blue - Green - Red, but since they're all equal, we won't be
+         // concerned.
+         //
+         //[FieldOffset(26)]
+         private readonly byte ZeroBitBlue  = 0xff;
+         //[FieldOffset(27)]
+         private readonly byte ZeroBitGreen = 0xff;
+         //[FieldOffset(28)]
+         private readonly byte ZeroBitRed   = 0xff;
+         //[FieldOffset(29)]
+         private readonly byte OneBitBlue  = 0;
+         //[FieldOffset(30)]
+         private readonly byte OneBitGreen = 0;
+         //[FieldOffset(31)]
+         private readonly byte OneBitRed   = 0;
+
+         //[FieldOffset(32)]
+         private readonly byte[] _pixelArray;
+         private readonly int _rowSize;
+
+         /// <summary>
+         /// Constructs a BitMap representing the given Matrix.
+         /// </summary>
+         /// <param name="matrix"></param>
+         public BitMap(Matrix matrix)
+         {
+            if (matrix.Columns > ushort.MaxValue)
+               throw new ArgumentException($"The Matrix has {matrix.Columns} Columns, which is more than the maximum of {ushort.MaxValue}");
+            if (matrix.Rows > ushort.MaxValue)
+               throw new ArgumentException($"The Matrix has {matrix.Rows} Rows, which is more than the maximum of {ushort.MaxValue}");
+
+            // The size of each Row (in bytes) is padded to a multiple of 4 bytes.
+            _rowSize = (matrix.Columns / 32) * 4;
+            _pixelArray = new byte[_rowSize * matrix.Rows];
+
+            Width = (ushort)matrix.Columns;
+            Height = (ushort)matrix.Rows;
+            Size = (uint)(32 + _pixelArray.Length);
+
+            for (int rw = 0, rwOffset = 0; rw < Height; rw++, rwOffset += _rowSize)
+               for (int col = 0; col < Width; col ++)
+                  if (matrix[rw, col])
+                     _pixelArray[rwOffset + col / 8] |= (byte)(1 << (col % 8));
+         }
+
+         /// <summary>
+         /// Saves the BitMap to a file
+         /// </summary>
+         /// <param name="filename">The name of the file to create</param>
+         public void Save(string filename)
+         {
+            using (FileStream s = new FileStream(filename, FileMode.Create))
+            {
+               s.Write(Header, 0, Header.Length);
+               Write(s, Size);
+               Write(s, Reserved1);
+               Write(s, Reserved2);
+               Write(s, Offset);
+               Write(s, CoreHeaderSize);
+               Write(s, Width);
+               Write(s, Height);
+               Write(s, ColorPlanes);
+               Write(s, BitsPerPixel);
+               s.WriteByte(ZeroBitBlue);
+               s.WriteByte(ZeroBitGreen);
+               s.WriteByte(ZeroBitRed);
+               s.WriteByte(OneBitBlue);
+               s.WriteByte(OneBitGreen);
+               s.WriteByte(OneBitRed);
+               s.Write(_pixelArray, 0, _pixelArray.Length);
+            }
+         }
+
+         private void Write(Stream s, uint value)
+         {
+            s.WriteByte((byte)(value & 0x000000ff));
+            s.WriteByte((byte)((value & 0x0000ff00) >> 8));
+            s.WriteByte((byte)((value & 0x00ff0000) >> 16));
+            s.WriteByte((byte)((value & 0xff000000) >> 24));
+         }
+
+         private void Write(Stream s, ushort value)
+         {
+            s.WriteByte((byte)(value & 0x00ff));
+            s.WriteByte((byte)((value & 0xff00) >> 8));
+         }
       }
    }
 }

@@ -51,5 +51,11 @@ namespace Friendly.Library.QuadraticSieve
       /// Performs Gauss-Jordan reduction on the Matrix.
       /// </summary>
       void Reduce();
+
+      /// <summary>
+      /// Saves the Matrix as a BitMap
+      /// </summary>
+      /// <param name="filename">The file to write.</param>
+      void SaveBitMap(string filename);
    }
 }
