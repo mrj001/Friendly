@@ -363,7 +363,6 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private void CombineComponents()
       {
-         ResetUsed();
          CombineSingleLargePrimes();
 
          Dictionary<long, List<PartialPartialRelation>> rbp = GetRelationsByPrimes();
@@ -387,7 +386,7 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private void CombineSingleLargePrimes()
       {
-         List<PartialPartialRelation> singles = new(_partialPartialRelations.Where((x) => x.Prime1 == 1));
+         List<PartialPartialRelation> singles = new(_partialPartialRelations.Where((x) => x.Prime1 == 1 && !x.Used));
          singles.Sort((a, b) => {
             if (a.Prime2 > b.Prime2) return 1;
             else if (a.Prime2 == b.Prime2) return 0;
@@ -406,27 +405,11 @@ namespace Friendly.Library.QuadraticSieve
                Relation newRelation = new(qOfX, x, exponentVector, RelationOrigin.OneLargePrime);
                _relations.Add(newRelation);
                singles[j + 1].Used = true;
-               singles.RemoveAt(j + 1);
+               singles[j].Used = true;
+               singles.RemoveAt(j);
             }
-            else
-            {
-               j++;
-            }
+            j++;
          }
-      }
-
-      /// <summary>
-      /// Resets the Used property of all Partial (Partial) Relations.
-      /// </summary>
-      /// <remarks>
-      /// <para>
-      /// Note that this code will be redundant if we never have to retry sieving.
-      /// </para>
-      /// </remarks>
-      private void ResetUsed()
-      {
-         foreach (PartialPartialRelation ppr in _partialPartialRelations)
-            ppr.Used = false;
       }
 
       private void CombineComponent(long root, List<long> primes,

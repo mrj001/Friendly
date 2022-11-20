@@ -1,8 +1,9 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class PartialPartialRelation
+   public class PartialPartialRelation : IEquatable<PartialPartialRelation>
    {
       private BigInteger _qofX;
       private BigInteger _x;
@@ -44,6 +45,7 @@ namespace Friendly.Library.QuadraticSieve
          set => _used = value;
       }
 
+      #region Object Overrides
       public override bool Equals(object obj)
       {
          PartialPartialRelation other = obj as PartialPartialRelation;
@@ -62,5 +64,19 @@ namespace Friendly.Library.QuadraticSieve
             return (int)((47 * _p1) ^ (31 * _p2));
          }
       }
+      #endregion
+
+      #region IEquatable<PartialPartialRelation> & related
+
+      public bool Equals(PartialPartialRelation other)
+      {
+         if (other is null)
+            return false;
+
+         // Note: As _exponentVector, _p1 & _p2 are functions of _qofX and _x,
+         // we need only compare these two fields.
+         return _qofX == other.QOfX && _x == other.X;
+      }
+      #endregion
    }
 }
