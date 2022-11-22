@@ -36,13 +36,25 @@ namespace Friendly.Library.QuadraticSieve
       private int _componentCount;
 
       /// <summary>
-      /// This Dictionary maps each prime (the key) to the parent prime within
-      /// the Union-Find algorithm.  If the key equals the value, this prime is
-      /// the root of its component.
+      /// This Dictionary maps each prime (the key) to the spanning tree containing
+      /// it.
       /// </summary>
-      private readonly Dictionary<long, long> _components;
+      /// <remarks>
+      /// <para>
+      /// A Union-Find algorithm is used to merge spanning trees.  The "root"
+      /// of the tree is essentially chosen arbitrarily (the first Vertex found
+      /// for that component).  The Key is any prime within the Graph.  The
+      /// Value is the Vertex (Prime) chosen to be the root of that Spanning
+      /// Tree.
+      /// </para>
+      /// </remarks>
+      private readonly Dictionary<long, long> _spanningTrees;
 
-      private readonly List<PartialPartialRelation> _partialPartialRelations;
+      /// <summary>
+      /// This Dictionary specifies the List of Edges (The Value) that are
+      /// incident to each Vertex (the Key).
+      /// </summary>
+      private readonly Dictionary<long, List<PartialPartialRelation>> _relationsByPrime;
       #endregion
 
       /// <summary>
@@ -61,15 +73,17 @@ namespace Friendly.Library.QuadraticSieve
 
          _maxTwoPrimes = _maxLargePrime > int.MaxValue ? long.MaxValue : _maxLargePrime * _maxLargePrime;
 
-         _partialPartialRelations = new List<PartialPartialRelation>();
-
          // Create the Graph
          // We initialize the Graph with the special "prime" of one.
          // This way no special code is needed to add it when adding the first
          // Partial Relation.
+         int initialCapacity = 1 << 23;
          _componentCount = 1;
-         _components = new Dictionary<long, long>(1 << 23);
-         _components.Add(1, 1);
+         _spanningTrees = new Dictionary<long, long>(initialCapacity);
+         _spanningTrees.Add(1, 1);
+
+         _relationsByPrime = new Dictionary<long, List<PartialPartialRelation>>(initialCapacity);
+         _relationsByPrime.Add(1, new List<PartialPartialRelation>());
       }
 
       /// <summary>
@@ -80,11 +94,11 @@ namespace Friendly.Library.QuadraticSieve
       private long Find(long prime)
       {
          // Is this prime already in the Graph?
-         if (!_components.ContainsKey(prime))
+         if (!_spanningTrees.ContainsKey(prime))
          {
             // Add the new component as its own root.
             _componentCount++;
-            _components.Add(prime, prime);
+            _spanningTrees.Add(prime, prime);
             return prime;
          }
 
@@ -92,15 +106,15 @@ namespace Friendly.Library.QuadraticSieve
          // ancestors.
          List<long> ancestors = new();
          long r = prime;
-         while (_components[r] != r)
+         while (_spanningTrees[r] != r)
          {
             ancestors.Add(r);
-            r = _components[r];
+            r = _spanningTrees[r];
          }
 
          // Update all intermediate ancestors to point to the root.
          foreach (long p in ancestors)
-            _components[p] = r;
+            _spanningTrees[p] = r;
 
          return r;
       }
@@ -135,9 +149,9 @@ namespace Friendly.Library.QuadraticSieve
 
          // Merge the r2 component into the r1 component.
          // TODO: How expensive is it to iterate over the entire collection?
-         foreach (long key in _components.Keys)
-            if (_components[key] == r2)
-               _components[key] = r1;
+         foreach (long key in _spanningTrees.Keys)
+            if (_spanningTrees[key] == r2)
+               _spanningTrees[key] = r1;
       }
 
       /// <inheritdoc />
@@ -171,6 +185,7 @@ namespace Friendly.Library.QuadraticSieve
       private void AddPartialRelation(BigInteger QofX, BigInteger x,
          BigBitArray exponentVector, long p1, long p2)
       {
+         // Ensure that p1 is less than p2;
          if (p1 > p2)
          {
             long tmp = p1;
@@ -178,12 +193,172 @@ namespace Friendly.Library.QuadraticSieve
             p2 = tmp;
          }
 
-         // Adding the edge that this Partial Partial Relation represents
-         // corresponds to joining these two components, if they're not already
-         // the same.
-         Union(p1, p2);
+         bool p1Connected = _spanningTrees.ContainsKey(p1);
+         bool p2Connected = _spanningTrees.ContainsKey(p2);
 
-         _partialPartialRelations.Add(new PartialPartialRelation(QofX, x, exponentVector, p1, p2));
+         // There are 4 possibilities for the values of p1Connected & p2Connected
+         PartialPartialRelation newRelation = new PartialPartialRelation(QofX, x, exponentVector, p1, p2);
+         if (p1Connected)
+         {
+            if (p2Connected)
+            {
+               long p1Root = Find(p1);
+               long p2Root = Find(p2);
+               if (p1Root == p2Root)
+               {
+                  // A Cycle has been found.
+                  AddCycle(newRelation, p1, p2);
+                  // NOTE: the newRelation is explicitly NOT added to the Spanning
+                  // Tree.  Because this Edge is then guaranteed NOT to appear in
+                  // any other cycles, we are generating Fundamental Cycles.
+               }
+               else
+               {
+                  Union(p1, p2);
+
+                  List<PartialPartialRelation> lstP1 = _relationsByPrime[p1];
+                  lstP1.Add(newRelation);
+
+                  List<PartialPartialRelation> lstP2 = _relationsByPrime[p2];
+                  lstP2.Add(newRelation);
+               }
+            }
+            else
+            {  // p2 is new
+               // Add this new Vertex to the Spanning Tree containing p1.
+               Union(p1, p2);
+
+               // Add this Edge 
+               List<PartialPartialRelation> lstP1 = _relationsByPrime[p1];
+               lstP1.Add(newRelation);
+
+               List<PartialPartialRelation> lstP2 = new List<PartialPartialRelation>();
+               lstP2.Add(newRelation);
+               _relationsByPrime.Add(p2, lstP2);
+            }
+         }
+         else
+         {
+            if (p2Connected)
+            {  // p1 is new
+               // Add this new Vertex to the Spanning Tree containing p2.
+               Union(p2, p1);
+
+               // Add this Edge 
+               List<PartialPartialRelation> lstP2 = _relationsByPrime[p2];
+               lstP2.Add(newRelation); 
+
+               List<PartialPartialRelation> lstP1 = new List<PartialPartialRelation>();
+               lstP1.Add(newRelation);
+               _relationsByPrime.Add(p1, lstP1);
+            }
+            else
+            {
+               // Both p1 and p2 are new primes
+               // Add them as their own Spanning Tree
+               Union(p1, p2);
+
+               // Add the new Edge to both Vertices
+               List<PartialPartialRelation> lstP1 = new List<PartialPartialRelation>();
+               lstP1.Add(newRelation);
+               _relationsByPrime.Add(p1, lstP1);
+
+               List<PartialPartialRelation> lstP2 = new List<PartialPartialRelation>();
+               lstP2.Add(newRelation);
+               _relationsByPrime.Add(p2, lstP2);
+            }
+         }
+      }
+
+      /// <summary>
+      /// Adds a cycle
+      /// </summary>
+      /// <param name="finalEdge">The Edge that closes the Cycle.</param>
+      /// <param name="p1">The start Vertex</param>
+      /// <param name="p2">The end Vertex</param>
+      private void AddCycle(PartialPartialRelation finalEdge, long p1, long p2)
+      {
+         BigInteger qOfX = finalEdge.QOfX;
+         BigInteger x = finalEdge.X;
+         BigBitArray exponentVector = new BigBitArray(finalEdge.ExponentVector);
+         bool twoLargePrimes = finalEdge.Prime1 != 1;
+
+         List<PartialPartialRelation> cycle = FindPath(p1, p2);
+         foreach(PartialPartialRelation edge in cycle)
+         {
+            qOfX *= edge.QOfX;
+            x *= edge.X;
+            exponentVector.Xor(edge.ExponentVector);
+            twoLargePrimes |= edge.Prime1 != 1;
+         }
+
+         Relation newRelation = new Relation(qOfX, x, exponentVector,
+            twoLargePrimes ? RelationOrigin.TwoLargePrimes : RelationOrigin.OneLargePrime);
+         _relations.Add(newRelation);
+      }
+
+      /// <summary>
+      /// Finds a Path through the connected component from Vertex p1 to
+      /// Vertex p2.
+      /// </summary>
+      /// <param name="p1">The start Vertex</param>
+      /// <param name="p2">The end Vertex</param>
+      /// <returns>A List of Edges that form the Path.</returns>
+      /// <remarks>
+      /// <para>
+      /// This uses a Breadth-First Search to find the path from p1 to p2.
+      /// The order of the Edges in the List is from p2 to p1.
+      /// </para>
+      /// </remarks>
+      private List<PartialPartialRelation> FindPath(long p1, long p2)
+      {
+         Queue<long> pendingVertices = new();
+         // Key is the visited vertex.
+         // Value is the Vertex from which the visit came.
+         Dictionary<long, long> visitedVertices = new();
+
+         visitedVertices.Add(p1, p1);
+         pendingVertices.Enqueue(p1);
+
+         while (pendingVertices.Count > 0)
+         {
+            long pCurrent = pendingVertices.Dequeue();
+
+            List<PartialPartialRelation> outgoingEdges = _relationsByPrime[pCurrent];
+            foreach (PartialPartialRelation outgoingEdge in outgoingEdges)
+            {
+               long pChild = outgoingEdge.Prime1 == pCurrent ? outgoingEdge.Prime2 : outgoingEdge.Prime1;
+
+               if (pChild == p2)
+               {
+                  long parentVertex = pCurrent;
+                  List<PartialPartialRelation> rv = new();
+                  PartialPartialRelation edge = _relationsByPrime[pCurrent]
+                     .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == pChild) || (rel.Prime1 == pChild && rel.Prime2 == pCurrent))
+                     .First();
+                  rv.Add(edge);
+                  while (visitedVertices[pCurrent] != pCurrent)
+                  {
+                     parentVertex = visitedVertices[pCurrent];
+                     edge = _relationsByPrime[parentVertex]
+                        .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == parentVertex) || (rel.Prime1 == parentVertex && rel.Prime2 == pCurrent))
+                        .First();
+                     rv.Add(edge);
+                     pCurrent = parentVertex;
+                  }
+
+                  return rv;
+               }
+
+               if (!visitedVertices.ContainsKey(pChild))
+               {
+                  visitedVertices.Add(pChild, pCurrent);
+                  pendingVertices.Enqueue(pChild);
+               }
+            }
+         }
+
+         throw new ApplicationException();
       }
 
       /// <summary>
@@ -217,324 +392,11 @@ namespace Friendly.Library.QuadraticSieve
       /// <inheritdoc />
       public int Count
       {
-         // See Ref. C, section 2 (Counting Fundamental Cycles)
-         // The number of edges is the number of Partial Partial Relations
-         // The number of vertices is the number of primes in _components.
-         get => _relations.Count +
-            _partialPartialRelations.Count + _componentCount - _components.Count;
-      }
-
-      private class Vertex : IEquatable<Vertex>, IEnumerable<PartialPartialRelation>
-      {
-         private readonly long _prime;
-         private readonly Vertex? _ancestor;
-         private readonly int _depth;
-         private readonly List<PartialPartialRelation> _edges;
-
-         public Vertex(long prime)
-         {
-            _prime = prime;
-            _ancestor = null;
-            _depth = 0;
-            _edges = new List<PartialPartialRelation>();
-         }
-
-         public Vertex(long prime, Vertex ancestor, PartialPartialRelation incomingEdge)
-         {
-            _prime = prime;
-            _ancestor = ancestor;
-            _depth = ancestor.Depth + 1;
-            _edges = new List<PartialPartialRelation>();
-            _edges.Add(incomingEdge);
-         }
-
-         public void Add(PartialPartialRelation edge)
-         {
-            _edges.Add(edge);
-         }
-
-         public IEnumerator<PartialPartialRelation> GetEnumerator()
-         {
-            return _edges.GetEnumerator();
-         }
-
-         IEnumerator IEnumerable.GetEnumerator()
-         {
-            return _edges.GetEnumerator();
-         }
-
-         public int Depth { get => _depth; }
-
-         public long Prime { get => _prime; }
-
-         public Vertex? Ancestor { get => _ancestor; }
-
-         public override int GetHashCode()
-         {
-            return _prime.GetHashCode();
-         }
-
-         public override bool Equals(object? obj)
-         {
-            return Equals(obj as Vertex);
-         }
-
-         public bool Equals(Vertex? other)
-         {
-            if (other is null)
-               return false;
-
-            return _prime == other.Prime;
-         }
-      }
-
-      /// <summary>
-      /// Gets the root prime of each component identified by the Component
-      /// Counting procedure.
-      /// </summary>
-      /// <returns>Each Key in the returned Dictionary is a root prime of a Component.
-      /// The corresponding Values contain a List<> of the primes (other than the root) in that Component.</returns>
-      private Dictionary<long, List<long>> GetComponentRoots()
-      {
-         Dictionary<long, List<long>> rv = new(_componentCount);
-
-         foreach(KeyValuePair<long, long> kvp in _components)
-         {
-            List<long> lst;
-
-            if (!rv.ContainsKey(kvp.Value))
-            {
-               lst = new();
-               rv.Add(kvp.Value, lst);
-            }
-            else
-            {
-               lst = rv[kvp.Value];
-               lst.Add(kvp.Key);
-            }
-         }
-
-         return rv;
-      }
-
-      /// <summary>
-      /// Construct a Dictionary for mapping primes (vertices) to the
-      /// corresponding set of Partial & Partial Partial Relations (edges).
-      /// </summary>
-      /// <returns>A mapping from primes to PartialPartialRelation objects involving those primes.</returns>
-      private Dictionary<long, List<PartialPartialRelation>> GetRelationsByPrimes()
-      {
-         Dictionary<long, List<PartialPartialRelation>> rbp = new(_partialPartialRelations.Count);
-
-         foreach(PartialPartialRelation ppr in _partialPartialRelations)
-         {
-            long p = ppr.Prime1;
-            List<PartialPartialRelation> lst;
-            if (!rbp.ContainsKey(p))
-            {
-               lst = new List<PartialPartialRelation>();
-               rbp.Add(p, lst);
-            }
-            else
-            {
-               lst = rbp[p];
-            }
-            lst.Add(ppr);
-
-            p = ppr.Prime2;
-            if (!rbp.ContainsKey(p))
-            {
-               lst = new List<PartialPartialRelation>();
-               rbp.Add(p, lst);
-            }
-            else
-            {
-               lst = rbp[p];
-            }
-            lst.Add(ppr);
-         }
-
-         return rbp;
-      }
-
-      /// <summary>
-      /// Combines all the Components in the Graph to find cycles and
-      /// combine them into new Relation objects.
-      /// </summary>
-      private void CombineComponents()
-      {
-         CombineSingleLargePrimes();
-
-         Dictionary<long, List<PartialPartialRelation>> rbp = GetRelationsByPrimes();
-         Dictionary<long, List<long>> roots = GetComponentRoots();
-
-         foreach (KeyValuePair<long, List<long>> root in roots)
-         {
-            // If there is only one prime in the component:
-            //   1. it will be the root
-            //   2. the List will be empty
-            //   3. it cannot be part of a cycle.
-            if (root.Value.Count == 0)
-               continue;
-
-            CombineComponent(root.Key, root.Value, rbp);
-         }
-      }
-
-      /// <summary>
-      /// Combines pairs of Partial Relations into Relation objects.
-      /// </summary>
-      private void CombineSingleLargePrimes()
-      {
-         List<PartialPartialRelation> singles = new(_partialPartialRelations.Where((x) => x.Prime1 == 1 && !x.Used));
-         singles.Sort((a, b) => {
-            if (a.Prime2 > b.Prime2) return 1;
-            else if (a.Prime2 == b.Prime2) return 0;
-            else return -1;
-         });
-
-         int j = 0;
-         while (j < singles.Count - 1)
-         {
-            if (singles[j].Prime2 == singles[j + 1].Prime2)
-            {
-               BigInteger qOfX = singles[j].QOfX * singles[j + 1].QOfX;
-               BigInteger x = singles[j].X * singles[j + 1].X;
-               BigBitArray exponentVector = new BigBitArray(singles[j].ExponentVector);
-               exponentVector.Xor(singles[j + 1].ExponentVector);
-               Relation newRelation = new(qOfX, x, exponentVector, RelationOrigin.OneLargePrime);
-               _relations.Add(newRelation);
-               singles[j + 1].Used = true;
-               singles[j].Used = true;
-               singles.RemoveAt(j);
-            }
-            j++;
-         }
-      }
-
-      private void CombineComponent(long root, List<long> primes,
-         Dictionary<long, List<PartialPartialRelation>> rbp)
-      {
-         Dictionary<long, Vertex> graphComponent = new(1 + primes.Count);
-
-         // Add the root vertex to the Graph Component
-         Vertex rootVertex = new Vertex(root);
-         graphComponent.Add(root, rootVertex);
-
-         // For each Edge that connects to the root
-         List<PartialPartialRelation> edges = rbp[root];
-         foreach (PartialPartialRelation edge in edges)
-         {
-            if (edge.Used)
-               continue;
-
-            rootVertex.Add(edge);
-
-            // Add the child Vertex to the Graph Component.
-            long otherPrime = edge.Prime1 == root ? edge.Prime2 : edge.Prime1;
-            Vertex vertex = new Vertex(otherPrime, rootVertex, edge);
-            graphComponent.Add(otherPrime, vertex);
-
-            AddChildVertices(graphComponent, vertex, rbp);
-         }
-      }
-
-      private void AddChildVertices(Dictionary<long, Vertex> graphComponent,
-         Vertex parentVertex, Dictionary<long, List<PartialPartialRelation>> rbp)
-      {
-         List<PartialPartialRelation> childEdges = rbp[parentVertex.Prime];
-         foreach (PartialPartialRelation ppr in childEdges)
-         {
-            if (ppr.Used)
-               continue;
-
-            long otherPrime = ppr.Prime1 == parentVertex.Prime ? ppr.Prime2 : ppr.Prime1;
-
-            // Is the otherPrime already in the Graph Component?
-            if (graphComponent.ContainsKey(otherPrime))
-            {
-               // We have found a cycle.  It consists of this edge (ppr), and
-               // all the edges from both ends of ppr back to the common vertex.
-               List<long> parentToRoot = new();
-               Vertex? ancestor = parentVertex;
-               while (ancestor is not null)
-               {
-                  parentToRoot.Add(ancestor.Prime);
-                  ancestor = ancestor.Ancestor;
-               }
-
-               List<long> otherToRoot = new();
-               ancestor = graphComponent[otherPrime];
-               while (ancestor is not null && !parentToRoot.Contains(ancestor.Prime))
-               {
-                  otherToRoot.Add(ancestor.Prime);
-                  ancestor = ancestor.Ancestor;
-               }
-
-               // If ancestor is null, the root of the component is the common Vertex.
-               // If ancestor is not null, ancestor.Prime is the common Vertex.
-               long commonVertexPrime;
-               if (ancestor is null)
-                  commonVertexPrime = _components[otherPrime];
-               else
-                  commonVertexPrime = ancestor.Prime;
-
-               List<PartialPartialRelation> cycleRelations = new();
-               cycleRelations.Add(ppr);  // Add the closing edge to the cycle.
-               ppr.Used = true;          // ensure we don't re-use this edge.
-
-               // Follow the parentVertex edges back to the common Vertex
-               Vertex currentVertex = parentVertex;
-               ancestor = currentVertex.Ancestor;
-               while (ancestor is not null && currentVertex.Prime != commonVertexPrime)
-               {
-                  PartialPartialRelation nextEdge = currentVertex.Where(p => p.Prime1 == ancestor.Prime || p.Prime2 == ancestor.Prime).First();
-                  cycleRelations.Add(nextEdge);
-                  currentVertex = ancestor;
-                  ancestor = ancestor.Ancestor;
-               }
-
-               // Follow the other Vertex's edges back to the common Vertex
-               currentVertex = graphComponent[otherPrime];
-               ancestor = currentVertex.Ancestor;
-               while (ancestor is not null && currentVertex.Prime != commonVertexPrime)
-               {
-                  PartialPartialRelation nextEdge = currentVertex.Where(p => p.Prime1 == ancestor.Prime || p.Prime2 == ancestor.Prime).First();
-                  cycleRelations.Add(nextEdge);
-                  currentVertex = ancestor;
-                  ancestor = ancestor.Ancestor;
-               }
-
-               // handle cycle
-               BigInteger qOfX = BigInteger.One;
-               BigInteger x = BigInteger.One;
-               BigBitArray exponentVector = new BigBitArray(cycleRelations[0].ExponentVector.Capacity);
-               foreach (PartialPartialRelation j in cycleRelations)
-               {
-                  qOfX *= j.QOfX;
-                  x *= j.X;
-                  exponentVector.Xor(j.ExponentVector);
-               }
-
-               // Since we merged as many Single Large Primes as we could before
-               // graph operations, we know that at least one with Two Large Primes
-               // was used.
-               Relation newRelation = new(qOfX, x, exponentVector, RelationOrigin.TwoLargePrimes);
-               _relations.Add(newRelation);
-            }
-            else
-            {
-               Vertex child = new Vertex(otherPrime, parentVertex, ppr);
-               graphComponent.Add(otherPrime, child);
-               AddChildVertices(graphComponent, child, rbp);
-            }
-         }
+         get => _relations.Count;
       }
 
       public IMatrix GetMatrix(IMatrixFactory matrixFactory)
       {
-         CombineComponents();
-
          IMatrix rv = matrixFactory.GetMatrix(_factorBaseSize, _relations.Count);
 
          for (int col = 0; col < _relations.Count; col++)

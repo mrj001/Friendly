@@ -11,7 +11,7 @@ namespace Friendly.Library.QuadraticSieve
       public IRelations GetRelations(int numDigits, int factorBaseSize,
          int maxFactor, long maxLargePrime)
       {
-         return new Relations(factorBaseSize, maxFactor, maxLargePrime);
+         return new Relations2P(factorBaseSize, maxFactor, maxLargePrime);
       }
    }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Numerics;
 
 namespace Friendly.Library.QuadraticSieve
@@ -46,15 +47,9 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       #region Object Overrides
-      public override bool Equals(object obj)
+      public override bool Equals(object? obj)
       {
-         PartialPartialRelation other = obj as PartialPartialRelation;
-         if (other is null)
-            return false;
-
-         // Note: As _exponentVector, _p1 & _p2 are functions of _qofX and _x,
-         // we need only compare these two fields.
-         return _qofX == other.QOfX && _x == other.X;
+         return Equals(obj as PartialPartialRelation);
       }
 
       public override int GetHashCode()
@@ -68,7 +63,7 @@ namespace Friendly.Library.QuadraticSieve
 
       #region IEquatable<PartialPartialRelation> & related
 
-      public bool Equals(PartialPartialRelation other)
+      public bool Equals(PartialPartialRelation? other)
       {
          if (other is null)
             return false;
@@ -76,6 +71,21 @@ namespace Friendly.Library.QuadraticSieve
          // Note: As _exponentVector, _p1 & _p2 are functions of _qofX and _x,
          // we need only compare these two fields.
          return _qofX == other.QOfX && _x == other.X;
+      }
+
+      public static bool operator ==(PartialPartialRelation? l, PartialPartialRelation? r)
+      {
+         if (l is not null)
+            return l.Equals(r);
+         else if (r is not null)
+            return r.Equals(l);
+         else
+            return false;
+      }
+
+      public static bool operator !=(PartialPartialRelation? l, PartialPartialRelation? r)
+      {
+         return !(l == r);
       }
       #endregion
    }
