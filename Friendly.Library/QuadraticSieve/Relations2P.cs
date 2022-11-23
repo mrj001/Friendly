@@ -148,10 +148,7 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          // Merge the r2 component into the r1 component.
-         // TODO: How expensive is it to iterate over the entire collection?
-         foreach (long key in _spanningTrees.Keys)
-            if (_spanningTrees[key] == r2)
-               _spanningTrees[key] = r1;
+         _spanningTrees[r2] = r1;
       }
 
       /// <inheritdoc />
