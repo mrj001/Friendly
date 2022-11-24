@@ -104,7 +104,7 @@ namespace Friendly.Library.QuadraticSieve
       /// 
       /// </summary>
       /// <returns></returns>
-      public int[] GetRelationsStats()
+      public Statistic[] GetRelationsStats()
       {
          return _relations.GetStats();
       }

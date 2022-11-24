@@ -30,7 +30,14 @@ namespace Friendly.Library.QuadraticSieve
          BigInteger residual);
 
       void RemoveRelationAt(int index);
-      int[] GetStats();
+
+      /// <summary>
+      /// Gets an array of Statistic objects to provide information about the
+      /// factoring.
+      /// </summary>
+      /// <returns></returns>
+      Statistic[] GetStats();
+
       IMatrix GetMatrix(IMatrixFactory matrixFactory);
    }
 }

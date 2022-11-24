@@ -407,25 +407,20 @@ namespace Friendly.Library.QuadraticSieve
          return rv;
       }
 
-      /// <summary>
-      /// Gets an array indicating how many relations were obtained by the number
-      /// of large primes involved.
-      /// </summary>
-      /// <returns></returns>
-      /// <remarks>
-      /// <para>
-      /// The zero'th element indicates that zero large primes were involved.
-      /// These values were fully factored during the sieve.  Subsequent indices
-      /// correspond to the maximum number of large primes in the constituent
-      /// Partial Relations (and Partial Partial and Triples).
-      /// </para>
-      /// </remarks>
-      public int[] GetStats()
+      /// <inheritdoc />
+      public Statistic[] GetStats()
       {
          int[] counts = new int[4];
          foreach (Relation j in _relations)
             counts[(int)j.Origin]++;
-         return counts;
+
+         List<Statistic> rv = new();
+         rv.Add(new Statistic(Statistic.FullyFactored, counts[0]));
+         rv.Add(new Statistic(Statistic.OneLargePrime, counts[1]));
+         rv.Add(new Statistic(Statistic.TwoLargePrimes, counts[2]));
+         rv.Add(new Statistic("Components", _componentCount));
+         rv.Add(new Statistic("DictionaryLoad", ((float)_spanningTrees.Count) / _spanningTrees.EnsureCapacity(0)));
+         return rv.ToArray();
       }
    }
 }

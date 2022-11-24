@@ -348,9 +348,9 @@ namespace ProfileQuadraticSieve
             _progressLogger.WriteLine($"Number of Polynomials used: {sieve.TotalPolynomials}");
             _progressLogger.WriteLine("Relations Stats:");
             _progressLogger.WriteLine("LargePrimes\tCount");
-            int[] stats = sieve.GetRelationsStats();
-            for (int j = 0; j < stats.Length; j++)
-               _progressLogger.WriteLine($"{j}\t{stats[j]}");
+            Statistic[] stats = sieve.GetRelationsStats();
+            foreach (Statistic stat in stats)
+               _progressLogger.WriteLine(stat.ToString());
          }
          finally
          {
