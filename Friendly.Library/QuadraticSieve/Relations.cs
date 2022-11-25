@@ -34,21 +34,13 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
-      public bool TryAddRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector,
+      public void TryAddRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector,
          BigInteger residual)
       {
          if (residual == BigInteger.One)
-         {
             _relations.Add(new Relation(QofX, x, exponentVector));
-            return true;
-         }
          else if(residual < _maxLargePrime && residual > _maxFactor)
-         {
             AddPartialRelation(new PartialRelation(QofX, x, exponentVector, (long)residual));
-            return true;
-         }
-
-         return false;
       }
 
       /// <summary>

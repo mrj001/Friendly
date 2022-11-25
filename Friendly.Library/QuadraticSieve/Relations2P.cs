@@ -1,9 +1,12 @@
 ﻿#nullable enable
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
 using Friendly.Library.Pollard;
 
 namespace Friendly.Library.QuadraticSieve
@@ -12,9 +15,14 @@ namespace Friendly.Library.QuadraticSieve
    /// An implementation of the IRelations interface to be used with the Two
    /// Large Primes variation.
    /// </summary>
-   public class Relations2P : IRelations
+   public class Relations2P : IRelations, IDisposable
    {
       #region Member Data
+      private readonly BlockingCollection<RelationQueueItem> _queue;
+      private readonly Task _task;
+      private bool _completeTask;
+      private bool _disposedValue;
+
       /// <summary>
       /// The set of fully factored Relations found during sieving.
       /// </summary>
@@ -66,6 +74,11 @@ namespace Friendly.Library.QuadraticSieve
       /// considered for a Relation with a Single Large Prime.</param>
       public Relations2P(int factorBaseSize, int maxFactor, long maxLargePrime)
       {
+         // Set up the background task to process items from the Relations Queue.
+         _queue = new();
+         _completeTask = false;
+         _task = Task.Run(BackgroundTask);
+
          _relations = new();
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
@@ -84,6 +97,21 @@ namespace Friendly.Library.QuadraticSieve
 
          _relationsByPrime = new Dictionary<long, List<PartialPartialRelation>>(initialCapacity);
          _relationsByPrime.Add(1, new List<PartialPartialRelation>());
+      }
+
+      private void BackgroundTask()
+      {
+         RelationQueueItem? queueItem;
+
+         while (!_completeTask)
+         {
+            if (_queue.TryTake(out queueItem, 20))
+               TryAddRelation(queueItem);
+         }
+
+         // Finish emptying the queue.
+         while (_queue.TryTake(out queueItem, 0))
+            TryAddRelation(queueItem);
       }
 
       /// <summary>
@@ -152,31 +180,32 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
-      public bool TryAddRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector,
+      public void TryAddRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector,
          BigInteger residual)
       {
-         if (residual == BigInteger.One)
+         RelationQueueItem item = new RelationQueueItem(QofX, x, exponentVector, residual);
+         _queue.Add(item);
+      }
+
+      private void TryAddRelation(RelationQueueItem item)
+      {
+         if (item.Residual == BigInteger.One)
          {
-            _relations.Add(new Relation(QofX, x, exponentVector));
-            return true;
+            _relations.Add(new Relation(item.QofX, item.X, item.ExponentVector));
          }
-         else if (residual < _maxLargePrime && residual > _maxFactor)
+         else if (item.Residual < _maxLargePrime && item.Residual > _maxFactor)
          {
-            AddPartialRelation(QofX, x, exponentVector, 1, (long)residual);
-            return true;
+            AddPartialRelation(item.QofX, item.X, item.ExponentVector, 1, (long)item.Residual);
          }
-         else if (residual < _maxTwoPrimes && !Primes.IsPrime(residual))
+         else if (item.Residual < _maxTwoPrimes && !Primes.IsPrime(item.Residual))
          {
             PollardRho rho = new PollardRho();
-            (BigInteger p1, BigInteger p2) = rho.Factor(residual);
+            (BigInteger p1, BigInteger p2) = rho.Factor(item.Residual);
             if (p1 != p2)
-               AddPartialRelation(QofX, x, exponentVector, (long)p1, (long)p2);
+               AddPartialRelation(item.QofX, item.X, item.ExponentVector, (long)p1, (long)p2);
             else
-               _relations.Add(new Relation(QofX, x, exponentVector, RelationOrigin.TwoLargePrimes));
-            return true;
+               _relations.Add(new Relation(item.QofX, item.X, item.ExponentVector, RelationOrigin.TwoLargePrimes));
          }
-
-         return false;
       }
 
       private void AddPartialRelation(BigInteger QofX, BigInteger x,
@@ -394,6 +423,8 @@ namespace Friendly.Library.QuadraticSieve
 
       public IMatrix GetMatrix(IMatrixFactory matrixFactory)
       {
+         _completeTask = true;
+         _task.Wait();
          IMatrix rv = matrixFactory.GetMatrix(_factorBaseSize, _relations.Count);
 
          for (int col = 0; col < _relations.Count; col++)
@@ -422,6 +453,28 @@ namespace Friendly.Library.QuadraticSieve
          rv.Add(new Statistic("DictionaryLoad", ((float)_spanningTrees.Count) / _spanningTrees.EnsureCapacity(0)));
          return rv.ToArray();
       }
+
+      #region IDisposable
+      protected virtual void Dispose(bool disposing)
+      {
+         if (!_disposedValue)
+         {
+            if (disposing)
+            {
+               _queue.Dispose();
+            }
+
+            _disposedValue = true;
+         }
+      }
+
+      public void Dispose()
+      {
+         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+         Dispose(disposing: true);
+         GC.SuppressFinalize(this);
+      }
+      #endregion
    }
 }
 
