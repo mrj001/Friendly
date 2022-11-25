@@ -21,6 +21,7 @@ namespace Friendly.Library.QuadraticSieve
       private readonly BlockingCollection<RelationQueueItem> _queue;
       private readonly Task _task;
       private bool _completeTask;
+      private int _maxQueueLength;
       private bool _disposedValue;
 
       /// <summary>
@@ -78,6 +79,7 @@ namespace Friendly.Library.QuadraticSieve
          _queue = new();
          _completeTask = false;
          _task = Task.Run(BackgroundTask);
+         _maxQueueLength = 0;
 
          _relations = new();
          _factorBaseSize = factorBaseSize;
@@ -185,6 +187,8 @@ namespace Friendly.Library.QuadraticSieve
       {
          RelationQueueItem item = new RelationQueueItem(QofX, x, exponentVector, residual);
          _queue.Add(item);
+         int queueLen = _queue.Count;
+         _maxQueueLength = Math.Max(queueLen, _maxQueueLength);
       }
 
       private void TryAddRelation(RelationQueueItem item)
@@ -451,6 +455,7 @@ namespace Friendly.Library.QuadraticSieve
          rv.Add(new Statistic(Statistic.TwoLargePrimes, counts[2]));
          rv.Add(new Statistic("Components", _componentCount));
          rv.Add(new Statistic("DictionaryLoad", ((float)_spanningTrees.Count) / _spanningTrees.EnsureCapacity(0)));
+         rv.Add(new Statistic("MaxQueueLength", _maxQueueLength));
          return rv.ToArray();
       }
 
