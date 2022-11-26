@@ -344,10 +344,11 @@ namespace Friendly.Library.QuadraticSieve
             state.Stop();
       }
 
-      private static void AddLogs(ushort[] sieve, int startIndex, int stride, ushort log)
+      private unsafe static void AddLogs(ushort[] sieve, int startIndex, int stride, ushort log)
       {
-         for (int j = startIndex; j < sieve.Length; j += stride)
-            sieve[j] += log;
+         fixed (ushort *pFixed = sieve)
+         for (ushort* p = pFixed + startIndex, pEnd = pFixed + sieve.Length; p < pEnd; p += stride)
+            *p += log;
       }
 
       /// <summary>
