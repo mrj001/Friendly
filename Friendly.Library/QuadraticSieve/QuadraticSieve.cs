@@ -142,6 +142,7 @@ namespace Friendly.Library.QuadraticSieve
          {
             OnNotifyProgress($"Have {_relations.Count} relations; reducing Matrix");
             _matrix = _relations.GetMatrix(_matrixFactory);
+            OnNotifyProgress($"The Matrix has {_matrix.Columns} columns.");
             _matrix.Reduce();
             List<BigBitArray> nullVectors = _matrix.FindNullVectors();
             OnNotifyProgress($"Found {nullVectors.Count} Null Vectors");
