@@ -61,7 +61,7 @@ namespace Friendly.Library.QuadraticSieve
       private IMatrix _matrix;
       private IMatrixFactory _matrixFactory;
 
-      private IEnumerable<Polynomial> _polynomials;
+      private IEnumerator<Polynomial> _polynomials;
       private int _totalPolynomials;
 
       public event EventHandler<NotifyProgressEventArgs> Progress;
@@ -131,7 +131,7 @@ namespace Friendly.Library.QuadraticSieve
             pmax, ((long)pmax) * pmax);
 
          _M = _parameters.FindSieveInterval(_n);
-         _polynomials = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);
+         _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M)).GetEnumerator();
 
          FindBSmooth();
 
@@ -253,15 +253,24 @@ namespace Friendly.Library.QuadraticSieve
          options.CancellationToken = (new CancellationTokenSource()).Token;
 
          // TODO: be able to restart the enumeration of polynomials.
-         Parallel.ForEach<Polynomial>(_polynomials, options,
+         Parallel.ForEach<Polynomial>(Polynomials(), options,
             (poly, state) => DoOneSieve(state, poly, numRelationsNeeded, pmaxt,
             firstPrimeIndex, smallPrimeLog));
+      }
+
+      private IEnumerable<Polynomial> Polynomials()
+      {
+         while (_polynomials.MoveNext())
+         {
+            _totalPolynomials++;
+            yield return _polynomials.Current;
+         }
+         yield break;
       }
 
       private void DoOneSieve(ParallelLoopState state, Polynomial poly,
          int numRelationsNeeded, double pmaxt, int firstPrimeIndex, float smallPrimeLog)
       {
-         Interlocked.Increment(ref _totalPolynomials);
          int sieveSize = 2 * _M + 1;
          ushort[] sieve = new ushort[sieveSize];
 
