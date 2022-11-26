@@ -92,7 +92,7 @@ namespace Friendly.Library.QuadraticSieve
          // We initialize the Graph with the special "prime" of one.
          // This way no special code is needed to add it when adding the first
          // Partial Relation.
-         int initialCapacity = 1 << 23;
+         int initialCapacity = 1 << 18;
          _componentCount = 1;
          _spanningTrees = new Dictionary<long, long>(initialCapacity);
          _spanningTrees.Add(1, 1);
