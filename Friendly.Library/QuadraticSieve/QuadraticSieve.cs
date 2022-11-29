@@ -21,6 +21,10 @@ using Friendly.Library;
 //    Mathematics of Computation, Volume 63, Number 208, October 1994,
 //    pages 785-798.
 //
+// D. Paul Leyland et al, MPQS With Three Large Primes,
+//    Algorithmic Number Theory. ANTS 2002. Lecture Notes in Computer
+//    Science, vol 2369. Springer, Berlin, Heidelberg.
+//
 
 namespace Friendly.Library.QuadraticSieve
 {

@@ -26,6 +26,12 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       public const string TwoLargePrimes = "TwoLargePrimes";
 
+      /// <summary>
+      /// This name indicates the number of Relation objects that were formed
+      /// from at least one Relation with Three Large Primes.
+      /// </summary>
+      public const string ThreeLargePrimes = "ThreeLargePrimes";
+
       private readonly string _name;
       private readonly object _value;
 
