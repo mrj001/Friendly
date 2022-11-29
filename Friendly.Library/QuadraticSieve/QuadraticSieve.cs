@@ -140,7 +140,7 @@ namespace Friendly.Library.QuadraticSieve
          int nullVectorsChecked = 0;
          while (retryCount < retryLimit)
          {
-            OnNotifyProgress($"Have {_relations.Count} relations; reducing Matrix");
+            OnNotifyProgress($"Have {_relations.Count} relations; building Matrix");
             _matrix = _relations.GetMatrix(_matrixFactory);
             OnNotifyProgress($"The Matrix has {_matrix.Columns} columns.");
             _matrix.Reduce();
