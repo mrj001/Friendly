@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Xml;
 using Friendly.Library;
 using Xunit;
 
@@ -35,6 +37,71 @@ namespace Test.Library
          Assert.Equal(expectedCapacity, tst.Capacity);
       }
 
+      //--------------------------------------------------------------------
+      // This test will set a single bit in the bit vector, and confirm it is
+      // in the correct location.
+      public static TheoryData<int, int, string> ctor_Deserialize_TestData
+      {
+         get
+         {
+            var rv = new TheoryData<int, int, string>();
+
+            rv.Add(64, 0, "<x><capacity>64</capacity><bits>1000000000000000</bits></x>");
+            rv.Add(64, 4, "<x><capacity>64</capacity><bits>0100000000000000</bits></x>");
+            rv.Add(64, 63, "<x><capacity>64</capacity><bits>0000000000000008</bits></x>");
+            rv.Add(128, 64, "<x><capacity>128</capacity><bits>00000000000000001000000000000000</bits></x>");
+            rv.Add(128, 127, "<x><capacity>128</capacity><bits>00000000000000000000000000000008</bits></x>");
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(ctor_Deserialize_TestData))]
+      public void ctor_Deserialize(int expectedCapacity, int expectedSetBit, string xml)
+      {
+         XmlDocument doc = new XmlDocument();
+         using (StringReader sr = new StringReader(xml))
+         using (XmlReader xmlr = XmlReader.Create(sr))
+            doc.Load(xmlr);
+         XmlNode node = doc.FirstChild!;
+
+         BigBitArray actual = new BigBitArray(node);
+
+         Assert.Equal(expectedCapacity, actual.Capacity);
+
+         for (int j = 0; j < actual.Capacity; j++)
+            Assert.True(expectedSetBit != j ^ actual[j]);
+      }
+
+      //--------------------------------------------------------------------
+      [Fact]
+      public void Serialize()
+      {
+         Random rnd = new Random(123);
+         XmlDocument doc = new XmlDocument();
+
+         for (int capacity = 1; capacity <= 10; capacity ++)
+         {
+            // Randomly set some bits
+            int bitCapacity = capacity * 64;
+            BigBitArray expected = new BigBitArray(bitCapacity);
+            for (int j = 0; j < 6 * capacity; j++)
+               expected.FlipBit(rnd.Next(0, bitCapacity));
+
+            XmlNode node = expected.Serialize(doc, "myBigBitArray");
+            BigBitArray actual = new BigBitArray(node);
+
+            // Assert that they have the same number of set bits;
+            Assert.Equal(expected.PopCount(), actual.PopCount());
+
+            // Assert that they are the same bits
+            actual.Xor(expected);
+            Assert.Equal(0, actual.PopCount());
+         }
+      }
+
+      //--------------------------------------------------------------------
       [Fact]
       public void indexer_throws()
       {

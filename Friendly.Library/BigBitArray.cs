@@ -1,15 +1,21 @@
 using System;
 using System.Numerics;
+using System.Text;
+using System.Xml;
+using Friendly.Library.Utility;
 
 namespace Friendly.Library
 {
    /// <summary>
    /// 
    /// </summary>
-   public class BigBitArray
+   public class BigBitArray : ISerialize
    {
       private long _capacity;
       private ulong[] _bits;
+
+      private const string CapacityNode = "capacity";
+      private const string BitsNode = "bits";
 
       /// <summary>
       /// Constructs an instance of BigBitArray.
@@ -43,6 +49,68 @@ namespace Friendly.Library
          _bits = new ulong[other._bits.Length];
          for (int j = 0; j < _bits.Length; j++)
             _bits[j] = other._bits[j];
+      }
+
+      /// <summary>
+      /// Deserializes a BigBitArray from an XML Node.
+      /// </summary>
+      /// <param name="node"></param>
+      /// <exception cref="ArgumentException"></exception>
+      public BigBitArray(XmlNode node)
+      {
+         XmlNode child = node.FirstChild;
+         if (child is null || child.LocalName != CapacityNode)
+            throw new ArgumentException($"First child node must be <{CapacityNode}>");
+         if (!long.TryParse(child.InnerText, out _capacity))
+            throw new ArgumentException($"Failed to parse capacity: '{child.InnerText}'");
+
+         child = child.NextSibling;
+         if (child is null || child.LocalName != BitsNode)
+            throw new ArgumentException($"Second child node must be <{BitsNode}>.");
+
+         int nLongs = (int)(_capacity / 64);
+         _bits = new ulong[nLongs];
+         int shift = 0;
+         int index = 0;
+         foreach (char hexDigit in child.InnerText)
+         {
+            ulong digit = (ulong)(hexDigit >= '0' && hexDigit <= '9' ? hexDigit - '0' : 10 + hexDigit - 'A');
+            _bits[index] |= digit << shift;
+            shift += 4;
+            if (shift >= 64)
+            {
+               index++;
+               shift = 0;
+            }
+         }
+      }
+
+      /// <inheritdoc />
+      public XmlNode Serialize(XmlDocument doc, string name)
+      {
+         XmlNode rv = doc.CreateElement(name);
+
+         XmlNode capacity = doc.CreateElement(CapacityNode);
+         capacity.InnerText = _capacity.ToString();
+         rv.AppendChild(capacity);
+
+         XmlNode bitsNode = doc.CreateElement(BitsNode);
+         StringBuilder sb = new StringBuilder(_bits.Length / 8);
+         for (int j = 0; j < _bits.Length; j ++)
+         {
+            ulong bits = _bits[j];
+            ulong mask = 0x0f;
+            for (int shift = 0; shift < 64; shift += 4)
+            {
+               ulong digit = (bits & mask) >> shift;
+               sb.AppendFormat("{0:X1}", digit);
+               mask <<= 4;
+            }
+         }
+         bitsNode.InnerText = sb.ToString();
+         rv.AppendChild(bitsNode);
+
+         return rv;
       }
 
       /// <summary>
