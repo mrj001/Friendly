@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Numerics;
+using System.Xml;
+using Friendly.Library.Utility;
 
 namespace Friendly.Library.QuadraticSieve
 {
@@ -33,6 +35,11 @@ namespace Friendly.Library.QuadraticSieve
       private readonly BigInteger _x;
       private readonly BigBitArray _exponentVector;
       private readonly RelationOrigin _origin;
+
+      private const string QofXNodeName = "qofx";
+      private const string XNodeName = "x";
+      private const string ExponentVectorNodeName = "exponentvector";
+      private const string OriginNodeName = "origin";
 
       /// <summary>
       /// Constructs a Relation object that was fully factored during sieving.
@@ -78,6 +85,55 @@ namespace Friendly.Library.QuadraticSieve
          _exponentVector = new BigBitArray(r1.ExponentVector);
          _exponentVector.Xor(r2.ExponentVector);
          _origin = RelationOrigin.OneLargePrime;
+      }
+
+      /// <summary>
+      /// Deserializes a new Relation object from XML.
+      /// </summary>
+      /// <param name="relationNode"></param>
+      public Relation(XmlNode relationNode)
+      {
+         XmlNode qofxNode = relationNode.FirstChild;
+         if (qofxNode is null || qofxNode.LocalName != QofXNodeName)
+            throw new ArgumentException($"Failed to find <{QofXNodeName}>");
+         _qOfX = BigInteger.Parse(qofxNode.InnerText);
+
+         XmlNode xNode = qofxNode.NextSibling;
+         if (xNode is null || xNode.LocalName != XNodeName)
+            throw new ArgumentException($"Failed to find <{XNodeName}>.");
+         _x = BigInteger.Parse(xNode.InnerText);
+
+         XmlNode expVectorNode = xNode.NextSibling;
+         if (expVectorNode is null || expVectorNode.LocalName != ExponentVectorNodeName)
+            throw new ArgumentException($"Failed to find <{ExponentVectorNodeName}>.");
+         _exponentVector = new BigBitArray(expVectorNode);
+
+         XmlNode originNode = expVectorNode.NextSibling;
+         if (originNode is null || originNode.LocalName != OriginNodeName)
+            throw new ArgumentException($"Failed to find <{OriginNodeName}>.");
+         _origin = (RelationOrigin)Enum.Parse(typeof(RelationOrigin), originNode.InnerText);
+      }
+
+      /// <inheritdoc />
+      public XmlNode Serialize(XmlDocument doc, string name)
+      {
+         XmlNode rv = doc.CreateElement(name);
+
+         XmlNode qofxNode = doc.CreateElement(QofXNodeName);
+         qofxNode.InnerText = _qOfX.ToString();
+         rv.AppendChild(qofxNode);
+
+         XmlNode xNode = doc.CreateElement(XNodeName);
+         xNode.InnerText = _x.ToString();
+         rv.AppendChild(xNode);
+
+         rv.AppendChild(_exponentVector.Serialize(doc, ExponentVectorNodeName));
+
+         XmlNode originNode = doc.CreateElement(OriginNodeName);
+         originNode.InnerText = Enum.GetName(typeof(RelationOrigin), _origin);
+         rv.AppendChild(originNode);
+
+         return rv;
       }
 
       public BigInteger QOfX { get => _qOfX; }
