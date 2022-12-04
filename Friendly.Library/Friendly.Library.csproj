@@ -22,4 +22,8 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <Optimize>true</Optimize>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\**\*" Type="Non-Resx" />
+  </ItemGroup>
 </Project>

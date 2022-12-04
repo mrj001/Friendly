@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="QuadraticSave"
+    elementFormDefault="unqualified"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    >
+
+  <xs:simpleType name="BigIntegerType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]*" /> 
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="BigBitArrayType">
+    <xs:sequence>
+      <xs:element name="capacity" type="xs:long" minOccurs="1" maxOccurs="1" />
+      <xs:element name="bits" minOccurs="1" maxOccurs="1">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9A-F]*" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- The values in this enumeration correspond to the values of the enum RelationOrigin -->
+  <xs:simpleType name="RelationOriginType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="FullyFactored" />
+      <xs:enumeration value="OneLargePrime" />
+      <xs:enumeration value="TwoLargePrimes" />
+      <xs:enumeration value="ThreeLargePrimes" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="PartialRelationType">
+    <xs:sequence>
+      <xs:element name="qofx" type="BigIntegerType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="x" type="BigIntegerType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="exponentvector" type="BigBitArrayType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="primes" minOccurs="1" maxOccurs="1">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="prime" type="xs:long" minOccurs="1" maxOccurs="3" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="origin" type="RelationOriginType" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PartialRelationsListType">
+    <xs:sequence>
+      <xs:element name="r" type="PartialRelationType" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="RelationType">
+    <xs:sequence>
+      <xs:element name="qofx" type="BigIntegerType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="x" type="BigIntegerType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="exponentvector" type="BigBitArrayType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="origin" type="RelationOriginType" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="RelationsListType">
+    <xs:sequence>
+      <xs:element name="r" type="RelationType" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="RelationsType">
+    <xs:sequence>
+      <xs:element name="maxLargePrime" type="xs:long" minOccurs="1" maxOccurs="1" />
+      <xs:element name="maxTwoLargePrimes" type="xs:long" minOccurs="1" maxOccurs="1" />
+      <xs:element name="maxThreeLargePrimes" type="BigIntegerType" minOccurs="0" maxOccurs="1" />
+      <xs:element name="relations" type="RelationsListType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="partialrelations" type="PartialRelationsListType" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="MultiPolynomialType">
+    <xs:sequence>
+      <xs:element name="currentd" type="xs:long" minOccurs="1" maxOccurs="1" />
+      <xs:element name="lowerd" type="xs:long" minOccurs="1" maxOccurs="1" />
+      <xs:element name="higherd" type="xs:long" minOccurs="1" maxOccurs="1" />
+      <xs:element name="nextdhigher" type="xs:boolean" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:element name="quadraticsieve">
+    <xs:complexType>
+      <xs:sequence>
+        <!-- Saves the number being factored. -->
+        <xs:element name="n" type="BigIntegerType" minOccurs="1" maxOccurs="1" />
+        <xs:element name="multiplier" type="xs:long" minOccurs="1" maxOccurs="1" />
+        <xs:element name="sieveinterval" type="xs:integer" minOccurs="1" maxOccurs="1" />
+        <xs:element name="factorbasesize" type="xs:integer" minOccurs="1" maxOccurs="1" />
+        <xs:element name="relations" type="RelationsType" minOccurs="1" maxOccurs="1" />
+        <xs:element name="multipolynomial" type="MultiPolynomialType" minOccurs="1" maxOccurs="1" />
+        <xs:element name="totalpolynomials" type="xs:long" minOccurs="1" maxOccurs="1" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
