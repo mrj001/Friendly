@@ -1,17 +1,24 @@
 ﻿#nullable enable
 using System;
+using System.Xml;
 using System.Numerics;
+using Friendly.Library.Utility;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class PartialPartialRelation : IEquatable<PartialPartialRelation>
+   public class PartialPartialRelation : IEquatable<PartialPartialRelation>, ISerialize
    {
       private BigInteger _qofX;
       private BigInteger _x;
       private BigBitArray _exponentVector;
       private long _p1;
       private long _p2;
-      private bool _used;
+
+      private const string QofXNodeName = "qofx";
+      private const string XNodeName = "x";
+      private const string ExponentVectorNodeName = "exponentvector";
+      private const string PrimesNodeName = "primes";
+      private const string PrimeNodeName = "prime";
 
       public PartialPartialRelation(BigInteger qofX, BigInteger x,
          BigBitArray exponentVector, long p1, long p2)
@@ -21,7 +28,66 @@ namespace Friendly.Library.QuadraticSieve
          _exponentVector = exponentVector;
          _p1 = p1;
          _p2 = p2;
-         _used = false;
+      }
+
+      public PartialPartialRelation(XmlNode relationNode)
+      {
+         XmlNode? qofxNode = relationNode.FirstChild;
+         if (qofxNode is null || qofxNode.LocalName != QofXNodeName)
+            throw new ArgumentException($"Failed to find <{QofXNodeName}>");
+         _qofX = BigInteger.Parse(qofxNode.InnerText);
+
+         XmlNode? xNode = qofxNode.NextSibling;
+         if (xNode is null || xNode.LocalName != XNodeName)
+            throw new ArgumentException($"Failed to find <{XNodeName}>.");
+         _x = BigInteger.Parse(xNode.InnerText);
+
+         XmlNode? expVectorNode = xNode.NextSibling;
+         if (expVectorNode is null || expVectorNode.LocalName != ExponentVectorNodeName)
+            throw new ArgumentException($"Failed to find <{ExponentVectorNodeName}>.");
+         _exponentVector = new BigBitArray(expVectorNode);
+
+         XmlNode? primesNode = expVectorNode.NextSibling;
+         if (primesNode is null || primesNode.LocalName != PrimesNodeName)
+            throw new ArgumentException($"Failed to find <{PrimesNodeName}>.");
+         XmlNode? primeNode = primesNode.FirstChild;
+         if (primeNode is null || primeNode.LocalName != PrimeNodeName)
+            throw new ArgumentException($"Failed to find first <{PrimeNodeName}>.");
+         if (!long.TryParse(primeNode.InnerText, out _p1))
+            throw new ArgumentException($"Failed to parse '{primeNode.InnerText}' for <{PrimeNodeName}>");
+         primeNode = primeNode.NextSibling;
+         if (primeNode is null || primeNode.LocalName != PrimeNodeName)
+            throw new ArgumentException($"Failed to find second <{PrimeNodeName}>.");
+         if (!long.TryParse(primeNode.InnerText, out _p2))
+            throw new ArgumentException($"Failed to parse '{primeNode.InnerText}' for <{PrimeNodeName}>");
+      }
+
+      /// <inheritdoc />
+      public XmlNode Serialize(XmlDocument doc, string name)
+      {
+         XmlNode rv = doc.CreateElement(name);
+
+         XmlNode qofxNode = doc.CreateElement(QofXNodeName);
+         qofxNode.InnerText = _qofX.ToString();
+         rv.AppendChild(qofxNode);
+
+         XmlNode xNode = doc.CreateElement(XNodeName);
+         xNode.InnerText = _x.ToString();
+         rv.AppendChild(xNode);
+
+         rv.AppendChild(_exponentVector.Serialize(doc, ExponentVectorNodeName));
+
+         XmlNode primesNode = doc.CreateElement( PrimesNodeName);
+         rv.AppendChild(primesNode);
+
+         XmlNode primeNode = doc.CreateElement(PrimeNodeName);
+         primeNode.InnerText = _p1.ToString();
+         primesNode.AppendChild(primeNode);
+         primeNode = doc.CreateElement(PrimeNodeName);
+         primeNode.InnerText = _p2.ToString();
+         primesNode.AppendChild(primeNode);
+
+         return rv;
       }
 
       public BigInteger QOfX { get => _qofX; }
@@ -29,22 +95,6 @@ namespace Friendly.Library.QuadraticSieve
       public BigBitArray ExponentVector { get => _exponentVector; }
       public long Prime1 { get => _p1; }
       public long Prime2 { get => _p2; }
-
-      /// <summary>
-      /// Gets or sets whether a Relation has been "used".
-      /// </summary>
-      /// <remarks>
-      /// <para>
-      /// To prevent creation of excessive linear dependencies, one edge from
-      /// each cycle will be marked as "used".  Such edge will not be eligible
-      /// for use in subsequent cycles.
-      /// </para>
-      /// </remarks>
-      public bool Used
-      {
-         get => _used;
-         set => _used = value;
-      }
 
       #region Object Overrides
       public override bool Equals(object? obj)

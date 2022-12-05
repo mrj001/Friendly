@@ -45,7 +45,6 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      <xs:element name="origin" type="RelationOriginType" minOccurs="1" maxOccurs="1" />
     </xs:sequence>
   </xs:complexType>
 
