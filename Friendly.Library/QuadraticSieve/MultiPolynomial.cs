@@ -52,11 +52,9 @@ namespace Friendly.Library.QuadraticSieve
 
       private class Enumerator : IEnumerator<Polynomial>
       {
-         private int _serial;
          private readonly BigInteger _kn;
          private readonly BigInteger _rootkn;
          private readonly long _maxFactorBase;
-         private readonly int _M;
 
          /// <summary>
          /// The "ideal" choice of D in Ref. B, section 3.
@@ -78,9 +76,7 @@ namespace Friendly.Library.QuadraticSieve
          {
             _kn = kn;
             _rootkn = rootkn;
-            _serial = -1;
             _maxFactorBase = maxFactorBase;
-            _M = M;
 
             BigInteger t = _rootkn / (4 * M);
             _idealD = (long)BigIntegerCalculator.SquareRoot(t);
@@ -182,8 +178,6 @@ namespace Friendly.Library.QuadraticSieve
          {
             long d;
 
-            _serial++;
-
             if (!_nextDHigher)
             {
                d = _lowerD;
@@ -223,7 +217,6 @@ namespace Friendly.Library.QuadraticSieve
 
          public void Reset()
          {
-            _serial = 0;
             _currentD = long.MinValue;
             _lowerD = _idealD + 2;
             _higherD = Math.Max(_idealD, _maxFactorBase);
