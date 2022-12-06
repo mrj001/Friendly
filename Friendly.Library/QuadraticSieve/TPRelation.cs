@@ -3,16 +3,25 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Xml;
+using Friendly.Library.Utility;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class TPRelation : IList<long>, IEquatable<TPRelation>
+   public class TPRelation : IList<long>, IEquatable<TPRelation>, ISerialize
    {
       private readonly BigInteger _qofX;
       private readonly BigInteger _x;
       private readonly BigBitArray _exponentVector;
       private readonly long[] _primes;
       private readonly RelationOrigin _origin;
+
+      private const string QofXNodeName = "qofx";
+      private const string XNodeName = "x";
+      private const string ExponentVectorNodeName = "exponentvector";
+      private const string PrimesNodeName = "primes";
+      private const string PrimeNodeName = "prime";
+      private const string OriginNodeName = "origin";
 
       public TPRelation(BigInteger qofX, BigInteger x,
          BigBitArray exponentVector, long[] primes)
@@ -46,6 +55,92 @@ namespace Friendly.Library.QuadraticSieve
          _exponentVector = exponentVector;
          _primes = primes;
          _origin = origin;
+      }
+
+      public TPRelation(XmlNode relationNode)
+      {
+         XmlNode? qofxNode = relationNode.FirstChild;
+         if (qofxNode is null || qofxNode.LocalName != QofXNodeName)
+            throw new ArgumentException($"Failed to find <{QofXNodeName}>");
+         _qofX = BigInteger.Parse(qofxNode.InnerText);
+
+         XmlNode? xNode = qofxNode.NextSibling;
+         if (xNode is null || xNode.LocalName != XNodeName)
+            throw new ArgumentException($"Failed to find <{XNodeName}>.");
+         _x = BigInteger.Parse(xNode.InnerText);
+
+         XmlNode? expVectorNode = xNode.NextSibling;
+         if (expVectorNode is null || expVectorNode.LocalName != ExponentVectorNodeName)
+            throw new ArgumentException($"Failed to find <{ExponentVectorNodeName}>.");
+         _exponentVector = new BigBitArray(expVectorNode);
+
+         XmlNode? primesNode = expVectorNode.NextSibling;
+         if (primesNode is null || primesNode.LocalName != PrimesNodeName)
+            throw new ArgumentException($"Failed to find <{PrimesNodeName}>.");
+         List<long> primes = new(3);
+         XmlNode? primeNode = primesNode.FirstChild;
+         while (primeNode is not null)
+         {
+            long p;
+            if (!long.TryParse(primeNode.InnerText, out p))
+               throw new ArgumentException($"Failed to parse '{primeNode.InnerText}' for <{PrimeNodeName}>");
+            primes.Add(p);
+            primeNode = primeNode.NextSibling;
+         }
+         _primes = primes.ToArray();
+
+         XmlNode? originNode = primesNode.NextSibling;
+         if (originNode is not null && originNode.LocalName == OriginNodeName)
+         {
+            _origin = (RelationOrigin)Enum.Parse(typeof(RelationOrigin), originNode.InnerText);
+         }
+         else
+         {
+            switch (_primes.Length)
+            {
+               case 1:
+                  _origin = RelationOrigin.OneLargePrime;
+                  break;
+
+               case 2:
+                  _origin = RelationOrigin.TwoLargePrimes;
+                  break;
+
+               case 3:
+                  _origin = RelationOrigin.ThreeLargePrimes;
+                  break;
+            }
+         }
+      }
+
+      public XmlNode Serialize(XmlDocument doc, string name)
+      {
+         XmlNode rv = doc.CreateElement(name);
+
+         XmlNode qofxNode = doc.CreateElement(QofXNodeName);
+         qofxNode.InnerText = _qofX.ToString();
+         rv.AppendChild(qofxNode);
+
+         XmlNode xNode = doc.CreateElement(XNodeName);
+         xNode.InnerText = _x.ToString();
+         rv.AppendChild(xNode);
+
+         rv.AppendChild(_exponentVector.Serialize(doc, ExponentVectorNodeName));
+
+         XmlNode primesNode = doc.CreateElement(PrimesNodeName);
+         rv.AppendChild(primesNode);
+         foreach(long p in _primes)
+         {
+            XmlNode primeNode = doc.CreateElement(PrimeNodeName);
+            primeNode.InnerText = p.ToString();
+            primesNode.AppendChild(primeNode);
+         }
+
+         XmlNode originNode = doc.CreateElement(OriginNodeName);
+         originNode.InnerText = _origin.ToString();
+         rv.AppendChild(originNode);
+
+         return rv;
       }
 
       public BigInteger QOfX { get => _qofX; }

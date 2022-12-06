@@ -45,6 +45,8 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
+      <!-- This is only present for the TPRelation class. -->
+      <xs:element name="origin" type="RelationOriginType" minOccurs="0" maxOccurs="1" />
     </xs:sequence>
   </xs:complexType>
 
