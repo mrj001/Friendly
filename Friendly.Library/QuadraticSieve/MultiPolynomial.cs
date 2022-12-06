@@ -1,7 +1,10 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Xml;
+using Friendly.Library.Utility;
 
 //====================================================================
 // References
@@ -18,12 +21,29 @@ using System.Numerics;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class MultiPolynomial : IEnumerable<Polynomial>
+   public class MultiPolynomial : IEnumerable<Polynomial>, ISerialize
    {
+      /// <summary>
+      /// Set to true if we are starting the enumeration of polynomials from
+      /// a saved point.
+      /// </summary>
+      private readonly bool _restart;
+      private readonly long _currentD = 0;
+      private readonly long _lowerD = long.MaxValue;
+      private readonly long _higherD = long.MinValue;
+      private readonly bool _nextDHigher = false;
+
       private readonly BigInteger _kn;
       private readonly BigInteger _rootkn;
       private readonly long _maxFactorBase;
       private readonly int _M;
+
+      private Enumerator? _enumerator;
+
+      private const string CurrentDNodeName = "currentd";
+      private const string LowerDNodeName = "lowerd";
+      private const string HigherDNodeName = "higherd";
+      private const string NextDHigherNodeName = "nextdhigher";
 
       /// <summary>
       /// Constructs a new Enumerable object for the Multiple Polynomials.
@@ -34,27 +54,91 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="M">The Sieve Interval</param>
       public MultiPolynomial(BigInteger kn, BigInteger rootkn, long maxFactorBase, int M)
       {
+         _restart = false;
          _kn = kn;
          _rootkn = rootkn;
          _maxFactorBase = maxFactorBase;
          _M = M;
       }
 
+      /// <summary>
+      /// Constructs a new Enumerable object for Multiple Polynomials where
+      /// some of the polynomials have already been used.
+      /// </summary>
+      /// <param name="kn">The number being factored, pre-multiplied by the small constant.</param>
+      /// <param name="rootkn">The ceiling of the square root of kn.</param>
+      /// <param name="maxFactorBase">The largest prime in the Factor Base.</param>
+      /// <param name="M">The Sieve Interval</param>
+      /// <param name="node">The XML Node which saved the state of the enumeration.</param>
+      public MultiPolynomial(BigInteger kn, BigInteger rootkn, long maxFactorBase,
+         int M, XmlNode node)
+      {
+         _restart = true;
+         _kn = kn;
+         _rootkn = rootkn;
+         _maxFactorBase = maxFactorBase;
+         _M = M;
+
+         XmlNode? currentDNode = node.FirstChild;
+         if (currentDNode is null || currentDNode.LocalName != CurrentDNodeName)
+            throw new ArgumentException($"Failed to find <{CurrentDNodeName}>.");
+         if (!long.TryParse(currentDNode.InnerText, out _currentD))
+            throw new ArgumentException($"Failed to parse '{currentDNode.InnerText}' for <{CurrentDNodeName}>");
+
+         XmlNode? lowerDNode = currentDNode.NextSibling;
+         if (lowerDNode is null || lowerDNode.LocalName != LowerDNodeName)
+            throw new ArgumentException($"Failed to find <{LowerDNodeName}>.");
+         if (!long.TryParse(lowerDNode.InnerText, out _lowerD))
+            throw new ArgumentException($"Failed to parse '{lowerDNode.InnerText}' for <{LowerDNodeName}>.");
+
+         XmlNode? higherDNode = lowerDNode.NextSibling;
+         if (higherDNode is null || higherDNode.LocalName != HigherDNodeName)
+            throw new ArgumentException($"Failed to find <{HigherDNodeName}>.");
+         if (!long.TryParse(higherDNode.InnerText, out _higherD))
+            throw new ArgumentException($"Failed to parse '{higherDNode.InnerText}' for <{HigherDNodeName}>.");
+
+         XmlNode? nextDHigherNode = higherDNode.NextSibling;
+         if (nextDHigherNode is null || nextDHigherNode.LocalName != NextDHigherNodeName)
+            throw new ArgumentException($"Failed to find <{NextDHigherNodeName}>.");
+         if (!bool.TryParse(nextDHigherNode.InnerText, out _nextDHigher))
+            throw new ArgumentException($"Failed to parse '{nextDHigherNode.InnerText}' for <{NextDHigherNodeName}>.");
+      }
+
+      public XmlNode Serialize(XmlDocument doc, string name)
+      {
+         if (_enumerator is not null)
+            return _enumerator.Serialize(doc, name);
+         else
+            return (new Enumerator(_kn, _rootkn, _maxFactorBase, _M)).Serialize(doc, name);
+      }
+
       public IEnumerator<Polynomial> GetEnumerator()
       {
-         return new Enumerator(_kn, _rootkn, _maxFactorBase, _M);
+         if (_restart)
+            _enumerator = new Enumerator(_kn, _rootkn, _maxFactorBase, _M, _currentD, _lowerD, _higherD, _nextDHigher);
+         else
+            _enumerator = new Enumerator(_kn, _rootkn, _maxFactorBase, _M);
+
+         return _enumerator;
       }
 
       IEnumerator IEnumerable.GetEnumerator()
       {
-         return new Enumerator(_kn, _rootkn, _maxFactorBase, _M);
+         if (_restart)
+            _enumerator = new Enumerator(_kn, _rootkn, _maxFactorBase, _M, _currentD, _lowerD, _higherD, _nextDHigher);
+         else
+            _enumerator = new Enumerator(_kn, _rootkn, _maxFactorBase, _M);
+
+         return _enumerator;
       }
 
-      private class Enumerator : IEnumerator<Polynomial>
+      private class Enumerator : IEnumerator<Polynomial>, ISerialize
       {
          private readonly BigInteger _kn;
          private readonly BigInteger _rootkn;
          private readonly long _maxFactorBase;
+
+         private bool _restarted;
 
          /// <summary>
          /// The "ideal" choice of D in Ref. B, section 3.
@@ -77,12 +161,67 @@ namespace Friendly.Library.QuadraticSieve
             _kn = kn;
             _rootkn = rootkn;
             _maxFactorBase = maxFactorBase;
+            _restarted = false;
 
             BigInteger t = _rootkn / (4 * M);
             _idealD = (long)BigIntegerCalculator.SquareRoot(t);
             if ((_idealD & 1) == 0)
                _idealD--;
             Reset();
+         }
+
+         /// <summary>
+         /// Constructs a new Enumerator that starts from a specified point
+         /// after the usual beginning
+         /// </summary>
+         /// <param name="kn">The number being factored, premultiplied by a small constant.</param>
+         /// <param name="rootkn">The ceiling of the square root of kn.</param>
+         /// <param name="maxFactorBase">The largest prime in the Factor Base.</param>
+         /// <param name="M">The Sieve Interval</param>
+         /// <param name="currentD"></param>
+         /// <param name="lowerD"></param>
+         /// <param name="higherD"></param>
+         /// <param name="nextDHigher"></param>
+         public Enumerator(BigInteger kn, BigInteger rootkn, long maxFactorBase,
+            int M, long currentD, long lowerD, long higherD, bool nextDHigher)
+         {
+            _kn = kn;
+            _rootkn = rootkn;
+            _maxFactorBase = maxFactorBase;
+            _restarted = true;
+
+            BigInteger t = _rootkn / (4 * M);
+            _idealD = (long)BigIntegerCalculator.SquareRoot(t);
+            if ((_idealD & 1) == 0)
+               _idealD--;
+
+            _currentD = currentD;
+            _lowerD = lowerD;
+            _higherD = higherD;
+            _nextDHigher = nextDHigher;
+         }
+
+         public XmlNode Serialize(XmlDocument doc, string name)
+         {
+            XmlNode rv = doc.CreateElement(name);
+
+            XmlNode currentDNode = doc.CreateElement(CurrentDNodeName);
+            currentDNode.InnerText = _currentD.ToString();
+            rv.AppendChild(currentDNode);
+
+            XmlNode lowerDNode = doc.CreateElement(LowerDNodeName);
+            lowerDNode.InnerText = _lowerD.ToString();
+            rv.AppendChild(lowerDNode);
+
+            XmlNode higherDNode = doc.CreateElement(HigherDNodeName);
+            higherDNode.InnerText = _higherD.ToString();
+            rv.AppendChild(higherDNode);
+
+            XmlNode nextDHigherNode = doc.CreateElement(NextDHigherNodeName);
+            nextDHigherNode.InnerText = _nextDHigher.ToString();
+            rv.AppendChild(nextDHigherNode);
+
+            return rv;
          }
 
          public Polynomial Current => InternalCurrent();
@@ -177,6 +316,12 @@ namespace Friendly.Library.QuadraticSieve
          public bool MoveNext()
          {
             long d;
+
+            if (_restarted)
+            {
+               _restarted = false;
+               return true;
+            }
 
             if (!_nextDHigher)
             {
