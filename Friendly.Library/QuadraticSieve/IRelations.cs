@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
+using Friendly.Library.Utility;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public interface IRelations
+   public interface IRelations : ISerialize
    {
       Relation this[int index] { get; }
 

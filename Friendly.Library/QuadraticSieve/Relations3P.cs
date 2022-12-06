@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
+using System.Xml;
 using Friendly.Library.Pollard;
 
 // NOTE: For references, see the file QuadraticSieve.cs
@@ -83,6 +84,13 @@ namespace Friendly.Library.QuadraticSieve
 
       private Dictionary<TPRelation, TwoRecords> _primesByRelation;
 
+      private const int InitialCapacity = 1 << 18;
+      private const string LargePrimeNodeName = "maxLargePrime";
+      private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
+      private const string ThreeLargePrimeNodeName = "maxThreeLargePrimes";
+      private const string RelationsNodeName = "relations";
+      private const string PartialRelationsNodeName = "partialrelations";
+
       /// <summary>
       /// Constructs a collection of Relations.
       /// </summary>
@@ -105,12 +113,95 @@ namespace Friendly.Library.QuadraticSieve
          _maxFactorQueueLength = 0;
          _taskFactor = Task.Run(DoFactorTask);
 
-         int initialCapacity = 1 << 18;
          _edgeCount = 0;
          _componentCount = 0;
-         _components = new Dictionary<long, long>(initialCapacity);
-         _relationsByPrimes = new Dictionary<long, List<TPRelation>>(initialCapacity);
-         _primesByRelation = new Dictionary<TPRelation, TwoRecords>(initialCapacity);
+         _components = new Dictionary<long, long>(InitialCapacity);
+         _relationsByPrimes = new Dictionary<long, List<TPRelation>>(InitialCapacity);
+         _primesByRelation = new Dictionary<TPRelation, TwoRecords>(InitialCapacity);
+      }
+
+      public Relations3P(XmlNode node)
+      {
+         XmlNode? largePrimeNode = node.FirstChild;
+         if (largePrimeNode is null || largePrimeNode.LocalName != LargePrimeNodeName)
+            throw new ArgumentException($"Failed to find <{LargePrimeNodeName}>.");
+         if (!long.TryParse(largePrimeNode.InnerText, out _maxLargePrime))
+            throw new ArgumentException($"Unable to parse '{largePrimeNode.InnerText}' for <{LargePrimeNodeName}>");
+
+         XmlNode? twoLargePrimeNode = largePrimeNode.NextSibling;
+         if (twoLargePrimeNode is null || twoLargePrimeNode.LocalName != TwoLargePrimeNodeName)
+            throw new ArgumentException($"Failed to find <{TwoLargePrimeNodeName}>.");
+         if (!long.TryParse(twoLargePrimeNode.InnerText, out _maxTwoPrimes))
+            throw new ArgumentException($"Unable to parse '{twoLargePrimeNode.InnerText}' for <{TwoLargePrimeNodeName}>");
+
+         XmlNode? threeLargePrimeNode = twoLargePrimeNode.NextSibling;
+         if (threeLargePrimeNode is null || threeLargePrimeNode.LocalName != ThreeLargePrimeNodeName)
+            throw new ArgumentException($"Failed to find <{ThreeLargePrimeNodeName}>.");
+         if (!BigInteger.TryParse(threeLargePrimeNode.InnerText, out _maxThreePrimes))
+            throw new ArgumentException($"Unable to parse '{threeLargePrimeNode.InnerText}' for <{ThreeLargePrimeNodeName}>.");
+
+         // Read the full Relations
+         XmlNode? relationsNode = twoLargePrimeNode.NextSibling;
+         if (relationsNode is null || relationsNode.LocalName != RelationsNodeName)
+            throw new ArgumentException($"Failed to find <{RelationsNodeName}>.");
+         _relations = new();
+         XmlNode? relationNode = relationsNode.FirstChild;
+         while (relationNode is not null)
+         {
+            _relations.Add(new Relation(relationNode));
+            relationNode = relationNode.NextSibling;
+         }
+
+         // Read the Partial relations (1-, 2-, and 3-prime relations)
+         _edgeCount = 0;
+         _componentCount = 0;
+         _components = new Dictionary<long, long>(InitialCapacity);
+         _relationsByPrimes = new Dictionary<long, List<TPRelation>>(InitialCapacity);
+         _primesByRelation = new Dictionary<TPRelation, TwoRecords>(InitialCapacity);
+
+         XmlNode? tprelationsNode = relationsNode.NextSibling;
+         if (tprelationsNode is null || tprelationsNode.LocalName != PartialRelationsNodeName)
+            throw new ArgumentException($"Failed to find <{PartialRelationsNodeName}>.");
+         XmlNode? tprNode = tprelationsNode.FirstChild;
+         while (tprNode is not null)
+         {
+            TPRelation tpr = new TPRelation(tprNode);
+            AddPartialRelation2(tpr);
+         }
+
+         _queueFactor = new BlockingCollection<RelationQueueItem>();
+         _completeTaskFactor = false;
+         _maxFactorQueueLength = 0;
+         _taskFactor = Task.Run(DoFactorTask);
+      }
+
+      public XmlNode Serialize(XmlDocument doc, string name)
+      {
+         XmlNode rv = doc.CreateElement(name);
+
+         XmlNode maxLargePrime = doc.CreateElement(LargePrimeNodeName);
+         maxLargePrime.InnerText = _maxLargePrime.ToString();
+         rv.AppendChild(maxLargePrime);
+
+         XmlNode twoLargePrime = doc.CreateElement(TwoLargePrimeNodeName);
+         twoLargePrime.InnerText = _maxTwoPrimes.ToString();
+         rv.AppendChild(twoLargePrime);
+
+         XmlNode threeLargePrime = doc.CreateElement(ThreeLargePrimeNodeName);
+         threeLargePrime.InnerText = _maxThreePrimes.ToString();
+         rv.AppendChild(threeLargePrime);
+
+         XmlNode relationsNode = doc.CreateElement(RelationsNodeName);
+         rv.AppendChild(relationsNode);
+         foreach(Relation r in _relations)
+            relationsNode.AppendChild(r.Serialize(doc, "r"));
+
+         XmlNode partialRelationsNode = doc.CreateElement(PartialRelationsNodeName);
+         rv.AppendChild(partialRelationsNode);
+         foreach (TPRelation tpr in _primesByRelation.Keys)
+            partialRelationsNode.AppendChild(tpr.Serialize(doc, "r"));
+
+         return rv;
       }
 
       #region Factoring of incoming residuals
@@ -231,6 +322,11 @@ namespace Friendly.Library.QuadraticSieve
             }
          }
 
+         AddPartialRelation2(relation);
+      }
+
+      private void AddPartialRelation2(TPRelation relation)
+      {
          // Add to the Hash tables
          foreach (long p in relation)
          {

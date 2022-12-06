@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using Friendly.Library.Pollard;
 
 namespace Friendly.Library.QuadraticSieve
@@ -64,6 +65,12 @@ namespace Friendly.Library.QuadraticSieve
       /// incident to each Vertex (the Key).
       /// </summary>
       private readonly Dictionary<long, List<PartialPartialRelation>> _relationsByPrime;
+
+      private const int InitialCapacity = 1 << 18;
+      private const string LargePrimeNodeName = "maxLargePrime";
+      private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
+      private const string RelationsNodeName = "relations";
+      private const string PartialRelationsNodeName = "partialrelations";
       #endregion
 
       /// <summary>
@@ -92,13 +99,127 @@ namespace Friendly.Library.QuadraticSieve
          // We initialize the Graph with the special "prime" of one.
          // This way no special code is needed to add it when adding the first
          // Partial Relation.
-         int initialCapacity = 1 << 18;
          _componentCount = 1;
-         _spanningTrees = new Dictionary<long, long>(initialCapacity);
+         _spanningTrees = new Dictionary<long, long>(InitialCapacity);
          _spanningTrees.Add(1, 1);
 
-         _relationsByPrime = new Dictionary<long, List<PartialPartialRelation>>(initialCapacity);
+         _relationsByPrime = new Dictionary<long, List<PartialPartialRelation>>(InitialCapacity);
          _relationsByPrime.Add(1, new List<PartialPartialRelation>());
+      }
+
+      public Relations2P(XmlNode node)
+      {
+         XmlNode? largePrimeNode = node.FirstChild;
+         if (largePrimeNode is null || largePrimeNode.LocalName != LargePrimeNodeName)
+            throw new ArgumentException($"Failed to find <{LargePrimeNodeName}>.");
+         if (!long.TryParse(largePrimeNode.InnerText, out _maxLargePrime))
+            throw new ArgumentException($"Unable to parse '{largePrimeNode.InnerText}' for <{LargePrimeNodeName}>");
+
+         XmlNode? twoLargePrimeNode = largePrimeNode.NextSibling;
+         if (twoLargePrimeNode is null || twoLargePrimeNode.LocalName != TwoLargePrimeNodeName)
+            throw new ArgumentException($"Failed to find <{TwoLargePrimeNodeName}>.");
+         if (!long.TryParse(twoLargePrimeNode.InnerText, out _maxTwoPrimes))
+            throw new ArgumentException($"Unable to parse '{twoLargePrimeNode.InnerText}' for <{TwoLargePrimeNodeName}>");
+
+         // Read the full Relations
+         XmlNode? relationsNode = twoLargePrimeNode.NextSibling;
+         if (relationsNode is null || relationsNode.LocalName != RelationsNodeName)
+            throw new ArgumentException($"Failed to find <{RelationsNodeName}>.");
+         _relations = new();
+         XmlNode? relationNode = relationsNode.FirstChild;
+         while(relationNode is not null)
+         {
+            _relations.Add(new Relation(relationNode));
+            relationNode = relationNode.NextSibling;
+         }
+
+         // Create the Graph
+         _componentCount = 1;
+         _spanningTrees = new Dictionary<long, long>(InitialCapacity);
+         _spanningTrees.Add(1, 1);
+         _relationsByPrime = new Dictionary<long, List<PartialPartialRelation>>(InitialCapacity);
+         _relationsByPrime.Add(1, new List<PartialPartialRelation>());
+
+         // Read the Partial Relations, and construct the Graph
+         XmlNode? partialRelationsNode = relationsNode.NextSibling;
+         if (partialRelationsNode is null || partialRelationsNode.LocalName != PartialRelationsNodeName)
+            throw new ArgumentException($"Failed to find <{PartialRelationsNodeName}>.");
+         XmlNode? partialRelationNode = partialRelationsNode.FirstChild;
+         while (partialRelationNode is not null)
+         {
+            PartialPartialRelation ppr = new PartialPartialRelation(partialRelationNode);
+
+            // Only Partial Partial Relations that were part of a spanning tree
+            // were saved, so no cycle detection required.
+            Union(ppr.Prime1, ppr.Prime2);
+
+            List<PartialPartialRelation>? lst;
+            if (!_relationsByPrime.TryGetValue(ppr.Prime1, out lst))
+            {
+               lst = new();
+               _relationsByPrime.Add(ppr.Prime1, lst);
+            }
+            lst.Add(ppr);
+
+            if (!_relationsByPrime.TryGetValue(ppr.Prime2, out lst))
+            {
+               lst = new();
+               _relationsByPrime.Add(ppr.Prime2, lst);
+            }
+            lst.Add(ppr);
+
+            partialRelationNode = partialRelationNode.NextSibling;
+         }
+
+         // Set up the background task to process items from the Relations Queue.
+         _queue = new();
+         _completeTask = false;
+         _task = Task.Run(BackgroundTask);
+         _maxQueueLength = 0;
+      }
+
+      // TODO: ISSUE: saving work at an intermediate point to restore in case
+      //   of power outage/crash/etc requires emptying the queue and restarting it.
+
+      /// <inheritdoc />
+      public XmlNode Serialize(XmlDocument doc, string name)
+      {
+         XmlNode rv = doc.CreateElement(name);
+
+         XmlNode largePrimeNode = doc.CreateElement(LargePrimeNodeName);
+         largePrimeNode.InnerText = _maxLargePrime.ToString();
+         rv.AppendChild(largePrimeNode);
+
+         XmlNode twoLargePrimeNode = doc.CreateElement(TwoLargePrimeNodeName);
+         twoLargePrimeNode.InnerText = _maxTwoPrimes.ToString();
+         rv.AppendChild(twoLargePrimeNode);
+
+         XmlNode relationsNode = doc.CreateElement(RelationsNodeName);
+         rv.AppendChild(relationsNode);
+         foreach(Relation r in _relations)
+         {
+            XmlNode rNode = doc.CreateElement("r");
+            relationsNode.AppendChild(rNode);
+         }
+
+         // We need to build a set of all the unique Partial Partial Relations
+         // that are in the Graph.
+         HashSet<PartialPartialRelation> pprs = new HashSet<PartialPartialRelation>(InitialCapacity);
+         foreach(List<PartialPartialRelation> lst in _relationsByPrime.Values)
+            foreach(PartialPartialRelation ppr in lst)
+               if (!pprs.Contains(ppr))
+                  pprs.Add(ppr);
+
+         // Output the unique set
+         XmlNode partialRelationsNode = doc.CreateElement(PartialRelationsNodeName);
+         rv.AppendChild(partialRelationsNode);
+         foreach(PartialPartialRelation ppr in pprs)
+         {
+            XmlNode pprNode = doc.CreateElement("r");
+            partialRelationsNode.AppendChild(pprNode);
+         }
+
+         return rv;
       }
 
       private void BackgroundTask()
