@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Numerics;
 
 namespace Friendly.Library.QuadraticSieve
@@ -22,26 +23,33 @@ namespace Friendly.Library.QuadraticSieve
       {
          _multiplier = multiplier;
          _kn = kn;
-         _factors = new(size);
+         _factors = GetFactors(_kn, size);
+      }
+
+      private static List<int> GetFactors(BigInteger kn, int factorBaseSize)
+      {
+         List<int> factors = new(factorBaseSize);
 
          // Always add -1
-         _factors.Add(-1);
+         factors.Add(-1);
 
          // We can always include 2 because of the condition that
          // n == 1 mod 8
-         _factors.Add(2);
+         factors.Add(2);
 
          // Add primes p such that (n % p) is a quadratic residue modulo p.
          // Note that for primes in the second argument, the Jacobi Symbol
          // reduces to the Legendre Symbol.
          IEnumerator<long> primes = Primes.GetEnumerator();
          primes.MoveNext();  // Skip 2
-         while (primes.MoveNext() && _factors.Count < size)
+         while (primes.MoveNext() && factors.Count < factorBaseSize)
          {
             long prime = primes.Current;
-            if (1 == LongCalculator.JacobiSymbol((long)(_kn % prime), prime))
-               _factors.Add((int)prime);
+            if (1 == LongCalculator.JacobiSymbol((long)(kn % prime), prime))
+               factors.Add((int)prime);
          }
+
+         return factors;
       }
 
       /// <summary>
@@ -85,6 +93,20 @@ namespace Friendly.Library.QuadraticSieve
          return new FactorBase(nSmallMultipliersToConsider[indexOfMax],
             nOrig * nSmallMultipliersToConsider[indexOfMax],
             factorBases[indexOfMax]._factors.Count, factorBases[indexOfMax]._factors);
+      }
+
+      /// <summary>
+      /// Gets a Factor Base when the multiplier and size have previously been determined.
+      /// </summary>
+      /// <param name="multiplier"></param>
+      /// <param name="nOrig"></param>
+      /// <param name="factorBaseSize"></param>
+      /// <returns></returns>
+      public static FactorBase GetFactorBase(int multiplier, BigInteger nOrig, int factorBaseSize)
+      {
+         BigInteger kn = multiplier * nOrig;
+         List<int> factors = GetFactors(kn, factorBaseSize);
+         return new FactorBase(multiplier, kn, factorBaseSize, factors);
       }
 
       /// <summary>

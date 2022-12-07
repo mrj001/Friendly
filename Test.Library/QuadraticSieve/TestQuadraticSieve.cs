@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Xml;
 using Friendly.Library;
 using Friendly.Library.QuadraticSieve;
 using Xunit;
@@ -28,6 +29,11 @@ namespace Test.Library.QuadraticSieve
          {
             return new Relations(factorBaseSize, maxFactor, maxLargePrime);
          }
+
+         public IRelations GetRelations(XmlNode relationsNode)
+         {
+            throw new NotImplementedException();
+         }
       }
 
       /// <summary>
@@ -38,6 +44,11 @@ namespace Test.Library.QuadraticSieve
          public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor, long maxLargePrime)
          {
             return new Relations2P(factorBaseSize, maxFactor, maxLargePrime);
+         }
+
+         public IRelations GetRelations(XmlNode relationsNode)
+         {
+            throw new NotImplementedException();
          }
       }
 

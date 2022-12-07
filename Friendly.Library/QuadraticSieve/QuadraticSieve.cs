@@ -1,9 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Schema;
 using Friendly.Library;
+using Friendly.Library.Utility;
 
 //====================================================================
 // References
@@ -28,7 +35,7 @@ using Friendly.Library;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class QuadraticSieve : INotifyProgress
+   public class QuadraticSieve : INotifyProgress, ISerialize
    {
       private readonly IParameters _parameters;
 
@@ -65,10 +72,20 @@ namespace Friendly.Library.QuadraticSieve
       private IMatrix _matrix;
       private IMatrixFactory _matrixFactory;
 
+      private MultiPolynomial _multipolynomial;
       private IEnumerator<Polynomial> _polynomials;
       private int _totalPolynomials;
 
       public event EventHandler<NotifyProgressEventArgs> Progress;
+
+      private const string QuadraticSieveNodeName = "quadraticsieve";
+      private const string NumberNodeName = "n";
+      private const string MultiplierNodeName = "multiplier";
+      private const string SieveIntervalNodeName = "sieveinterval";
+      private const string FactorBaseSizeNodeName = "factorbasesize";
+      private const string TotalPolynomialsNodeName = "totalpolynomials";
+      private const string RelationsNodeName = "relations";
+      private const string PolynomialsNodeName = "multipolynomial";
 
       /// <summary>
       /// Initializes an instance of the Quadratic Sieve algorithm.
@@ -91,6 +108,96 @@ namespace Friendly.Library.QuadraticSieve
 
          _polynomials = null;
          _totalPolynomials = 0;
+      }
+
+      /// <summary>
+      /// Initializes an instance of the Quadratic Sieve algorithm.  This
+      /// instance is set up to restart an interrupted factorization.
+      /// </summary>
+      /// <param name="filename">The path to the file containing the state
+      /// information.</param>
+      public QuadraticSieve(string filename)
+      {
+         XmlDocument doc = new XmlDocument();
+         using (Stream strm = new FileStream(filename, FileMode.Open, FileAccess.Read))
+         using (GZipStream gz = new GZipStream(strm, CompressionMode.Decompress))
+         {
+            using (Stream xsd = typeof(QuadraticSieve).Assembly.GetManifestResourceStream("Friendly.Library.Assets.QuadraticSieve.SaveQuadraticSieve.xsd")!)
+               doc.Schemas.Add(XmlSchema.Read(xsd, null)!);
+
+            doc.Load(gz);
+         }
+
+         XmlNode topNode = doc.FirstChild.NextSibling;
+         SerializeHelper.ValidateNode(topNode, QuadraticSieveNodeName);
+
+         XmlNode nNode = topNode.FirstChild;
+         SerializeHelper.ValidateNode(nNode, NumberNodeName);
+         _nOrig = SerializeHelper.ParseBigIntegerNode(nNode);
+
+         XmlNode multiplierNode = nNode.NextSibling;
+         SerializeHelper.ValidateNode(multiplierNode, MultiplierNodeName);
+         _multiplier = SerializeHelper.ParseLongNode(multiplierNode);
+         _n = _multiplier * _nOrig;
+         _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);
+
+         XmlNode sieveIntervalNode = multiplierNode.NextSibling;
+         SerializeHelper.ValidateNode(sieveIntervalNode, SieveIntervalNodeName);
+         _M = SerializeHelper.ParseIntNode(sieveIntervalNode);
+
+         XmlNode factorBaseSizeNode = sieveIntervalNode.NextSibling;
+         SerializeHelper.ValidateNode(factorBaseSizeNode, FactorBaseSizeNodeName);
+         int factorBaseSize = SerializeHelper.ParseIntNode(factorBaseSizeNode);
+         _factorBase = FactorBaseCandidate.GetFactorBase((int)_multiplier, _nOrig, factorBaseSize);
+
+         XmlNode totalPolynomialsNode = factorBaseSizeNode.NextSibling;
+         SerializeHelper.ValidateNode(totalPolynomialsNode, TotalPolynomialsNodeName);
+         _totalPolynomials = SerializeHelper.ParseIntNode(totalPolynomialsNode);
+
+         XmlNode relationsNode = totalPolynomialsNode.NextSibling;
+         SerializeHelper.ValidateNode(relationsNode, RelationsNodeName);
+         _relations = _parameters.GetRelationsFactory().GetRelations(relationsNode);
+
+         XmlNode polynomialsNode = relationsNode.NextSibling;
+         SerializeHelper.ValidateNode(polynomialsNode, PolynomialsNodeName);
+         _multipolynomial = new MultiPolynomial(_n, _rootN,
+            _factorBase[_factorBase.Count - 1].Prime, _M, polynomialsNode);
+         _polynomials = _multipolynomial.GetEnumerator();
+      }
+
+      /// <inheritdoc />
+      public XmlNode Serialize(XmlDocument doc, string name)
+      {
+         XmlNode rv = doc.CreateElement(name);
+
+         SerializeHelper.AddBigIntegerNode(doc, rv, NumberNodeName, _nOrig);
+         SerializeHelper.AddLongNode(doc, rv, MultiplierNodeName, _multiplier);
+         SerializeHelper.AddIntNode(doc, rv, SieveIntervalNodeName, _M);
+         SerializeHelper.AddIntNode(doc, rv, FactorBaseSizeNodeName, _factorBase.Count);
+         SerializeHelper.AddLongNode(doc, rv, PolynomialsNodeName, _totalPolynomials);
+
+         rv.AppendChild(_relations.Serialize(doc, RelationsNodeName));
+         rv.AppendChild(_multipolynomial.Serialize(doc, PolynomialsNodeName));
+
+         return rv;
+      }
+
+      public void SaveState(string filename)
+      {
+         // TODO: need to shut down the sieves and the queues inside the Relations objects.
+         XmlDocument doc = new XmlDocument();
+         Assembly assy = this.GetType().Assembly;
+         using (Stream xsd = assy.GetManifestResourceStream("Friendly.Library.Assets.QuadraticSieve.SaveQuadraticSieve.xsd")!)
+            doc.Schemas.Add(XmlSchema.Read(xsd, null)!);
+
+         Serialize(doc, QuadraticSieveNodeName);
+         doc.Validate(null);
+
+         // TODO: optional restart of the Sieves and the queues inside the Relations objects.
+
+         using (Stream fs = new FileStream(filename, FileMode.CreateNew, FileAccess.Write))
+         using (GZipStream gz = new GZipStream(fs, CompressionLevel.SmallestSize))
+            doc.Save(gz);
       }
 
       protected void OnNotifyProgress(string message)
@@ -126,16 +233,24 @@ namespace Friendly.Library.QuadraticSieve
       /// </remarks>
       public (BigInteger, BigInteger) Factor()
       {
-         FindFactorBase();
-         OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
+         if (_factorBase is null)
+         {
+            FindFactorBase();
+            OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
 
-         int numDigits = BigIntegerCalculator.GetNumberOfDigits(_nOrig);
-         int pmax = _factorBase[_factorBase.Count - 1].Prime;
-         _relations = _parameters.GetRelationsFactory().GetRelations(numDigits, _factorBase.Count,
-            pmax, ((long)pmax) * pmax);
+            int numDigits = BigIntegerCalculator.GetNumberOfDigits(_nOrig);
+            int pmax = _factorBase[_factorBase.Count - 1].Prime;
+            _relations = _parameters.GetRelationsFactory().GetRelations(numDigits, _factorBase.Count,
+               pmax, ((long)pmax) * pmax);
 
-         _M = _parameters.FindSieveInterval(_n);
-         _polynomials = (new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M)).GetEnumerator();
+            _M = _parameters.FindSieveInterval(_n);
+            _multipolynomial = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);
+            _polynomials = _multipolynomial.GetEnumerator();
+         }
+         else
+         {
+            OnNotifyProgress($"Restarting Factorization with {_relations.Count} relations.");
+         }
 
          FindBSmooth();
 

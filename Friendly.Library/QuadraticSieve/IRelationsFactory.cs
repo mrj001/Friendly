@@ -1,5 +1,7 @@
 ﻿
 
+using System.Xml;
+
 namespace Friendly.Library.QuadraticSieve
 {
    public interface IRelationsFactory
@@ -14,5 +16,12 @@ namespace Friendly.Library.QuadraticSieve
       /// <returns>An instance of IRelations.</returns>
       IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor,
          long maxLargePrime);
+
+      /// <summary>
+      /// Gets an IRelations instance when restarting from saved state.
+      /// </summary>
+      /// <param name="relationsNode"></param>
+      /// <returns>An instance of IRelations.</returns>
+      IRelations GetRelations(XmlNode relationsNode);
    }
 }

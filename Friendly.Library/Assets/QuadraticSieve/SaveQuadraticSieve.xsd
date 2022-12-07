@@ -98,9 +98,9 @@
         <xs:element name="multiplier" type="xs:long" minOccurs="1" maxOccurs="1" />
         <xs:element name="sieveinterval" type="xs:integer" minOccurs="1" maxOccurs="1" />
         <xs:element name="factorbasesize" type="xs:integer" minOccurs="1" maxOccurs="1" />
+        <xs:element name="totalpolynomials" type="xs:long" minOccurs="1" maxOccurs="1" />
         <xs:element name="relations" type="RelationsType" minOccurs="1" maxOccurs="1" />
         <xs:element name="multipolynomial" type="MultiPolynomialType" minOccurs="1" maxOccurs="1" />
-        <xs:element name="totalpolynomials" type="xs:long" minOccurs="1" maxOccurs="1" />
       </xs:sequence>
     </xs:complexType>
   </xs:element>
