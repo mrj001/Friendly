@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Threading;
 using Friendly.Library;
 using Friendly.Library.Logging;
 using Friendly.Library.QuadraticSieve;
+using Friendly.Library.Utility;
 
 namespace ProfileQuadraticSieve
 {
@@ -284,6 +286,8 @@ namespace ProfileQuadraticSieve
       }
 
       private static Stopwatch? sw;
+      private static Timer? _saveTimer;
+      private static QuadraticSieve? _sieve;
 
       /// <summary>
       /// Multiplies the two given (assumed) primes and then factors the product
@@ -325,12 +329,15 @@ namespace ProfileQuadraticSieve
             int numDigits = 1 + (int)Math.Floor(BigInteger.Log10(n));
             _progressLogger.WriteLine($"The number has {numDigits} digits.");
 
+            _saveTimer = new Timer(HandleScheduledSave, null, TimeSpan.FromHours(2), TimeSpan.FromHours(2));
+            Console.CancelKeyPress += HandleCancelSave;
+
             sw = new();
             sw.Start();
-            QuadraticSieve sieve = new(parameters, n);
-            sieve.Progress += HandleProgress;
-            (BigInteger g1, BigInteger g2) = sieve.Factor();
-            polyCount = sieve.TotalPolynomials;
+            _sieve = new(parameters, n);
+            _sieve.Progress += HandleProgress;
+            (BigInteger g1, BigInteger g2) = _sieve.Factor();
+            polyCount = _sieve.TotalPolynomials;
 
             if (g1 > g2)
             {
@@ -345,10 +352,10 @@ namespace ProfileQuadraticSieve
             else
                _progressLogger.WriteLine("Correct Factors found.");
 
-            _progressLogger.WriteLine($"Number of Polynomials used: {sieve.TotalPolynomials}");
+            _progressLogger.WriteLine($"Number of Polynomials used: {_sieve.TotalPolynomials}");
             _progressLogger.WriteLine("Relations Stats:");
             _progressLogger.WriteLine("LargePrimes\tCount");
-            Statistic[] stats = sieve.GetRelationsStats();
+            Statistic[] stats = _sieve.GetRelationsStats();
             foreach (Statistic stat in stats)
                _progressLogger.WriteLine(stat.ToString());
          }
@@ -360,9 +367,26 @@ namespace ProfileQuadraticSieve
                rv = sw.Elapsed.TotalSeconds;
                sw = null;
             }
+            _saveTimer?.Dispose();
+            _saveTimer = null;
+            _sieve = null;
+            Console.CancelKeyPress -= HandleCancelSave;
          }
 
          return (rv, polyCount);
+      }
+
+      private static void HandleScheduledSave(object? state)
+      {
+         string filename = string.Format("Save-{0:hh:mm:ss}.xml.gz", DateTime.Now);
+         _sieve!.SaveState(SerializationReason.SaveState, filename);
+
+      }
+
+      private static void HandleCancelSave(object? sender, ConsoleCancelEventArgs e)
+      {
+         string filename = string.Format("Save-{0:hh:mm:ss}.xml.gz", DateTime.Now);
+         _sieve?.SaveState(SerializationReason.Shutdown, filename);
       }
 
       private static void HandleProgress(object? sender, NotifyProgressEventArgs e)

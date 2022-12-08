@@ -29,7 +29,7 @@ namespace Friendly.Library.QuadraticSieve
       ThreeLargePrimes = 3
    }
 
-   public class Relation
+   public class Relation : ISerialize
    {
       private readonly BigInteger _qOfX;
       private readonly BigInteger _x;
@@ -115,6 +115,12 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
+      public void BeginSerialize()
+      {
+         // Nothing to do here.
+      }
+
+      /// <inheritdoc />
       public XmlNode Serialize(XmlDocument doc, string name)
       {
          XmlNode rv = doc.CreateElement(name);
@@ -134,6 +140,12 @@ namespace Friendly.Library.QuadraticSieve
          rv.AppendChild(originNode);
 
          return rv;
+      }
+
+      /// <inheritdoc />
+      public void FinishSerialize(SerializationReason reason)
+      {
+         // Nothing to do here.
       }
 
       public BigInteger QOfX { get => _qOfX; }

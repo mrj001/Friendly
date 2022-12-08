@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml;
 using Friendly.Library.Pollard;
+using Friendly.Library.Utility;
 
 // NOTE: For references, see the file QuadraticSieve.cs
 
@@ -71,7 +72,7 @@ namespace Friendly.Library.QuadraticSieve
       /// </para>
       /// </remarks>
       private readonly BlockingCollection<RelationQueueItem> _queueFactor;
-      private readonly Task _taskFactor;
+      private Task? _taskFactor;
       private bool _completeTaskFactor;
       private int _maxFactorQueueLength;
 
@@ -175,6 +176,17 @@ namespace Friendly.Library.QuadraticSieve
          _taskFactor = Task.Run(DoFactorTask);
       }
 
+      /// <inheritdoc />
+      public void BeginSerialize()
+      {
+         // Shutdown the Factoring task so it is safe to serialize this object.
+         _completeTaskFactor = true;
+         _taskFactor?.Wait();
+         _taskFactor?.Dispose();
+         _taskFactor = null;
+      }
+
+      /// <inheritdoc />
       public XmlNode Serialize(XmlDocument doc, string name)
       {
          XmlNode rv = doc.CreateElement(name);
@@ -202,6 +214,16 @@ namespace Friendly.Library.QuadraticSieve
             partialRelationsNode.AppendChild(tpr.Serialize(doc, "r"));
 
          return rv;
+      }
+
+      /// <inheritdoc />
+      public void FinishSerialize(SerializationReason reason)
+      {
+         if (reason == SerializationReason.SaveState)
+         {
+            _completeTaskFactor = false;
+            _taskFactor = Task.Run(DoFactorTask);
+         }
       }
 
       #region Factoring of incoming residuals
@@ -564,7 +586,7 @@ namespace Friendly.Library.QuadraticSieve
          // Finish the Factoring Queue.  This may result in slightly more
          // Relations than counted when finishing Sieving.
          _completeTaskFactor = true;
-         _taskFactor.Wait();
+         _taskFactor?.Wait();
 
          CombineRelations();
 
@@ -717,7 +739,8 @@ namespace Friendly.Library.QuadraticSieve
          {
             if (disposing)
             {
-               _taskFactor.Dispose();
+               _taskFactor?.Dispose();
+               _taskFactor = null;
             }
 
             _primesByRelation = null!;

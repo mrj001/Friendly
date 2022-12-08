@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using Friendly.Library.Pollard;
+using Friendly.Library.Utility;
 
 namespace Friendly.Library.QuadraticSieve
 {
@@ -20,7 +21,7 @@ namespace Friendly.Library.QuadraticSieve
    {
       #region Member Data
       private readonly BlockingCollection<RelationQueueItem> _queue;
-      private readonly Task _task;
+      private Task _task;
       private bool _completeTask;
       private int _maxQueueLength;
       private bool _disposedValue;
@@ -178,8 +179,15 @@ namespace Friendly.Library.QuadraticSieve
          _maxQueueLength = 0;
       }
 
-      // TODO: ISSUE: saving work at an intermediate point to restore in case
-      //   of power outage/crash/etc requires emptying the queue and restarting it.
+      /// <inheritdoc />
+      public void BeginSerialize()
+      {
+         // Shut down the background task, so it is safe to serialize this
+         // instance.
+         _completeTask = true;
+         _task.Wait();
+         _task.Dispose();
+      }
 
       /// <inheritdoc />
       public XmlNode Serialize(XmlDocument doc, string name)
@@ -220,6 +228,16 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          return rv;
+      }
+
+      /// <inheritdoc />
+      public void FinishSerialize(SerializationReason reason)
+      {
+         if (reason == SerializationReason.SaveState)
+         {
+            _completeTask = false;
+            _task = Task.Run(BackgroundTask);
+         }
       }
 
       private void BackgroundTask()
@@ -603,4 +621,3 @@ namespace Friendly.Library.QuadraticSieve
       #endregion
    }
 }
-

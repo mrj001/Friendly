@@ -78,6 +78,29 @@ namespace Friendly.Library.QuadraticSieve
 
       public event EventHandler<NotifyProgressEventArgs> Progress;
 
+      /// <summary>
+      /// The number of parallel threads to use for the Sieve.
+      /// </summary>
+      private int _degreeOfParallelism = 0;
+
+      /// <summary>
+      /// Set to true to instruct the Sieve tasks to pause while state is saved.
+      /// </summary>
+      private bool _pauseSieveToSave = false;
+
+      /// <summary>
+      /// A Barrier for the Sieving Threads to use to signal that they have
+      /// paused for saving state.
+      /// </summary>
+      private Barrier _saveStartBarrier = new Barrier(0);
+
+      /// <summary>
+      /// A Barrier for the Sieving Threads to wait on until saving is finished.
+      /// </summary>
+      private Barrier _saveDoneBarrier = new Barrier(0);
+
+      private SerializationReason _saveReason;
+
       private const string QuadraticSieveNodeName = "quadraticsieve";
       private const string NumberNodeName = "n";
       private const string MultiplierNodeName = "multiplier";
@@ -166,6 +189,18 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
+      public void BeginSerialize()
+      {
+         _pauseSieveToSave = true;
+
+         // Wait for all Sieve Threads to pause.
+         _saveStartBarrier.SignalAndWait();
+
+         _relations.BeginSerialize();
+         _multipolynomial.BeginSerialize();
+      }
+
+      /// <inheritdoc />
       public XmlNode Serialize(XmlDocument doc, string name)
       {
          XmlNode rv = doc.CreateElement(name);
@@ -182,18 +217,32 @@ namespace Friendly.Library.QuadraticSieve
          return rv;
       }
 
-      public void SaveState(string filename)
+      /// <inheritdoc />
+      public void FinishSerialize(SerializationReason reason)
       {
-         // TODO: need to shut down the sieves and the queues inside the Relations objects.
+         _pauseSieveToSave = false;
+
+         _multipolynomial.FinishSerialize(reason);
+         _relations.FinishSerialize(reason);
+
+         // Resume the Sieve Threads
+         // We are the very last thread to call this, so there will be no
+         // wait at all.
+         _saveReason = reason;
+         _saveDoneBarrier.SignalAndWait();
+      }
+
+      public void SaveState(SerializationReason reason, string filename)
+      {
          XmlDocument doc = new XmlDocument();
          Assembly assy = this.GetType().Assembly;
          using (Stream xsd = assy.GetManifestResourceStream("Friendly.Library.Assets.QuadraticSieve.SaveQuadraticSieve.xsd")!)
             doc.Schemas.Add(XmlSchema.Read(xsd, null)!);
 
+         BeginSerialize();
          Serialize(doc, QuadraticSieveNodeName);
          doc.Validate(null);
-
-         // TODO: optional restart of the Sieves and the queues inside the Relations objects.
+         FinishSerialize(reason);
 
          using (Stream fs = new FileStream(filename, FileMode.CreateNew, FileAccess.Write))
          using (GZipStream gz = new GZipStream(fs, CompressionLevel.SmallestSize))
@@ -362,20 +411,34 @@ namespace Friendly.Library.QuadraticSieve
          int numRelationsNeeded = fbSize + 1;
 
          // The Relations class is not thread-safe.
-         int maxDegreeOfParallelism;
          if (_relations is Relations)
-            maxDegreeOfParallelism = 1;
+            _degreeOfParallelism = 1;
          else
-            maxDegreeOfParallelism = Environment.ProcessorCount / 2;
+            _degreeOfParallelism = Environment.ProcessorCount / 2;
+
+         AdjustBarrierCounts();
 
          ParallelOptions options = new ParallelOptions();
-         options.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+         options.MaxDegreeOfParallelism = _degreeOfParallelism;
          options.CancellationToken = (new CancellationTokenSource()).Token;
 
          // TODO: be able to restart the enumeration of polynomials.
          Parallel.ForEach<Polynomial>(Polynomials(), options,
             (poly, state) => DoOneSieve(state, poly, numRelationsNeeded, pmaxt,
             firstPrimeIndex, smallPrimeLog));
+      }
+
+      private void AdjustBarrierCounts()
+      {
+         if (_saveStartBarrier.ParticipantCount > 1 + _degreeOfParallelism)
+            _saveStartBarrier.RemoveParticipants(1 + _degreeOfParallelism - _saveStartBarrier.ParticipantCount);
+         else if (_saveStartBarrier.ParticipantCount < 1 + _degreeOfParallelism)
+            _saveStartBarrier.AddParticipants(1 + _degreeOfParallelism - _saveStartBarrier.ParticipantCount);
+
+         if (_saveDoneBarrier.ParticipantCount > 1 + _degreeOfParallelism)
+            _saveDoneBarrier.RemoveParticipants(1 + _degreeOfParallelism - _saveDoneBarrier.ParticipantCount);
+         else if (_saveDoneBarrier.ParticipantCount < 1 + _degreeOfParallelism)
+            _saveDoneBarrier.AddParticipants(1 + _degreeOfParallelism - _saveDoneBarrier.ParticipantCount);
       }
 
       private IEnumerable<Polynomial> Polynomials()
@@ -461,7 +524,22 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          if (_relations.Count > numRelationsNeeded)
+         {
             state.Stop();
+            return;
+         }
+
+         if (_pauseSieveToSave)
+         {
+            _saveStartBarrier.SignalAndWait();
+            _saveDoneBarrier.SignalAndWait();
+
+            if (_saveReason == SerializationReason.Shutdown)
+            {
+               state.Stop();
+               return;
+            }
+         }
       }
 
       private unsafe static void AddLogs(ushort[] sieve, int startIndex, int stride, ushort log)

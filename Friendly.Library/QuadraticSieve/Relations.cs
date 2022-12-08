@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Xml;
+using Friendly.Library.Utility;
 
 namespace Friendly.Library.QuadraticSieve
 {
@@ -34,11 +35,24 @@ namespace Friendly.Library.QuadraticSieve
          _maxLargePrime = maxLargePrime;
       }
 
+      /// <inheritdoc />
+      public void BeginSerialize()
+      {
+         // nothing to do here.
+      }
+
+      /// <inheritdoc />
       public XmlNode Serialize(XmlDocument doc, string name)
       {
          // The Single Large Prime variation is only used when the numbers
          // being factored are small enough we don't need to save progress.
          throw new NotImplementedException();
+      }
+
+      /// <inheritdoc />
+      public void FinishSerialize(SerializationReason reason)
+      {
+         // nothing to do here.
       }
 
       /// <inheritdoc />

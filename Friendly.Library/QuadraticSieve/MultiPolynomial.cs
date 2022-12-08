@@ -104,12 +104,22 @@ namespace Friendly.Library.QuadraticSieve
             throw new ArgumentException($"Failed to parse '{nextDHigherNode.InnerText}' for <{NextDHigherNodeName}>.");
       }
 
+      public void BeginSerialize()
+      {
+         _enumerator?.BeginSerialize();
+      }
+
       public XmlNode Serialize(XmlDocument doc, string name)
       {
          if (_enumerator is not null)
             return _enumerator.Serialize(doc, name);
          else
             return (new Enumerator(_kn, _rootkn, _maxFactorBase, _M)).Serialize(doc, name);
+      }
+
+      public void FinishSerialize(SerializationReason reason)
+      {
+         _enumerator?.FinishSerialize(reason);
       }
 
       public IEnumerator<Polynomial> GetEnumerator()
@@ -201,6 +211,13 @@ namespace Friendly.Library.QuadraticSieve
             _nextDHigher = nextDHigher;
          }
 
+         /// <inheritdoc />
+         public void BeginSerialize()
+         {
+            // Nothing to do here.
+         }
+
+         /// <inheritdoc />
          public XmlNode Serialize(XmlDocument doc, string name)
          {
             XmlNode rv = doc.CreateElement(name);
@@ -223,6 +240,13 @@ namespace Friendly.Library.QuadraticSieve
 
             return rv;
          }
+
+         /// <inheritdoc />
+         public void FinishSerialize(SerializationReason reason)
+         {
+            // nothing to do here.
+         }
+
 
          public Polynomial Current => InternalCurrent();
 
