@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Numerics;
 using Friendly.Library;
 using Xunit;
@@ -114,6 +115,42 @@ namespace Test.Library
          Assert.Equal(expected, actual);
       }
 
+      public static TheoryData<int, BigInteger, BigInteger> JacobiSymbol_bi_bi_TestData
+      {
+         get
+         {
+            var rv = new TheoryData<int, BigInteger, BigInteger>();
+
+            // Upscale the JacobiSymbolTestData to BigInteger
+            foreach (var j in JacobiSymbolTestData)
+            {
+               object[] o = new object[3];
+               IEnumerator k = j.GetEnumerator();
+               for (int index = 0; k.MoveNext(); index++)
+                  o[index] = k.Current;
+               rv.Add((int)o[0], (BigInteger)o[1], new BigInteger((long)o[2]));
+            }
+
+            // The following two results were confirmed via Wolfram-Alpha
+            rv.Add(-1,
+               BigInteger.Parse("1241624446312238525529866384806351261322973440441013744819419723627220133873761271385417657"),
+               BigInteger.Parse("19948881384357464449"));
+            rv.Add(-1,
+               BigInteger.Parse("1241624446312238525529866384806351261322973440441013744819419723627220133873761271385417657"),
+               BigInteger.Parse("19948881384357464107"));
+
+            return rv;
+         }
+      }
+
+      [Theory]
+      [MemberData(nameof(JacobiSymbol_bi_bi_TestData))]
+      public void JacobiSymbol_bi_bi(int expected, BigInteger a, BigInteger n)
+      {
+         int actual = (int)BigIntegerCalculator.JacobiSymbol(a, n);
+
+         Assert.Equal(expected, actual);
+      }
       #endregion
 
       public static TheoryData<long, long> SquareRootTestData

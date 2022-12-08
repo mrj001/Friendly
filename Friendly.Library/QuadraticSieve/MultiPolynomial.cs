@@ -28,9 +28,9 @@ namespace Friendly.Library.QuadraticSieve
       /// a saved point.
       /// </summary>
       private readonly bool _restart;
-      private readonly long _currentD = 0;
-      private readonly long _lowerD = long.MaxValue;
-      private readonly long _higherD = long.MinValue;
+      private readonly BigInteger _currentD = 0;
+      private readonly BigInteger _lowerD = long.MaxValue;
+      private readonly BigInteger _higherD = long.MinValue;
       private readonly bool _nextDHigher = false;
 
       private readonly BigInteger _kn;
@@ -80,27 +80,20 @@ namespace Friendly.Library.QuadraticSieve
          _M = M;
 
          XmlNode? currentDNode = node.FirstChild;
-         if (currentDNode is null || currentDNode.LocalName != CurrentDNodeName)
-            throw new ArgumentException($"Failed to find <{CurrentDNodeName}>.");
-         if (!long.TryParse(currentDNode.InnerText, out _currentD))
-            throw new ArgumentException($"Failed to parse '{currentDNode.InnerText}' for <{CurrentDNodeName}>");
+         SerializeHelper.ValidateNode(currentDNode, CurrentDNodeName);
+         _currentD = SerializeHelper.ParseBigIntegerNode(currentDNode!);
 
-         XmlNode? lowerDNode = currentDNode.NextSibling;
-         if (lowerDNode is null || lowerDNode.LocalName != LowerDNodeName)
-            throw new ArgumentException($"Failed to find <{LowerDNodeName}>.");
-         if (!long.TryParse(lowerDNode.InnerText, out _lowerD))
-            throw new ArgumentException($"Failed to parse '{lowerDNode.InnerText}' for <{LowerDNodeName}>.");
+         XmlNode? lowerDNode = currentDNode!.NextSibling;
+         SerializeHelper.ValidateNode(lowerDNode, LowerDNodeName);
+         _lowerD = SerializeHelper.ParseBigIntegerNode(lowerDNode!);
 
-         XmlNode? higherDNode = lowerDNode.NextSibling;
-         if (higherDNode is null || higherDNode.LocalName != HigherDNodeName)
-            throw new ArgumentException($"Failed to find <{HigherDNodeName}>.");
-         if (!long.TryParse(higherDNode.InnerText, out _higherD))
-            throw new ArgumentException($"Failed to parse '{higherDNode.InnerText}' for <{HigherDNodeName}>.");
+         XmlNode? higherDNode = lowerDNode!.NextSibling;
+         SerializeHelper.ValidateNode(higherDNode, HigherDNodeName);
+         _higherD = SerializeHelper.ParseBigIntegerNode(higherDNode!);
 
-         XmlNode? nextDHigherNode = higherDNode.NextSibling;
-         if (nextDHigherNode is null || nextDHigherNode.LocalName != NextDHigherNodeName)
-            throw new ArgumentException($"Failed to find <{NextDHigherNodeName}>.");
-         if (!bool.TryParse(nextDHigherNode.InnerText, out _nextDHigher))
+         XmlNode? nextDHigherNode = higherDNode!.NextSibling;
+         SerializeHelper.ValidateNode(nextDHigherNode, NextDHigherNodeName);
+         if (!bool.TryParse(nextDHigherNode!.InnerText, out _nextDHigher))
             throw new ArgumentException($"Failed to parse '{nextDHigherNode.InnerText}' for <{NextDHigherNodeName}>.");
       }
 
@@ -153,10 +146,10 @@ namespace Friendly.Library.QuadraticSieve
          /// <summary>
          /// The "ideal" choice of D in Ref. B, section 3.
          /// </summary>
-         private readonly long _idealD;
-         private long _currentD = 0;
-         private long _lowerD = long.MaxValue;
-         private long _higherD = long.MinValue;
+         private readonly BigInteger _idealD;
+         private BigInteger _currentD = 0;
+         private BigInteger _lowerD = long.MaxValue;
+         private BigInteger _higherD = long.MinValue;
          private bool _nextDHigher = false;
 
          /// <summary>
@@ -174,7 +167,7 @@ namespace Friendly.Library.QuadraticSieve
             _restarted = false;
 
             BigInteger t = _rootkn / (4 * M);
-            _idealD = (long)BigIntegerCalculator.SquareRoot(t);
+            _idealD = BigIntegerCalculator.SquareRoot(t);
             if ((_idealD & 1) == 0)
                _idealD--;
             Reset();
@@ -193,7 +186,7 @@ namespace Friendly.Library.QuadraticSieve
          /// <param name="higherD"></param>
          /// <param name="nextDHigher"></param>
          public Enumerator(BigInteger kn, BigInteger rootkn, long maxFactorBase,
-            int M, long currentD, long lowerD, long higherD, bool nextDHigher)
+            int M, BigInteger currentD, BigInteger lowerD, BigInteger higherD, bool nextDHigher)
          {
             _kn = kn;
             _rootkn = rootkn;
@@ -339,7 +332,7 @@ namespace Friendly.Library.QuadraticSieve
 
          public bool MoveNext()
          {
-            long d;
+            BigInteger d;
 
             if (_restarted)
             {
@@ -373,7 +366,7 @@ namespace Friendly.Library.QuadraticSieve
             return true;
          }
 
-         private bool IsSuitablePrime(long p)
+         private bool IsSuitablePrime(BigInteger p)
          {
             // A suitable prime must meet all of the following conditions:
             //   1. Be Prime.
@@ -388,7 +381,7 @@ namespace Friendly.Library.QuadraticSieve
          {
             _currentD = long.MinValue;
             _lowerD = _idealD + 2;
-            _higherD = Math.Max(_idealD, _maxFactorBase);
+            _higherD = _idealD > _maxFactorBase ? _idealD : _maxFactorBase;
             _nextDHigher = _lowerD <= _maxFactorBase;
          }
       }

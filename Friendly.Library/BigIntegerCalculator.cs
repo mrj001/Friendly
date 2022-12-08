@@ -252,6 +252,46 @@ namespace Friendly.Library
          return sign * (IsQuadraticResidue(a, n) ? 1 : -1);
       }
 
+      public static long JacobiSymbol(BigInteger a, BigInteger n)
+      {
+         // Per Theorem 1 of the Reference.
+         // If a and n are not mutually prime, the value of the Jacobi Symbol is 0.
+         if (GCD((a < n ? n : a), (a >= n ? n : a)) > 1)
+            return 0;
+
+         // Reduce per Theorem 1, point 3.
+         if (a > n) a %= n;
+
+         if (a == 0) return 0;
+
+         long sign = 1;
+         while (n > long.MaxValue)
+         {
+            // Can we factor out powers of two?
+            int powersOfTwo = 0;
+            while ((a & 1) == 0 && a != 0)
+            {
+               a >>= 1;
+               powersOfTwo++;
+            }
+            if (a == 0) return 0;
+            long powerOfTwoSign = (powersOfTwo & 1) == 0 ? 1 : Jacobi2(n);
+
+            // Per the "Law of Quadratic Reciprocity"
+            // Point 6 of Theorem 3 of the Jacobi Symbol reference.
+            long flipSign = ((a & 3) == 1 || (n & 3) == 1) ? 1 : -1;
+
+            BigInteger t = a;
+            a = n;
+            n = t;
+            sign *= powerOfTwoSign * flipSign;
+            a %= n;
+         }
+
+         long rv = sign * JacobiSymbol(a, (long)n);
+         return rv;
+      }
+
       /// <summary>
       /// Calculates the Jacobi symbol when the upper number is a 2.
       /// </summary>

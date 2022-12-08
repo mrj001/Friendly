@@ -83,9 +83,9 @@
 
   <xs:complexType name="MultiPolynomialType">
     <xs:sequence>
-      <xs:element name="currentd" type="xs:long" minOccurs="1" maxOccurs="1" />
-      <xs:element name="lowerd" type="xs:long" minOccurs="1" maxOccurs="1" />
-      <xs:element name="higherd" type="xs:long" minOccurs="1" maxOccurs="1" />
+      <xs:element name="currentd" type="BigIntegerType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="lowerd" type="BigIntegerType" minOccurs="1" maxOccurs="1" />
+      <xs:element name="higherd" type="BigIntegerType" minOccurs="1" maxOccurs="1" />
       <xs:element name="nextdhigher" type="xs:boolean" minOccurs="1" maxOccurs="1" />
     </xs:sequence>
   </xs:complexType>
