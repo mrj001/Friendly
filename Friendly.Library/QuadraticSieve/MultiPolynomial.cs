@@ -305,7 +305,7 @@ namespace Friendly.Library.QuadraticSieve
             Assertions.True(num % d == 0);
             Assertions.True((h0 & 1) == 0);
             Assertions.True(((h0 / 2) * (2 * h1)) % d == 1);
-            BigInteger h2 = (long)(((h0 / 2) * (num / d)) % d);
+            BigInteger h2 = ((h0 / 2) * (num / d)) % d;
 
             // Ref B. Equation 10
             BigInteger b = (h1 + h2 * d) % a;
