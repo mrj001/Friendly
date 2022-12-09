@@ -209,7 +209,7 @@ namespace Friendly.Library.QuadraticSieve
          SerializeHelper.AddLongNode(doc, rv, MultiplierNodeName, _multiplier);
          SerializeHelper.AddIntNode(doc, rv, SieveIntervalNodeName, _M);
          SerializeHelper.AddIntNode(doc, rv, FactorBaseSizeNodeName, _factorBase.Count);
-         SerializeHelper.AddLongNode(doc, rv, PolynomialsNodeName, _totalPolynomials);
+         SerializeHelper.AddIntNode(doc, rv, TotalPolynomialsNodeName, _totalPolynomials);
 
          rv.AppendChild(_relations.Serialize(doc, RelationsNodeName));
          rv.AppendChild(_multipolynomial.Serialize(doc, PolynomialsNodeName));
@@ -240,7 +240,7 @@ namespace Friendly.Library.QuadraticSieve
             doc.Schemas.Add(XmlSchema.Read(xsd, null)!);
 
          BeginSerialize();
-         Serialize(doc, QuadraticSieveNodeName);
+         doc.AppendChild(Serialize(doc, QuadraticSieveNodeName));
          doc.Validate(null);
          FinishSerialize(reason);
 

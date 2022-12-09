@@ -41,7 +41,7 @@ namespace Friendly.Library.Utility
       {
          XmlNode rv = doc.CreateElement(name);
          rv.InnerText = value.ToString();
-         rv.AppendChild(rv);
+         parent.AppendChild(rv);
          return rv;
       }
 
@@ -49,7 +49,7 @@ namespace Friendly.Library.Utility
       {
          XmlNode rv = doc.CreateElement(name);
          rv.InnerText = value.ToString();
-         rv.AppendChild(rv);
+         parent.AppendChild(rv);
          return rv;
       }
 
@@ -57,7 +57,7 @@ namespace Friendly.Library.Utility
       {
          XmlNode rv = doc.CreateElement(name);
          rv.InnerText = value.ToString();
-         rv.AppendChild(rv);
+         parent.AppendChild(rv);
          return rv;
       }
    }

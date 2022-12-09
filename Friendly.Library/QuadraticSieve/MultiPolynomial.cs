@@ -228,7 +228,7 @@ namespace Friendly.Library.QuadraticSieve
             rv.AppendChild(higherDNode);
 
             XmlNode nextDHigherNode = doc.CreateElement(NextDHigherNodeName);
-            nextDHigherNode.InnerText = _nextDHigher.ToString();
+            nextDHigherNode.InnerText = _nextDHigher ? "true" : "false";
             rv.AppendChild(nextDHigherNode);
 
             return rv;
