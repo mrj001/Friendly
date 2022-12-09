@@ -246,7 +246,11 @@ namespace Friendly.Library.QuadraticSieve
 
          using (Stream fs = new FileStream(filename, FileMode.CreateNew, FileAccess.Write))
          using (GZipStream gz = new GZipStream(fs, CompressionLevel.SmallestSize))
+         {
             doc.Save(gz);
+            gz.Flush();
+            fs.Flush();
+         }
       }
 
       protected void OnNotifyProgress(string message)
