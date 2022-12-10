@@ -359,6 +359,10 @@ namespace ProfileQuadraticSieve
             foreach (Statistic stat in stats)
                _progressLogger.WriteLine(stat.ToString());
          }
+         catch (AbortException ex)
+         {
+            Console.WriteLine("Factoring was aborted...");
+         }
          finally
          {
             if (sw is not null)
@@ -385,6 +389,8 @@ namespace ProfileQuadraticSieve
 
       private static void HandleCancelSave(object? sender, ConsoleCancelEventArgs e)
       {
+         Console.Error.WriteLine("Aborting...");
+         // BUG: TODO: save on cancel resulted in a truncated save file
          string filename = string.Format("Save-{0:hh:mm:ss}.xml.gz", DateTime.Now);
          _sieve?.SaveState(SerializationReason.Shutdown, filename);
       }

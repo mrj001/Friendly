@@ -430,6 +430,11 @@ namespace Friendly.Library.QuadraticSieve
          Parallel.ForEach<Polynomial>(Polynomials(), options,
             (poly, state) => DoOneSieve(state, poly, numRelationsNeeded, pmaxt,
             firstPrimeIndex, smallPrimeLog));
+
+         // Abort is detected by having left the Parallel.ForEach loop prior
+         // to finding the required number of Relation objects.
+         if (_relations.Count < numRelationsNeeded)
+            throw new AbortException();
       }
 
       private void AdjustBarrierCounts()
