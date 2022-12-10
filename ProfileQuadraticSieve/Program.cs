@@ -382,7 +382,7 @@ namespace ProfileQuadraticSieve
 
       private static void HandleScheduledSave(object? state)
       {
-         string filename = string.Format("Save-{0:hh:mm:ss}.xml.gz", DateTime.Now);
+         string filename = GetSaveFileName();
          _sieve!.SaveState(SerializationReason.SaveState, filename);
 
       }
@@ -391,8 +391,13 @@ namespace ProfileQuadraticSieve
       {
          Console.Error.WriteLine("Aborting...");
          // BUG: TODO: save on cancel resulted in a truncated save file
-         string filename = string.Format("Save-{0:hh:mm:ss}.xml.gz", DateTime.Now);
+         string filename = GetSaveFileName();
          _sieve?.SaveState(SerializationReason.Shutdown, filename);
+      }
+
+      private static string GetSaveFileName()
+      {
+         return string.Format("Save-{0:yyyy-MM-dd_HH.mm}.xml.gz", DateTime.Now);
       }
 
       private static void HandleProgress(object? sender, NotifyProgressEventArgs e)
