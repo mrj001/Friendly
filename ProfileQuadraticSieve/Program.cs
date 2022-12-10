@@ -389,8 +389,8 @@ namespace ProfileQuadraticSieve
 
       private static void HandleCancelSave(object? sender, ConsoleCancelEventArgs e)
       {
+         e.Cancel = true;
          Console.Error.WriteLine("Aborting...");
-         // BUG: TODO: save on cancel resulted in a truncated save file
          string filename = GetSaveFileName();
          _sieve?.SaveState(SerializationReason.Shutdown, filename);
       }

@@ -242,7 +242,6 @@ namespace Friendly.Library.QuadraticSieve
          BeginSerialize();
          doc.AppendChild(Serialize(doc, QuadraticSieveNodeName));
          doc.Validate(null);
-         FinishSerialize(reason);
 
          using (Stream fs = new FileStream(filename, FileMode.CreateNew, FileAccess.Write))
          using (GZipStream gz = new GZipStream(fs, CompressionLevel.SmallestSize))
@@ -251,6 +250,8 @@ namespace Friendly.Library.QuadraticSieve
             gz.Flush();
             fs.Flush();
          }
+
+         FinishSerialize(reason);
       }
 
       protected void OnNotifyProgress(string message)
