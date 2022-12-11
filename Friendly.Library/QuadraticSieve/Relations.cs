@@ -150,8 +150,8 @@ namespace Friendly.Library.QuadraticSieve
             counts[(int)j.Origin]++;
 
          Statistic[] rv = new Statistic[2];
-         rv[0] = new Statistic(Statistic.FullyFactored, counts[0]);
-         rv[1] = new Statistic(Statistic.OneLargePrime, counts[1]);
+         rv[0] = new Statistic(StatisticNames.FullyFactored, counts[0]);
+         rv[1] = new Statistic(StatisticNames.OneLargePrime, counts[1]);
          return rv;
       }
    }

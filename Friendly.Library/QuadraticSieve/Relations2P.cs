@@ -589,9 +589,9 @@ namespace Friendly.Library.QuadraticSieve
             counts[(int)j.Origin]++;
 
          List<Statistic> rv = new();
-         rv.Add(new Statistic(Statistic.FullyFactored, counts[0]));
-         rv.Add(new Statistic(Statistic.OneLargePrime, counts[1]));
-         rv.Add(new Statistic(Statistic.TwoLargePrimes, counts[2]));
+         rv.Add(new Statistic(StatisticNames.FullyFactored, counts[0]));
+         rv.Add(new Statistic(StatisticNames.OneLargePrime, counts[1]));
+         rv.Add(new Statistic(StatisticNames.TwoLargePrimes, counts[2]));
          rv.Add(new Statistic("Components", _componentCount));
          rv.Add(new Statistic("DictionaryLoad", ((float)_spanningTrees.Count) / _spanningTrees.EnsureCapacity(0)));
          rv.Add(new Statistic("MaxQueueLength", _maxQueueLength));
