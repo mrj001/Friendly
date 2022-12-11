@@ -196,10 +196,7 @@ namespace Friendly.Library.QuadraticSieve
 
          XmlNode relationsNode = statisticsNode.NextSibling;
          SerializeHelper.ValidateNode(relationsNode, RelationsNodeName);
-         // TODO: may need some rationality checks that this Relations instance is
-         // compatible with the save file.  Eg. If it was created in a different version
-         // of the software.
-         _relations = _parameters.GetRelationsFactory().GetRelations(factorBaseSize,
+         _relations = (new RelationsFactory()).GetRelations(factorBaseSize,
             _factorBase[_factorBase.Count - 1].Prime, relationsNode);
 
          XmlNode polynomialsNode = relationsNode.NextSibling;

@@ -68,8 +68,10 @@ namespace Friendly.Library.QuadraticSieve
       private readonly Dictionary<long, List<PartialPartialRelation>> _relationsByPrime;
 
       private const int InitialCapacity = 1 << 18;
+      public const string TypeNodeName = "type";
       private const string LargePrimeNodeName = "maxLargePrime";
       private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
+      private const string MaxQueueLengthNodeName = "maxqueuelength";
       private const string RelationsNodeName = "relations";
       private const string PartialRelationsNodeName = "partialrelations";
       #endregion
@@ -108,9 +110,12 @@ namespace Friendly.Library.QuadraticSieve
          _relationsByPrime.Add(1, new List<PartialPartialRelation>());
       }
 
-      public Relations2P(XmlNode node)
+      public Relations2P(int factorBaseSize, int maxFactor, XmlNode node)
       {
-         XmlNode? largePrimeNode = node.FirstChild;
+         _factorBaseSize = factorBaseSize;
+         _maxFactor = maxFactor;
+
+         XmlNode? largePrimeNode = node.FirstChild!.NextSibling;
          if (largePrimeNode is null || largePrimeNode.LocalName != LargePrimeNodeName)
             throw new ArgumentException($"Failed to find <{LargePrimeNodeName}>.");
          if (!long.TryParse(largePrimeNode.InnerText, out _maxLargePrime))
@@ -122,8 +127,12 @@ namespace Friendly.Library.QuadraticSieve
          if (!long.TryParse(twoLargePrimeNode.InnerText, out _maxTwoPrimes))
             throw new ArgumentException($"Unable to parse '{twoLargePrimeNode.InnerText}' for <{TwoLargePrimeNodeName}>");
 
+         XmlNode? maxQueueNode = twoLargePrimeNode.NextSibling;
+         SerializeHelper.ValidateNode(maxQueueNode, MaxQueueLengthNodeName);
+         _maxQueueLength = SerializeHelper.ParseIntNode(maxQueueNode!);
+
          // Read the full Relations
-         XmlNode? relationsNode = twoLargePrimeNode.NextSibling;
+         XmlNode? relationsNode = maxQueueNode!.NextSibling;
          if (relationsNode is null || relationsNode.LocalName != RelationsNodeName)
             throw new ArgumentException($"Failed to find <{RelationsNodeName}>.");
          _relations = new();
@@ -194,21 +203,18 @@ namespace Friendly.Library.QuadraticSieve
       {
          XmlNode rv = doc.CreateElement(name);
 
-         XmlNode largePrimeNode = doc.CreateElement(LargePrimeNodeName);
-         largePrimeNode.InnerText = _maxLargePrime.ToString();
-         rv.AppendChild(largePrimeNode);
+         XmlNode typeNode = doc.CreateElement(TypeNodeName);
+         typeNode.InnerText = "Relations2P";
+         rv.AppendChild(typeNode);
 
-         XmlNode twoLargePrimeNode = doc.CreateElement(TwoLargePrimeNodeName);
-         twoLargePrimeNode.InnerText = _maxTwoPrimes.ToString();
-         rv.AppendChild(twoLargePrimeNode);
+         SerializeHelper.AddLongNode(doc, rv, LargePrimeNodeName, _maxLargePrime);
+         SerializeHelper.AddLongNode(doc, rv, TwoLargePrimeNodeName, _maxTwoPrimes);
+         SerializeHelper.AddIntNode(doc, rv, MaxQueueLengthNodeName, _maxQueueLength);
 
          XmlNode relationsNode = doc.CreateElement(RelationsNodeName);
          rv.AppendChild(relationsNode);
          foreach(Relation r in _relations)
-         {
-            XmlNode rNode = doc.CreateElement("r");
-            relationsNode.AppendChild(rNode);
-         }
+            relationsNode.AppendChild(r.Serialize(doc, "r"));
 
          // We need to build a set of all the unique Partial Partial Relations
          // that are in the Graph.
@@ -222,10 +228,7 @@ namespace Friendly.Library.QuadraticSieve
          XmlNode partialRelationsNode = doc.CreateElement(PartialRelationsNodeName);
          rv.AppendChild(partialRelationsNode);
          foreach(PartialPartialRelation ppr in pprs)
-         {
-            XmlNode pprNode = doc.CreateElement("r");
-            partialRelationsNode.AppendChild(pprNode);
-         }
+            partialRelationsNode.AppendChild(ppr.Serialize(doc, "r"));
 
          return rv;
       }

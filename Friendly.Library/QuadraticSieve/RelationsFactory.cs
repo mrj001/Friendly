@@ -1,5 +1,7 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Xml;
+using Friendly.Library.Utility;
 
 namespace Friendly.Library.QuadraticSieve
 {
@@ -24,9 +26,21 @@ namespace Friendly.Library.QuadraticSieve
       public IRelations GetRelations(int factorBaseSize, int maxFactor,
          XmlNode relationsNode)
       {
-         // TODO: Determine which IRelations implementation to create
-         // TODO: validate that we aren't attempting to create one that supports too few large primes.
-         return new Relations3P(factorBaseSize, maxFactor, relationsNode);
+         XmlNode typeNode = relationsNode.FirstChild!;
+         SerializeHelper.ValidateNode(typeNode, Relations2P.TypeNodeName);
+         string type = typeNode.InnerText;
+
+         switch(type)
+         {
+            case "Relations2P":
+               return new Relations2P(factorBaseSize, maxFactor, relationsNode);
+
+            case "Relations3P":
+               return new Relations3P(factorBaseSize, maxFactor, relationsNode);
+
+            default:
+               throw new ArgumentException($"Unrecognized Relations type: '{type}'");
+         }
       }
    }
 }

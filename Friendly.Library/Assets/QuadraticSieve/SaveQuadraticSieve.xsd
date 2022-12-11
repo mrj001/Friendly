@@ -73,9 +73,11 @@
 
   <xs:complexType name="RelationsType">
     <xs:sequence>
+      <xs:element name="type" type="xs:string" minOccurs="1" maxOccurs="1" />
       <xs:element name="maxLargePrime" type="xs:long" minOccurs="1" maxOccurs="1" />
       <xs:element name="maxTwoLargePrimes" type="xs:long" minOccurs="1" maxOccurs="1" />
       <xs:element name="maxThreeLargePrimes" type="BigIntegerType" minOccurs="0" maxOccurs="1" />
+      <xs:element name="maxqueuelength" type="xs:integer" minOccurs="1" maxOccurs="1" />
       <xs:element name="relations" type="RelationsListType" minOccurs="1" maxOccurs="1" />
       <xs:element name="partialrelations" type="PartialRelationsListType" minOccurs="1" maxOccurs="1" />
     </xs:sequence>

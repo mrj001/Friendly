@@ -86,9 +86,11 @@ namespace Friendly.Library.QuadraticSieve
       private Dictionary<TPRelation, TwoRecords> _primesByRelation;
 
       private const int InitialCapacity = 1 << 18;
+      public const string TypeNodeName = Relations2P.TypeNodeName;
       private const string LargePrimeNodeName = "maxLargePrime";
       private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
       private const string ThreeLargePrimeNodeName = "maxThreeLargePrimes";
+      private const string MaxQueueLengthNodename = "maxqueuelength";
       private const string RelationsNodeName = "relations";
       private const string PartialRelationsNodeName = "partialrelations";
 
@@ -132,7 +134,7 @@ namespace Friendly.Library.QuadraticSieve
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
 
-         XmlNode? largePrimeNode = node.FirstChild;
+         XmlNode? largePrimeNode = node.FirstChild!.NextSibling;
          if (largePrimeNode is null || largePrimeNode.LocalName != LargePrimeNodeName)
             throw new ArgumentException($"Failed to find <{LargePrimeNodeName}>.");
          if (!long.TryParse(largePrimeNode.InnerText, out _maxLargePrime))
@@ -150,8 +152,12 @@ namespace Friendly.Library.QuadraticSieve
          if (!BigInteger.TryParse(threeLargePrimeNode.InnerText, out _maxThreePrimes))
             throw new ArgumentException($"Unable to parse '{threeLargePrimeNode.InnerText}' for <{ThreeLargePrimeNodeName}>.");
 
+         XmlNode? maxQueueNode = threeLargePrimeNode.NextSibling;
+         SerializeHelper.ValidateNode(maxQueueNode, MaxQueueLengthNodename);
+         _maxFactorQueueLength = SerializeHelper.ParseIntNode(maxQueueNode!);
+
          // Read the full Relations
-         XmlNode? relationsNode = threeLargePrimeNode.NextSibling;
+         XmlNode? relationsNode = maxQueueNode!.NextSibling;
          if (relationsNode is null || relationsNode.LocalName != RelationsNodeName)
             throw new ArgumentException($"Failed to find <{RelationsNodeName}>.");
          _relations = new();
@@ -201,17 +207,14 @@ namespace Friendly.Library.QuadraticSieve
       {
          XmlNode rv = doc.CreateElement(name);
 
-         XmlNode maxLargePrime = doc.CreateElement(LargePrimeNodeName);
-         maxLargePrime.InnerText = _maxLargePrime.ToString();
-         rv.AppendChild(maxLargePrime);
+         XmlNode typeNode = doc.CreateElement(TypeNodeName);
+         typeNode.InnerText = "Relations3P";
+         rv.AppendChild(typeNode);
 
-         XmlNode twoLargePrime = doc.CreateElement(TwoLargePrimeNodeName);
-         twoLargePrime.InnerText = _maxTwoPrimes.ToString();
-         rv.AppendChild(twoLargePrime);
-
-         XmlNode threeLargePrime = doc.CreateElement(ThreeLargePrimeNodeName);
-         threeLargePrime.InnerText = _maxThreePrimes.ToString();
-         rv.AppendChild(threeLargePrime);
+         SerializeHelper.AddLongNode(doc, rv, LargePrimeNodeName, _maxLargePrime);
+         SerializeHelper.AddLongNode(doc, rv, TwoLargePrimeNodeName, _maxTwoPrimes);
+         SerializeHelper.AddBigIntegerNode(doc, rv, ThreeLargePrimeNodeName, _maxThreePrimes);
+         SerializeHelper.AddIntNode(doc, rv, MaxQueueLengthNodename, _maxFactorQueueLength);
 
          XmlNode relationsNode = doc.CreateElement(RelationsNodeName);
          rv.AppendChild(relationsNode);
