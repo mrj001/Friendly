@@ -1,7 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Threading;
+using System.Xml;
+using System.Xml.Schema;
 using Friendly.Library;
 using Friendly.Library.Logging;
 using Friendly.Library.QuadraticSieve;
@@ -23,6 +29,7 @@ namespace ProfileQuadraticSieve
          Console.WriteLine("4. Factor the product of 2 random primes.");
          Console.WriteLine("5. Performance Test (long running).");
          Console.WriteLine("6. Parameter optimization (long running)");
+         Console.WriteLine("7. Resume from save.");
          Console.Write("Enter number of choice: ");
          string? s = Console.ReadLine();
          int choice;
@@ -80,6 +87,10 @@ namespace ProfileQuadraticSieve
 
             case 6:
                DoOptimizationTest();
+               break;
+
+            case 7:
+               DoResume();
                break;
 
             default:
@@ -256,6 +267,31 @@ namespace ProfileQuadraticSieve
          }
 
          ParameterOptimizer.Optimize((ParameterToOptimize)choice, numDigits, repeats, minValue, maxValue, step);
+      }
+
+      private static void DoResume()
+      {
+         Console.Write("Enter save file name: ");
+         string? filename = Console.ReadLine();
+         if (filename is null || !File.Exists(filename))
+         {
+            Console.WriteLine("File not found.");
+            return;
+         }
+
+         if (Primes.SieveLimit == 0)
+         {
+            _progressLogger.WriteLine("Sieving...");
+            Primes.Init(2_147_483_648);
+         }
+
+         QuadraticSieve sieve = new QuadraticSieve(new Parameters(), filename);
+         sieve.Progress += HandleProgress;
+         (BigInteger f1, BigInteger f2) = sieve.Factor();
+
+         Console.WriteLine($"f1 = {f1}");
+         Console.WriteLine($"f2 = {f2}");
+         // TODO: dump stats, etc.
       }
 
       public static void RunFactorings(IParameters parameters, double timeLimit, int numDigits,

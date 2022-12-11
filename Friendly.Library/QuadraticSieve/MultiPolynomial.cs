@@ -194,7 +194,7 @@ namespace Friendly.Library.QuadraticSieve
             _restarted = true;
 
             BigInteger t = _rootkn / (4 * M);
-            _idealD = (long)BigIntegerCalculator.SquareRoot(t);
+            _idealD = BigIntegerCalculator.SquareRoot(t);
             if ((_idealD & 1) == 0)
                _idealD--;
 

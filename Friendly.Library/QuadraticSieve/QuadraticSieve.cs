@@ -70,7 +70,7 @@ namespace Friendly.Library.QuadraticSieve
       private IRelations _relations;
 
       private IMatrix _matrix;
-      private IMatrixFactory _matrixFactory;
+      private IMatrixFactory _matrixFactory = new MatrixFactory();
 
       private MultiPolynomial _multipolynomial;
       private IEnumerator<Polynomial> _polynomials;
@@ -127,7 +127,6 @@ namespace Friendly.Library.QuadraticSieve
          _factorBase = null;
          _relations = null;
          _matrix = null;
-         _matrixFactory = new MatrixFactory();
 
          _polynomials = null;
          _totalPolynomials = 0;
@@ -137,10 +136,14 @@ namespace Friendly.Library.QuadraticSieve
       /// Initializes an instance of the Quadratic Sieve algorithm.  This
       /// instance is set up to restart an interrupted factorization.
       /// </summary>
+      /// <param name="parameters">An IParameters instance to supply the
+      /// algorithm's parameters.</param>
       /// <param name="filename">The path to the file containing the state
       /// information.</param>
-      public QuadraticSieve(string filename)
+      public QuadraticSieve(IParameters parameters, string filename)
       {
+         _parameters = parameters;
+
          XmlDocument doc = new XmlDocument();
          using (Stream strm = new FileStream(filename, FileMode.Open, FileAccess.Read))
          using (GZipStream gz = new GZipStream(strm, CompressionMode.Decompress))
@@ -179,7 +182,11 @@ namespace Friendly.Library.QuadraticSieve
 
          XmlNode relationsNode = totalPolynomialsNode.NextSibling;
          SerializeHelper.ValidateNode(relationsNode, RelationsNodeName);
-         _relations = _parameters.GetRelationsFactory().GetRelations(relationsNode);
+         // TODO: may need some rationality checks that this Relations instance is
+         // compatible with the save file.  Eg. If it was created in a different version
+         // of the software.
+         _relations = _parameters.GetRelationsFactory().GetRelations(factorBaseSize,
+            _factorBase[_factorBase.Count - 1].Prime, relationsNode);
 
          XmlNode polynomialsNode = relationsNode.NextSibling;
          SerializeHelper.ValidateNode(polynomialsNode, PolynomialsNodeName);
@@ -235,6 +242,7 @@ namespace Friendly.Library.QuadraticSieve
       public void SaveState(SerializationReason reason, string filename)
       {
          XmlDocument doc = new XmlDocument();
+         doc.AppendChild(doc.CreateXmlDeclaration("1.0", "UTF-8", null));
          Assembly assy = this.GetType().Assembly;
          using (Stream xsd = assy.GetManifestResourceStream("Friendly.Library.Assets.QuadraticSieve.SaveQuadraticSieve.xsd")!)
             doc.Schemas.Add(XmlSchema.Read(xsd, null)!);
@@ -427,7 +435,6 @@ namespace Friendly.Library.QuadraticSieve
          options.MaxDegreeOfParallelism = _degreeOfParallelism;
          options.CancellationToken = (new CancellationTokenSource()).Token;
 
-         // TODO: be able to restart the enumeration of polynomials.
          Parallel.ForEach<Polynomial>(Polynomials(), options,
             (poly, state) => DoOneSieve(state, poly, numRelationsNeeded, pmaxt,
             firstPrimeIndex, smallPrimeLog));

@@ -121,8 +121,16 @@ namespace Friendly.Library.QuadraticSieve
          _primesByRelation = new Dictionary<TPRelation, TwoRecords>(InitialCapacity);
       }
 
-      public Relations3P(XmlNode node)
+      /// <summary>
+      /// Constructs a collection of Relations.
+      /// </summary>
+      /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
+      /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
+      public Relations3P(int factorBaseSize, int maxFactor, XmlNode node)
       {
+         _factorBaseSize = factorBaseSize;
+         _maxFactor = maxFactor;
+
          XmlNode? largePrimeNode = node.FirstChild;
          if (largePrimeNode is null || largePrimeNode.LocalName != LargePrimeNodeName)
             throw new ArgumentException($"Failed to find <{LargePrimeNodeName}>.");
@@ -142,7 +150,7 @@ namespace Friendly.Library.QuadraticSieve
             throw new ArgumentException($"Unable to parse '{threeLargePrimeNode.InnerText}' for <{ThreeLargePrimeNodeName}>.");
 
          // Read the full Relations
-         XmlNode? relationsNode = twoLargePrimeNode.NextSibling;
+         XmlNode? relationsNode = threeLargePrimeNode.NextSibling;
          if (relationsNode is null || relationsNode.LocalName != RelationsNodeName)
             throw new ArgumentException($"Failed to find <{RelationsNodeName}>.");
          _relations = new();
@@ -168,6 +176,7 @@ namespace Friendly.Library.QuadraticSieve
          {
             TPRelation tpr = new TPRelation(tprNode);
             AddPartialRelation2(tpr);
+            tprNode = tprNode.NextSibling;
          }
 
          _queueFactor = new BlockingCollection<RelationQueueItem>();
