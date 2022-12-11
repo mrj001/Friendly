@@ -291,7 +291,10 @@ namespace ProfileQuadraticSieve
 
          Console.WriteLine($"f1 = {f1}");
          Console.WriteLine($"f2 = {f2}");
-         // TODO: dump stats, etc.
+
+         Statistic[] stats = sieve.GetStats();
+         foreach (Statistic stat in stats)
+            Console.WriteLine(stat);
       }
 
       public static void RunFactorings(IParameters parameters, double timeLimit, int numDigits,
@@ -373,7 +376,6 @@ namespace ProfileQuadraticSieve
             _sieve = new(parameters, n);
             _sieve.Progress += HandleProgress;
             (BigInteger g1, BigInteger g2) = _sieve.Factor();
-            polyCount = _sieve.TotalPolynomials;
 
             if (g1 > g2)
             {
@@ -388,14 +390,13 @@ namespace ProfileQuadraticSieve
             else
                _progressLogger.WriteLine("Correct Factors found.");
 
-            _progressLogger.WriteLine($"Number of Polynomials used: {_sieve.TotalPolynomials}");
-            _progressLogger.WriteLine("Relations Stats:");
-            _progressLogger.WriteLine("LargePrimes\tCount");
-            Statistic[] stats = _sieve.GetRelationsStats();
+            _progressLogger.WriteLine("Statistics:");
+            Statistic[] stats = _sieve.GetStats();
             foreach (Statistic stat in stats)
                _progressLogger.WriteLine(stat.ToString());
+            polyCount = (int)stats.Where(s => s.Name == StatisticNames.TotalPolynomials).First().Value;
          }
-         catch (AbortException ex)
+         catch (AbortException)
          {
             Console.WriteLine("Factoring was aborted...");
          }

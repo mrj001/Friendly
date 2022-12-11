@@ -90,6 +90,20 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="StatisticType">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string" minOccurs="1" maxOccurs="1" />
+      <xs:element name="type" type="xs:string" minOccurs="1" maxOccurs="1" />
+      <xs:element name="value" type="xs:string" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="StatisticsType">
+    <xs:sequence>
+      <xs:element name="statistic" type="StatisticType" minOccurs="1" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
   <xs:element name="quadraticsieve">
     <xs:complexType>
       <xs:sequence>
@@ -98,7 +112,7 @@
         <xs:element name="multiplier" type="xs:long" minOccurs="1" maxOccurs="1" />
         <xs:element name="sieveinterval" type="xs:integer" minOccurs="1" maxOccurs="1" />
         <xs:element name="factorbasesize" type="xs:integer" minOccurs="1" maxOccurs="1" />
-        <xs:element name="totalpolynomials" type="xs:long" minOccurs="1" maxOccurs="1" />
+        <xs:element name="statistics" type="StatisticsType" minOccurs="1" maxOccurs="1" />
         <xs:element name="relations" type="RelationsType" minOccurs="1" maxOccurs="1" />
         <xs:element name="multipolynomial" type="MultiPolynomialType" minOccurs="1" maxOccurs="1" />
       </xs:sequence>

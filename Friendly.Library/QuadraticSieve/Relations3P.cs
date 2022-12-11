@@ -126,6 +126,7 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
       /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
+      /// <param name="node">The serialized representation to deserialize.</param>
       public Relations3P(int factorBaseSize, int maxFactor, XmlNode node)
       {
          _factorBaseSize = factorBaseSize;

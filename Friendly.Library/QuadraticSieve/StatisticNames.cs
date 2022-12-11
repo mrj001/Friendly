@@ -31,6 +31,15 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       public const string ThreeLargePrimes = "ThreeLargePrimes";
 
+      /// <summary>
+      /// Tracks the time spent factoring.
+      /// </summary>
+      public const string FactoringTime = "FactoringTime";
+
+      /// <summary>
+      /// The total number of Polynomials used in the factorization.
+      /// </summary>
+      public const string TotalPolynomials = "TotalPolynomials";
    }
 }
 

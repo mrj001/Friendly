@@ -76,6 +76,9 @@ namespace Friendly.Library.QuadraticSieve
       private IEnumerator<Polynomial> _polynomials;
       private int _totalPolynomials;
 
+      private TimeSpan _priorFactoringTime;
+      private DateTime _startFactoring = DateTime.MaxValue;
+
       public event EventHandler<NotifyProgressEventArgs> Progress;
 
       /// <summary>
@@ -107,6 +110,8 @@ namespace Friendly.Library.QuadraticSieve
       private const string SieveIntervalNodeName = "sieveinterval";
       private const string FactorBaseSizeNodeName = "factorbasesize";
       private const string TotalPolynomialsNodeName = "totalpolynomials";
+      private const string StatisticsNodeName = "statistics";
+      private const string StatisticNodeName = "statistic";
       private const string RelationsNodeName = "relations";
       private const string PolynomialsNodeName = "multipolynomial";
 
@@ -176,11 +181,20 @@ namespace Friendly.Library.QuadraticSieve
          int factorBaseSize = SerializeHelper.ParseIntNode(factorBaseSizeNode);
          _factorBase = FactorBaseCandidate.GetFactorBase((int)_multiplier, _nOrig, factorBaseSize);
 
-         XmlNode totalPolynomialsNode = factorBaseSizeNode.NextSibling;
-         SerializeHelper.ValidateNode(totalPolynomialsNode, TotalPolynomialsNodeName);
-         _totalPolynomials = SerializeHelper.ParseIntNode(totalPolynomialsNode);
+         // Restore stats that we need to round trip
+         List<Statistic> statistics = new();
+         XmlNode statisticsNode = factorBaseSizeNode.NextSibling;
+         SerializeHelper.ValidateNode(statisticsNode, StatisticsNodeName);
+         XmlNode statNode = statisticsNode.FirstChild;
+         while (statNode is not null)
+         {
+            statistics.Add(new Statistic(statNode));
+            statNode = statNode.NextSibling;
+         }
+         _priorFactoringTime = (TimeSpan)(statistics.Where(s => s.Name == StatisticNames.FactoringTime).First().Value);
+         _totalPolynomials = (int)(statistics.Where(s => s.Name == StatisticNames.TotalPolynomials).First().Value);
 
-         XmlNode relationsNode = totalPolynomialsNode.NextSibling;
+         XmlNode relationsNode = statisticsNode.NextSibling;
          SerializeHelper.ValidateNode(relationsNode, RelationsNodeName);
          // TODO: may need some rationality checks that this Relations instance is
          // compatible with the save file.  Eg. If it was created in a different version
@@ -216,7 +230,11 @@ namespace Friendly.Library.QuadraticSieve
          SerializeHelper.AddLongNode(doc, rv, MultiplierNodeName, _multiplier);
          SerializeHelper.AddIntNode(doc, rv, SieveIntervalNodeName, _M);
          SerializeHelper.AddIntNode(doc, rv, FactorBaseSizeNodeName, _factorBase.Count);
-         SerializeHelper.AddIntNode(doc, rv, TotalPolynomialsNodeName, _totalPolynomials);
+
+         XmlNode statisticsNode = doc.CreateElement(StatisticsNodeName);
+         rv.AppendChild(statisticsNode);
+         foreach (Statistic j in GetStats())
+            statisticsNode.AppendChild(j.Serialize(doc, StatisticNodeName));
 
          rv.AppendChild(_relations.Serialize(doc, RelationsNodeName));
          rv.AppendChild(_multipolynomial.Serialize(doc, PolynomialsNodeName));
@@ -267,15 +285,23 @@ namespace Friendly.Library.QuadraticSieve
          Progress?.Invoke(this, new NotifyProgressEventArgs(message));
       }
 
-      public int TotalPolynomials { get => _totalPolynomials; }
-
       /// <summary>
       /// 
       /// </summary>
       /// <returns></returns>
-      public Statistic[] GetRelationsStats()
+      public Statistic[] GetStats()
       {
-         return _relations.GetStats();
+         List<Statistic> rv = new();
+
+         rv.AddRange(_relations.GetStats());
+
+         Statistic timeStat = new Statistic(StatisticNames.FactoringTime,
+            _priorFactoringTime + (DateTime.Now - _startFactoring));
+         rv.Add(timeStat);
+
+         rv.Add(new Statistic(StatisticNames.TotalPolynomials, _totalPolynomials));
+
+         return rv.ToArray();
       }
 
       /// <summary>
@@ -295,6 +321,8 @@ namespace Friendly.Library.QuadraticSieve
       /// </remarks>
       public (BigInteger, BigInteger) Factor()
       {
+         _startFactoring = DateTime.Now;
+
          if (_factorBase is null)
          {
             FindFactorBase();
