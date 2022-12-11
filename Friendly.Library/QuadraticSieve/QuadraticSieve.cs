@@ -279,7 +279,8 @@ namespace Friendly.Library.QuadraticSieve
 
       protected void OnNotifyProgress(string message)
       {
-         Progress?.Invoke(this, new NotifyProgressEventArgs(message));
+         TimeSpan factorTime = _priorFactoringTime + (DateTime.Now - _startFactoring);
+         Progress?.Invoke(this, new NotifyProgressEventArgs(message, factorTime));
       }
 
       /// <summary>

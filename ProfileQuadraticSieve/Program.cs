@@ -439,7 +439,7 @@ namespace ProfileQuadraticSieve
 
       private static void HandleProgress(object? sender, NotifyProgressEventArgs e)
       {
-         _progressLogger?.WriteLine($"{sw?.Elapsed:d\\:hh\\:mm\\:ss\\.ffff}: {e.Message}");
+         _progressLogger?.WriteLine(e.ToString());
       }
    }
 }
