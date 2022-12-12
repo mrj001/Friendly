@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -283,6 +284,8 @@ namespace Friendly.Library.QuadraticSieve
          Progress?.Invoke(this, new NotifyProgressEventArgs(message, factorTime));
       }
 
+      public int TotalPolynomials { get => _totalPolynomials; }
+
       /// <summary>
       /// 
       /// </summary>
@@ -340,7 +343,8 @@ namespace Friendly.Library.QuadraticSieve
             OnNotifyProgress($"Restarting Factorization with {_relations.Count} relations.");
          }
 
-         FindBSmooth();
+         int fbSize = _factorBase.Count;
+         FindBSmooth(fbSize + 1);
 
          int retryCount = 0;
          int retryLimit = 100;
@@ -400,12 +404,50 @@ namespace Friendly.Library.QuadraticSieve
             retryCount++;
             OnNotifyProgress($"Retry number: {retryCount}");
             PrepareToResieve();
-            FindBSmooth();
+            FindBSmooth(fbSize + 1);
          }
 
          // We've gone back and retried 100 times and run out of squares each
          // time. This is cause for suspicion.
          throw new ApplicationException($"Ran out of squares while factoring {_n:N0}\nFactor Base Count: {_factorBase.Count}");
+      }
+
+      /// <summary>
+      /// A utility method for timing how fast the current parameter set is at
+      /// finding Relations.
+      /// </summary>
+      /// <param name="numRelations">The number of relations to stop after.</param>
+      /// <returns>The number of seconds to find the specified number of relations.
+      /// Time spent finding the factor base, etc is not included.</returns>
+      public double ParameterTest(int numRelations)
+      {
+         _startFactoring = DateTime.Now;
+
+         if (_factorBase is null)
+         {
+            FindFactorBase();
+            OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
+
+            int numDigits = BigIntegerCalculator.GetNumberOfDigits(_nOrig);
+            int pmax = _factorBase[_factorBase.Count - 1].Prime;
+            _relations = _parameters.GetRelationsFactory().GetRelations(numDigits, _factorBase.Count,
+               pmax, ((long)pmax) * pmax);
+
+            _M = _parameters.FindSieveInterval(_n);
+            _multipolynomial = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);
+            _polynomials = _multipolynomial.GetEnumerator();
+         }
+         else
+         {
+            OnNotifyProgress($"Restarting Factorization with {_relations.Count} relations.");
+         }
+
+         Stopwatch sw = new();
+         sw.Start();
+         FindBSmooth(numRelations);
+         sw.Stop();
+
+         return sw.Elapsed.TotalSeconds;
       }
 
       /// <summary>
@@ -428,9 +470,8 @@ namespace Friendly.Library.QuadraticSieve
       /// the same index.
       /// </para>
       /// </remarks>
-      private void FindBSmooth()
+      private void FindBSmooth(int numRelationsNeeded)
       {
-         int fbSize = _factorBase.Count;
          int sieveSize = 2 * _M + 1;
          ushort[] sieve = new ushort[sieveSize];
 
@@ -446,8 +487,6 @@ namespace Friendly.Library.QuadraticSieve
             smallPrimeLog += _factorBase[firstPrimeIndex].Log / _factorBase[firstPrimeIndex].Prime;
             firstPrimeIndex++;
          }
-
-         int numRelationsNeeded = fbSize + 1;
 
          // The Relations class is not thread-safe.
          if (_relations is Relations)

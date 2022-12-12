@@ -324,6 +324,37 @@ namespace ProfileQuadraticSieve
          }
       }
 
+      public static void RunOptimizations(IParameters parameters, double timeLimit, int numDigits,
+         ref int repeats, out double totalSeconds,
+         out double minSeconds, out double maxSeconds, out int totalPolynomials)
+      {
+         Random rng = new Random(1234);
+         double seconds;
+         totalSeconds = 0;
+         minSeconds = double.MaxValue;
+         maxSeconds = double.MinValue;
+         totalPolynomials = 0;
+
+         for (int j = 0; j < repeats; j++)
+         {
+            _progressLogger.WriteLine($"Iteration: {j}");
+            BigInteger f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
+            BigInteger f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
+            BigInteger n = f1 * f2;
+
+            QuadraticSieve sieve = new(parameters, n);
+            sieve.Progress += HandleProgress;
+            seconds = sieve.ParameterTest(500);
+
+            totalSeconds += seconds;
+            minSeconds = Math.Min(seconds, minSeconds);
+            maxSeconds = Math.Max(seconds, maxSeconds);
+            totalPolynomials += sieve.TotalPolynomials;
+            if (totalSeconds > timeLimit)
+               repeats = j + 1;
+         }
+      }
+
       private static Stopwatch? sw;
       private static Timer? _saveTimer;
       private static QuadraticSieve? _sieve;
