@@ -301,6 +301,7 @@ namespace ProfileQuadraticSieve
          ref int repeats, out double totalSeconds,
          out double minSeconds, out double maxSeconds, out int totalPolynomials)
       {
+         BigInteger f1, f2;
          Random rng = new Random(1234);
          double seconds;
          int polyCount;
@@ -312,8 +313,11 @@ namespace ProfileQuadraticSieve
          for (int j = 0; j < repeats; j++)
          {
             _progressLogger.WriteLine($"Iteration: {j}");
-            BigInteger f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
-            BigInteger f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
+            do
+            {
+               f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
+               f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
+            } while (BigIntegerCalculator.GetNumberOfDigits(f1 * f2) < numDigits);
             (seconds, polyCount) = Factor(parameters, f1, f2);
             totalSeconds += seconds;
             minSeconds = Math.Min(seconds, minSeconds);
@@ -329,6 +333,7 @@ namespace ProfileQuadraticSieve
          out double minSeconds, out double maxSeconds, out int totalPolynomials)
       {
          Random rng = new Random(1234);
+         BigInteger n;
          double seconds;
          totalSeconds = 0;
          minSeconds = double.MaxValue;
@@ -338,9 +343,12 @@ namespace ProfileQuadraticSieve
          for (int j = 0; j < repeats; j++)
          {
             _progressLogger.WriteLine($"Iteration: {j}");
-            BigInteger f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
-            BigInteger f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
-            BigInteger n = f1 * f2;
+            do
+            {
+               BigInteger f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
+               BigInteger f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
+               n = f1 * f2;
+            } while (BigIntegerCalculator.GetNumberOfDigits(n) < numDigits);
 
             QuadraticSieve sieve = new(parameters, n);
             sieve.Progress += HandleProgress;
