@@ -106,14 +106,13 @@ namespace Friendly.Library.QuadraticSieve
       private SerializationReason _saveReason;
 
       private const string QuadraticSieveNodeName = "quadraticsieve";
-      private const string NumberNodeName = "n";
-      private const string MultiplierNodeName = "multiplier";
-      private const string SieveIntervalNodeName = "sieveinterval";
-      private const string FactorBaseSizeNodeName = "factorbasesize";
-      private const string TotalPolynomialsNodeName = "totalpolynomials";
-      private const string StatisticsNodeName = "statistics";
-      private const string StatisticNodeName = "statistic";
-      private const string RelationsNodeName = "relations";
+      public const string NumberNodeName = "n";
+      public const string MultiplierNodeName = "multiplier";
+      public const string SieveIntervalNodeName = "sieveinterval";
+      public const string FactorBaseSizeNodeName = "factorbasesize";
+      public const string StatisticsNodeName = "statistics";
+      public const string StatisticNodeName = "statistic";
+      public const string RelationsNodeName = "relations";
       private const string PolynomialsNodeName = "multipolynomial";
 
       /// <summary>

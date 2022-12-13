@@ -19,9 +19,9 @@ namespace Friendly.Library.QuadraticSieve
       private const string QofXNodeName = "qofx";
       private const string XNodeName = "x";
       private const string ExponentVectorNodeName = "exponentvector";
-      private const string PrimesNodeName = "primes";
-      private const string PrimeNodeName = "prime";
-      private const string OriginNodeName = "origin";
+      public const string PrimesNodeName = "primes";
+      public const string PrimeNodeName = "prime";
+      public const string OriginNodeName = "origin";
 
       public TPRelation(BigInteger qofX, BigInteger x,
          BigBitArray exponentVector, long[] primes)

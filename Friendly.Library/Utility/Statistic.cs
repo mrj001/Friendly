@@ -13,9 +13,9 @@ namespace Friendly.Library.Utility
       private readonly string _name;
       private readonly object _value;
 
-      private const string NameNodeName = "name";
-      private const string TypeNodeName = "type";
-      private const string ValueNodeName = "value";
+      public const string NameNodeName = "name";
+      public const string TypeNodeName = "type";
+      public const string ValueNodeName = "value";
 
       public Statistic(string name, object value)
       {

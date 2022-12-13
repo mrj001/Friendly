@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrialDivisionCutoff", "Tria
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProfileQuadraticSieve", "ProfileQuadraticSieve\ProfileQuadraticSieve.csproj", "{0A237C7E-15B9-4B14-9837-37040F876A69}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShowProgress", "ShowProgress\ShowProgress.csproj", "{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -145,6 +147,20 @@ Global
 		{0A237C7E-15B9-4B14-9837-37040F876A69}.Release|x86.Build.0 = Release|Any CPU
 		{0A237C7E-15B9-4B14-9837-37040F876A69}.OptimizedDebug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0A237C7E-15B9-4B14-9837-37040F876A69}.OptimizedDebug|Any CPU.Build.0 = Debug|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Debug|x64.Build.0 = Debug|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Debug|x86.Build.0 = Debug|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Release|x64.ActiveCfg = Release|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Release|x64.Build.0 = Release|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Release|x86.ActiveCfg = Release|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.Release|x86.Build.0 = Release|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.OptimizedDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54FCBBB5-3464-4FF0-AD74-6B45A5AB3A9D}.OptimizedDebug|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

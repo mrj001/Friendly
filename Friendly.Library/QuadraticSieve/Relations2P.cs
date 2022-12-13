@@ -72,8 +72,8 @@ namespace Friendly.Library.QuadraticSieve
       private const string LargePrimeNodeName = "maxLargePrime";
       private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
       private const string MaxQueueLengthNodeName = "maxqueuelength";
-      private const string RelationsNodeName = "relations";
-      private const string PartialRelationsNodeName = "partialrelations";
+      public const string RelationsNodeName = "relations";
+      public const string PartialRelationsNodeName = "partialrelations";
       #endregion
 
       /// <summary>
