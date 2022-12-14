@@ -166,10 +166,8 @@ namespace Friendly.Library.QuadraticSieve
             _maxFactorBase = maxFactorBase;
             _restarted = false;
 
-            BigInteger t = _rootkn / (4 * M);
-            _idealD = BigIntegerCalculator.SquareRoot(t);
-            if ((_idealD & 1) == 0)
-               _idealD--;
+            _idealD = CalculateIdealD(_rootkn, M);
+
             Reset();
          }
 
@@ -193,15 +191,22 @@ namespace Friendly.Library.QuadraticSieve
             _maxFactorBase = maxFactorBase;
             _restarted = true;
 
-            BigInteger t = _rootkn / (4 * M);
-            _idealD = BigIntegerCalculator.SquareRoot(t);
-            if ((_idealD & 1) == 0)
-               _idealD--;
+            _idealD = CalculateIdealD(_rootkn, M);
 
             _currentD = currentD;
             _lowerD = lowerD;
             _higherD = higherD;
             _nextDHigher = nextDHigher;
+         }
+
+         private static BigInteger CalculateIdealD(BigInteger rootkn, int M)
+         {
+            BigInteger t = rootkn / (2 * M);
+            BigInteger idealD = BigIntegerCalculator.SquareRoot(t);
+            if ((idealD & 1) == 0)
+               idealD--;
+
+            return idealD;
          }
 
          /// <inheritdoc />
