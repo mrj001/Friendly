@@ -22,7 +22,7 @@ namespace Friendly.Library.QuadraticSieve
       #region Member Data
       private readonly BlockingCollection<RelationQueueItem> _queue;
       private Task _task;
-      private bool _completeTask;
+      private volatile bool _completeTask;
       private int _maxQueueLength;
       private bool _disposedValue;
 

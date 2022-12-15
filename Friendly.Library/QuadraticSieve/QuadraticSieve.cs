@@ -90,7 +90,7 @@ namespace Friendly.Library.QuadraticSieve
       /// <summary>
       /// Set to true to instruct the Sieve tasks to pause while state is saved.
       /// </summary>
-      private bool _pauseSieveToSave = false;
+      private volatile bool _pauseSieveToSave = false;
 
       /// <summary>
       /// A Barrier for the Sieving Threads to use to signal that they have

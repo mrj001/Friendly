@@ -73,7 +73,7 @@ namespace Friendly.Library.QuadraticSieve
       /// </remarks>
       private readonly BlockingCollection<RelationQueueItem> _queueFactor;
       private Task? _taskFactor;
-      private bool _completeTaskFactor;
+      private volatile bool _completeTaskFactor;
       private int _maxFactorQueueLength;
 
       /// <summary>
