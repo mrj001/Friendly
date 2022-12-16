@@ -285,16 +285,32 @@ namespace ProfileQuadraticSieve
             Primes.Init(2_147_483_648);
          }
 
-         QuadraticSieve sieve = new QuadraticSieve(new Parameters(), filename);
-         sieve.Progress += HandleProgress;
-         (BigInteger f1, BigInteger f2) = sieve.Factor();
+         try
+         {
+            _sieve = new QuadraticSieve(new Parameters(), filename);
+            Console.CancelKeyPress += HandleCancelSave;
+            StartSaveTimer();
+            _sieve.Progress += HandleProgress;
+            (BigInteger f1, BigInteger f2) = _sieve.Factor();
 
-         Console.WriteLine($"f1 = {f1}");
-         Console.WriteLine($"f2 = {f2}");
+            Console.WriteLine($"f1 = {f1}");
+            Console.WriteLine($"f2 = {f2}");
 
-         Statistic[] stats = sieve.GetStats();
-         foreach (Statistic stat in stats)
-            Console.WriteLine(stat);
+            Statistic[] stats = _sieve.GetStats();
+            foreach (Statistic stat in stats)
+               Console.WriteLine(stat);
+         }
+         catch (AbortException)
+         {
+            Console.WriteLine("Factoring was aborted...");
+         }
+         finally
+         {
+            _saveTimer?.Dispose();
+            _saveTimer = null;
+            _sieve = null;
+            Console.CancelKeyPress -= HandleCancelSave;
+         }
       }
 
       public static void RunFactorings(IParameters parameters, double timeLimit, int numDigits,
@@ -407,7 +423,7 @@ namespace ProfileQuadraticSieve
             int numDigits = 1 + (int)Math.Floor(BigInteger.Log10(n));
             _progressLogger.WriteLine($"The number has {numDigits} digits.");
 
-            _saveTimer = new Timer(HandleScheduledSave, null, TimeSpan.FromHours(2), TimeSpan.FromHours(2));
+            StartSaveTimer();
             Console.CancelKeyPress += HandleCancelSave;
 
             sw = new();
@@ -454,6 +470,11 @@ namespace ProfileQuadraticSieve
          }
 
          return (rv, polyCount);
+      }
+
+      private static void StartSaveTimer()
+      {
+         _saveTimer = new Timer(HandleScheduledSave, null, TimeSpan.FromHours(2), TimeSpan.FromHours(2));
       }
 
       private static void HandleScheduledSave(object? state)
