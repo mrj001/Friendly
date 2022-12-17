@@ -73,7 +73,7 @@ namespace Friendly.Library.QuadraticSieve
             n = nOrig * nSmallMultipliersToConsider[j];
             if ((n & 7) == 1)  // n == 1 mod 8.
             {
-               int sz = parameters.FindSizeOfFactorBase(n);
+               int sz = parameters.FindSizeOfFactorBase(nOrig);
                factorBases[j] = new FactorBaseCandidate(nSmallMultipliersToConsider[j], n, sz);
 
                // Evaluate the Knuth-Schroeppel function and find its maximum value

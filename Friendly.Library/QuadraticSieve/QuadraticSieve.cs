@@ -333,7 +333,7 @@ namespace Friendly.Library.QuadraticSieve
             _relations = _parameters.GetRelationsFactory().GetRelations(numDigits, _factorBase.Count,
                pmax, ((long)pmax) * pmax);
 
-            _M = _parameters.FindSieveInterval(_n);
+            _M = _parameters.FindSieveInterval(_nOrig);
             _multipolynomial = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);
             _polynomials = _multipolynomial.GetEnumerator();
          }
@@ -432,7 +432,7 @@ namespace Friendly.Library.QuadraticSieve
             _relations = _parameters.GetRelationsFactory().GetRelations(numDigits, _factorBase.Count,
                pmax, ((long)pmax) * pmax);
 
-            _M = _parameters.FindSieveInterval(_n);
+            _M = _parameters.FindSieveInterval(_nOrig);
             _multipolynomial = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);
             _polynomials = _multipolynomial.GetEnumerator();
          }
@@ -474,11 +474,11 @@ namespace Friendly.Library.QuadraticSieve
          int sieveSize = 2 * _M + 1;
          ushort[] sieve = new ushort[sieveSize];
 
-         double T = _parameters.FindLargePrimeTolerance(_n);
+         double T = _parameters.FindLargePrimeTolerance(_nOrig);
          long pmax = _factorBase[_factorBase.Count - 1].Prime;
          double pmaxt = Math.Pow(pmax, T);
 
-         int smallPrimeLimit = _parameters.FindSmallPrimeLimit(_n);
+         int smallPrimeLimit = _parameters.FindSmallPrimeLimit(_nOrig);
          float smallPrimeLog = 0;
          int firstPrimeIndex = 2;
          while (_factorBase[firstPrimeIndex].Prime <= smallPrimeLimit)
