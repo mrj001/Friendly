@@ -422,24 +422,17 @@ namespace Friendly.Library.QuadraticSieve
       {
          _startFactoring = DateTime.Now;
 
-         if (_factorBase is null)
-         {
-            FindFactorBase();
-            OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
+         FindFactorBase();
+         OnNotifyProgress($"The Factor Base contains {_factorBase.Count} primes.  Maximum prime: {_factorBase[_factorBase.Count - 1]}");
 
-            int numDigits = BigIntegerCalculator.GetNumberOfDigits(_nOrig);
-            int pmax = _factorBase[_factorBase.Count - 1].Prime;
-            _relations = _parameters.GetRelationsFactory().GetRelations(numDigits, _factorBase.Count,
-               pmax, ((long)pmax) * pmax);
+         int numDigits = BigIntegerCalculator.GetNumberOfDigits(_nOrig);
+         int pmax = _factorBase[_factorBase.Count - 1].Prime;
+         _relations = _parameters.GetRelationsFactory().GetRelations(numDigits, _factorBase.Count,
+            pmax, ((long)pmax) * pmax);
 
-            _M = _parameters.FindSieveInterval(_nOrig);
-            _multipolynomial = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);
-            _polynomials = _multipolynomial.GetEnumerator();
-         }
-         else
-         {
-            OnNotifyProgress($"Restarting Factorization with {_relations.Count} relations.");
-         }
+         _M = _parameters.FindSieveInterval(_nOrig);
+         _multipolynomial = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);
+         _polynomials = _multipolynomial.GetEnumerator();
 
          Stopwatch sw = new();
          sw.Start();
