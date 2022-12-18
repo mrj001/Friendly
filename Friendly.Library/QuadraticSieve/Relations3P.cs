@@ -5,7 +5,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using System.Xml;
 using Friendly.Library.Pollard;
 using Friendly.Library.Utility;
@@ -14,10 +16,8 @@ using Friendly.Library.Utility;
 
 namespace Friendly.Library.QuadraticSieve
 {
-   public class Relations3P : IRelations, IDisposable
+   public class Relations3P : IRelations
    {
-      private bool _disposedValue;
-
       /// <summary>
       /// The set of fully factored Relations found during sieving and combining.
       /// </summary>
@@ -71,9 +71,11 @@ namespace Friendly.Library.QuadraticSieve
       /// Hash Tables.
       /// </para>
       /// </remarks>
-      private readonly BlockingCollection<RelationQueueItem> _queueFactor;
-      private Task? _taskFactor;
-      private volatile bool _completeTaskFactor;
+      //private readonly BlockingCollection<RelationQueueItem> _queueFactor;
+      //private Task? _taskFactor;
+      //private CancellationTokenSource? _tokenSource;
+      private BufferBlock<RelationQueueItem>? _queueFactor;
+      private ActionBlock<RelationQueueItem>? _actionFactor;
       private int _maxFactorQueueLength;
 
       /// <summary>
@@ -111,10 +113,8 @@ namespace Friendly.Library.QuadraticSieve
          _maxTwoPrimes = _maxLargePrime > int.MaxValue ? long.MaxValue : _maxLargePrime * _maxLargePrime;
          _maxThreePrimes = ((BigInteger)_maxTwoPrimes) * _maxLargePrime;
 
-         _queueFactor = new BlockingCollection<RelationQueueItem>();
-         _completeTaskFactor = false;
          _maxFactorQueueLength = 0;
-         _taskFactor = Task.Run(DoFactorTask);
+         StartFactorTask();
 
          _edgeCount = 0;
          _componentCount = 0;
@@ -186,20 +186,15 @@ namespace Friendly.Library.QuadraticSieve
             tprNode = tprNode.NextSibling;
          }
 
-         _queueFactor = new BlockingCollection<RelationQueueItem>();
-         _completeTaskFactor = false;
          _maxFactorQueueLength = 0;
-         _taskFactor = Task.Run(DoFactorTask);
+         StartFactorTask();
       }
 
       /// <inheritdoc />
       public void BeginSerialize()
       {
          // Shutdown the Factoring task so it is safe to serialize this object.
-         _completeTaskFactor = true;
-         _taskFactor?.Wait();
-         _taskFactor?.Dispose();
-         _taskFactor = null;
+         StopFactorTask();
       }
 
       /// <inheritdoc />
@@ -233,26 +228,25 @@ namespace Friendly.Library.QuadraticSieve
       public void FinishSerialize(SerializationReason reason)
       {
          if (reason == SerializationReason.SaveState)
-         {
-            _completeTaskFactor = false;
-            _taskFactor = Task.Run(DoFactorTask);
-         }
+            StartFactorTask();
       }
 
       #region Factoring of incoming residuals
-      private void DoFactorTask()
+      private void StartFactorTask()
       {
-         RelationQueueItem? queueItem;
+         _queueFactor = new BufferBlock<RelationQueueItem>();
+         _actionFactor = new ActionBlock<RelationQueueItem>((rqi) => FactorRelation(rqi));
 
-         while (!_completeTaskFactor)
-         {
-            if (_queueFactor.TryTake(out queueItem, 20))
-               FactorRelation(queueItem);
-         }
+         _queueFactor.LinkTo(_actionFactor);
+         _queueFactor.Completion.ContinueWith(delegate { _actionFactor.Complete(); } ) ;
+      }
 
-         // Finish emptying the queue.
-         while (_queueFactor.TryTake(out queueItem, 0))
-            FactorRelation(queueItem);
+      private void StopFactorTask()
+      {
+         _queueFactor?.Complete();
+         _actionFactor?.Completion.Wait();
+         _queueFactor = null;
+         _actionFactor = null;
       }
 
       private void FactorRelation(RelationQueueItem item)
@@ -598,8 +592,7 @@ namespace Friendly.Library.QuadraticSieve
       {
          // Finish the Factoring Queue.  This may result in slightly more
          // Relations than counted when finishing Sieving.
-         _completeTaskFactor = true;
-         _taskFactor?.Wait();
+         StopFactorTask();
 
          CombineRelations();
 
@@ -740,36 +733,10 @@ namespace Friendly.Library.QuadraticSieve
       public void TryAddRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector, BigInteger residual)
       {
          RelationQueueItem item = new RelationQueueItem(QofX, x, exponentVector, residual);
-         _queueFactor.Add(item);
-         int queueLen = _queueFactor.Count;
+         _queueFactor!.Post(item);
+         int queueLen = _queueFactor!.Count;
          _maxFactorQueueLength = Math.Max(queueLen, _maxFactorQueueLength);
       }
-
-      #region IDisposable
-      protected virtual void Dispose(bool disposing)
-      {
-         if (!_disposedValue)
-         {
-            if (disposing)
-            {
-               _taskFactor?.Dispose();
-               _taskFactor = null;
-            }
-
-            _primesByRelation = null!;
-            _relationsByPrimes = null!;
-
-            _disposedValue = true;
-         }
-      }
-
-      public void Dispose()
-      {
-         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-         Dispose(disposing: true);
-         GC.SuppressFinalize(this);
-      }
-      #endregion
    }
 }
 

@@ -26,4 +26,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\**\*" Type="Non-Resx" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="7.0.0" />
+  </ItemGroup>
 </Project>
