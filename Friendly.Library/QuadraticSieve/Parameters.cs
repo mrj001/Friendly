@@ -16,9 +16,9 @@ namespace Friendly.Library.QuadraticSieve
          new ParameterTableEntry(48, 1200, 100_000, 2.07, 7),
          new ParameterTableEntry(54, 2000, 250_000, 2.2, 11),
          new ParameterTableEntry(60, 3000, 350_000, 2.22, 17),
-         new ParameterTableEntry(66, 4500, 500_000, 2.35, 17),
+         new ParameterTableEntry(66, 6500, 400_000, 2.35, 17),
          // Values below this line were not present in Ref. B.
-         new ParameterTableEntry(72,   6000, 500_000, 2.35, 17),
+         new ParameterTableEntry(72,  6_500, 500_000, 2.35, 17),
          new ParameterTableEntry(78, 10_000, 600_000, 2.35, 17),
          new ParameterTableEntry(84, 12_000, 700_000, 2.35, 17)
       };
