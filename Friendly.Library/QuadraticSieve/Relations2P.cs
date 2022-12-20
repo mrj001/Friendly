@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using System.Xml;
 using Friendly.Library.Pollard;
 using Friendly.Library.Utility;
@@ -17,14 +18,16 @@ namespace Friendly.Library.QuadraticSieve
    /// An implementation of the IRelations interface to be used with the Two
    /// Large Primes variation.
    /// </summary>
-   public class Relations2P : IRelations, IDisposable
+   public class Relations2P : IRelations
    {
       #region Member Data
-      private readonly BlockingCollection<RelationQueueItem> _queue;
-      private Task _task;
-      private volatile bool _completeTask;
+      private BufferBlock<RelationQueueItem>? _queue;
+      private ActionBlock<RelationQueueItem>? _action;
+      //private readonly BlockingCollection<RelationQueueItem> _queue;
+      //private Task _task;
+      //private volatile bool _completeTask;
       private int _maxQueueLength;
-      private bool _disposedValue;
+
 
       /// <summary>
       /// The set of fully factored Relations found during sieving.
@@ -86,9 +89,7 @@ namespace Friendly.Library.QuadraticSieve
       public Relations2P(int factorBaseSize, int maxFactor, long maxLargePrime)
       {
          // Set up the background task to process items from the Relations Queue.
-         _queue = new();
-         _completeTask = false;
-         _task = Task.Run(BackgroundTask);
+         StartBackground();
          _maxQueueLength = 0;
 
          _relations = new();
@@ -182,10 +183,8 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          // Set up the background task to process items from the Relations Queue.
-         _queue = new();
-         _completeTask = false;
-         _task = Task.Run(BackgroundTask);
-         _maxQueueLength = 0;
+         StartBackground();
+         _maxQueueLength = 0;   // TODO: should be saved and restored.
       }
 
       /// <inheritdoc />
@@ -193,9 +192,7 @@ namespace Friendly.Library.QuadraticSieve
       {
          // Shut down the background task, so it is safe to serialize this
          // instance.
-         _completeTask = true;
-         _task.Wait();
-         _task.Dispose();
+         StopBackground();
       }
 
       /// <inheritdoc />
@@ -237,25 +234,24 @@ namespace Friendly.Library.QuadraticSieve
       public void FinishSerialize(SerializationReason reason)
       {
          if (reason == SerializationReason.SaveState)
-         {
-            _completeTask = false;
-            _task = Task.Run(BackgroundTask);
-         }
+            StartBackground();
       }
 
-      private void BackgroundTask()
+      private void StartBackground()
       {
-         RelationQueueItem? queueItem;
+         _queue = new BufferBlock<RelationQueueItem>();
+         _action = new ActionBlock<RelationQueueItem>((rqi) => TryAddRelation(rqi));
 
-         while (!_completeTask)
-         {
-            if (_queue.TryTake(out queueItem, 20))
-               TryAddRelation(queueItem);
-         }
+         _queue.LinkTo(_action);
+         _queue.Completion.ContinueWith(delegate { _action.Complete(); });
+      }
 
-         // Finish emptying the queue.
-         while (_queue.TryTake(out queueItem, 0))
-            TryAddRelation(queueItem);
+      private void StopBackground()
+      {
+         _queue?.Complete();
+         _action?.Completion.Wait();
+         _queue = null;
+         _action = null;
       }
 
       /// <summary>
@@ -328,8 +324,8 @@ namespace Friendly.Library.QuadraticSieve
          BigInteger residual)
       {
          RelationQueueItem item = new RelationQueueItem(QofX, x, exponentVector, residual);
-         _queue.Add(item);
-         int queueLen = _queue.Count;
+         _queue!.Post(item);
+         int queueLen = _queue!.Count;
          _maxQueueLength = Math.Max(queueLen, _maxQueueLength);
       }
 
@@ -569,8 +565,7 @@ namespace Friendly.Library.QuadraticSieve
 
       public IMatrix GetMatrix(IMatrixFactory matrixFactory)
       {
-         _completeTask = true;
-         _task.Wait();
+         StopBackground();
          IMatrix rv = matrixFactory.GetMatrix(_factorBaseSize, _relations.Count);
 
          for (int col = 0; col < _relations.Count; col++)
@@ -600,27 +595,5 @@ namespace Friendly.Library.QuadraticSieve
          rv.Add(new Statistic("MaxQueueLength", _maxQueueLength));
          return rv.ToArray();
       }
-
-      #region IDisposable
-      protected virtual void Dispose(bool disposing)
-      {
-         if (!_disposedValue)
-         {
-            if (disposing)
-            {
-               _queue.Dispose();
-            }
-
-            _disposedValue = true;
-         }
-      }
-
-      public void Dispose()
-      {
-         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-         Dispose(disposing: true);
-         GC.SuppressFinalize(this);
-      }
-      #endregion
    }
 }
