@@ -679,9 +679,11 @@ namespace Friendly.Library.QuadraticSieve
                            // Combine r0 with ri
                            noChanges = false;
                            tri.Combine(tr0);
+                           removeFromList.Add(ri);
                         }
                      }
                   }
+
                   // Mark r0 for deletion from primes-by-relations
                   removeFromPrimesByRelation.Add(r0);
 
