@@ -634,75 +634,79 @@ namespace Friendly.Library.QuadraticSieve
       private void CombineRelations()
       {
          bool noChanges = false;
-         List<TPRelation> removeFromPrimesByRelation = new();
-         List<TPRelation> removeFromList = new();
          while (!noChanges)
          {
             noChanges = true;
 
             // linear sweep through pbr table
             foreach (TPRelation r0 in _primesByRelation.Keys)
+               if (CombineOneRelation(r0))
+                  noChanges = false;
+         }
+      }
+
+      /// <summary>
+      /// Combines one "par" into the other relations, if possible.
+      /// </summary>
+      /// <param name="r0"></param>
+      /// <returns>true if changes were made; false otherwise.</returns>
+      private bool CombineOneRelation(TPRelation r0)
+      {
+         bool rv = false;
+         List<TPRelation> removeFromList = new();
+         TwoRecords tr0 = _primesByRelation[r0];
+
+         // Ref. D contains the phrase "If the relation r0 is a 'par'".
+         // Here this is interpreted not as the Relation r0, but rather as
+         // if the associated chain has exactly 1 unmatched prime.
+         if (tr0.UnmatchedPrimeCount != 1)
+            return false;
+
+         long unmatchedPrime0 = tr0.GetUnmatchedPrime();
+         foreach (TPRelation ri in _relationsByPrimes[unmatchedPrime0])
+         {
+            // We must not try to combine r0 with itself.
+            if (ri == r0)
+               continue;
+
+            // Here, we interpret the phrase "if the relation ri is a 'par'"
+            // as "if the chain associated with ri has an unmatched prime count of 1".
+            TwoRecords tri = _primesByRelation[ri];
+            if (tri.UnmatchedPrimeCount == 1)
             {
-               TwoRecords tr0 = _primesByRelation[r0];
-
-               // Ref. D contains the phrase "If the relation r0 is a 'par'".
-               // Here this is interpreted not as the Relation r0, but rather as
-               // if the associated chain has exactly 1 unmatched prime.
-               if (tr0.UnmatchedPrimeCount == 1)
+               long unmatchedPrime1 = tri.GetUnmatchedPrime();
+               if (unmatchedPrime0 == unmatchedPrime1)
                {
-                  long unmatchedPrime0 = tr0.GetUnmatchedPrime();
-                  foreach(TPRelation ri in _relationsByPrimes[unmatchedPrime0])
-                  {
-                     // We must not try to combine r0 with itself.
-                     if (ri == r0)
-                        continue;
-
-                     // Here, we interpret the phrase "if the relation ri is a 'par'"
-                     // as "if the chain associated with ri has an unmatched prime count of 1".
-                     TwoRecords tri = _primesByRelation[ri];
-                     if (tri.UnmatchedPrimeCount == 1)
-                     {
-                        long unmatchedPrime1 = tri.GetUnmatchedPrime();
-                        if (unmatchedPrime0 == unmatchedPrime1)
-                        {
-                           // r0 and ri form a cycle: emit a full Relation.
-                           noChanges = false;
-                           _relations.Add(TwoRecords.GetRelation(tr0, tri));
-                           removeFromList.Add(ri);
-                        }
-                     }
-                     else
-                     {  // ri has more than one prime.
-                        // Does one of them match unmatchedPrime0?
-                        if (tri.ContainsPrime(unmatchedPrime0))
-                        {
-                           // Combine r0 with ri
-                           noChanges = false;
-                           tri.Combine(tr0);
-                           removeFromList.Add(ri);
-                        }
-                     }
-                  }
-
-                  // Mark r0 for deletion from primes-by-relations
-                  removeFromPrimesByRelation.Add(r0);
-
-                  // Delete r0 from the list keyed by unmatchedPrime0
-                  _relationsByPrimes[unmatchedPrime0].Remove(r0);
-
-                  // Remove any ri that were combined with r0
-                  foreach (TPRelation remove in removeFromList)
-                     _relationsByPrimes[unmatchedPrime0].Remove(remove);
-                  removeFromList.Clear();
+                  // r0 and ri form a cycle: emit a full Relation.
+                  rv = true;
+                  _relations.Add(TwoRecords.GetRelation(tr0, tri));
+                  removeFromList.Add(ri);
                }
             }
-
-            // Delete all the used pars from primes-by-relations
-            foreach (TPRelation remove in removeFromPrimesByRelation)
-               _primesByRelation.Remove(remove);
-
-            removeFromPrimesByRelation.Clear();
+            else
+            {  // ri has more than one prime.
+               // Does one of them match unmatchedPrime0?
+               if (tri.ContainsPrime(unmatchedPrime0))
+               {
+                  // Combine r0 with ri
+                  rv = true;
+                  tri.Combine(tr0);
+                  removeFromList.Add(ri);
+               }
+            }
          }
+
+         // Mark r0 for deletion from primes-by-relations
+         _primesByRelation.Remove(r0);
+
+         // Delete r0 from the list keyed by unmatchedPrime0
+         _relationsByPrimes[unmatchedPrime0].Remove(r0);
+
+         // Remove any ri that were combined with r0
+         foreach (TPRelation remove in removeFromList)
+            _relationsByPrimes[unmatchedPrime0].Remove(remove);
+
+         return rv;
       }
 
       /// <inheritdoc />
