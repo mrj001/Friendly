@@ -22,10 +22,8 @@ namespace Friendly.Library.QuadraticSieve
    {
       #region Member Data
       private BufferBlock<RelationQueueItem>? _queue;
-      private ActionBlock<RelationQueueItem>? _action;
-      //private readonly BlockingCollection<RelationQueueItem> _queue;
-      //private Task _task;
-      //private volatile bool _completeTask;
+      private ActionBlock<RelationQueueItem>? _actionFactor;
+      private ActionBlock<PartialPartialRelation>? _actionCycle;
       private int _maxQueueLength;
 
       private int _maxCycleLength = 0;
@@ -34,6 +32,7 @@ namespace Friendly.Library.QuadraticSieve
       /// The set of fully factored Relations found during sieving.
       /// </summary>
       private readonly List<Relation> _relations;
+      private readonly object _lockRelations = new object();
 
       private readonly int _factorBaseSize;
       private readonly int _maxFactor;
@@ -70,6 +69,7 @@ namespace Friendly.Library.QuadraticSieve
       /// incident to each Vertex (the Key).
       /// </summary>
       private readonly Dictionary<long, List<PartialPartialRelation>> _relationsByPrime;
+      private readonly object _lockRelationsByPrime = new object();
 
       private const int InitialCapacity = 1 << 18;
       public const string TypeNodeName = "type";
@@ -241,18 +241,21 @@ namespace Friendly.Library.QuadraticSieve
       private void StartBackground()
       {
          _queue = new BufferBlock<RelationQueueItem>();
-         _action = new ActionBlock<RelationQueueItem>((rqi) => TryAddRelation(rqi));
+         _actionFactor = new ActionBlock<RelationQueueItem>((rqi) => TryAddRelation(rqi));
+         _actionCycle = new ActionBlock<PartialPartialRelation>(tpr => AddCycle(tpr));
 
-         _queue.LinkTo(_action);
-         _queue.Completion.ContinueWith(delegate { _action.Complete(); });
+         _queue.LinkTo(_actionFactor);
+         _queue.Completion.ContinueWith(delegate { _actionFactor.Complete(); });
+         _actionFactor.Completion.ContinueWith(delegate { _actionCycle.Complete(); });
       }
 
       private void StopBackground()
       {
          _queue?.Complete();
-         _action?.Completion.Wait();
+         _actionCycle?.Completion.Wait();
          _queue = null;
-         _action = null;
+         _actionFactor = null;
+         _actionCycle = null;
       }
 
       /// <summary>
@@ -334,7 +337,8 @@ namespace Friendly.Library.QuadraticSieve
       {
          if (item.Residual == BigInteger.One)
          {
-            _relations.Add(new Relation(item.QofX, item.X, item.ExponentVector));
+            lock(_lockRelations)
+               _relations.Add(new Relation(item.QofX, item.X, item.ExponentVector));
          }
          else if (item.Residual < _maxLargePrime && item.Residual > _maxFactor)
          {
@@ -347,7 +351,8 @@ namespace Friendly.Library.QuadraticSieve
             if (p1 != p2)
                AddPartialRelation(item.QofX, item.X, item.ExponentVector, (long)p1, (long)p2);
             else
-               _relations.Add(new Relation(item.QofX, item.X, item.ExponentVector, RelationOrigin.TwoLargePrimes));
+               lock (_lockRelations)
+                  _relations.Add(new Relation(item.QofX, item.X, item.ExponentVector, RelationOrigin.TwoLargePrimes));
          }
       }
 
@@ -376,7 +381,7 @@ namespace Friendly.Library.QuadraticSieve
                if (p1Root == p2Root)
                {
                   // A Cycle has been found.
-                  AddCycle(newRelation, p1, p2);
+                  _actionCycle!.Post(newRelation);
                   // NOTE: the newRelation is explicitly NOT added to the Spanning
                   // Tree.  Because this Edge is then guaranteed NOT to appear in
                   // any other cycles, we are generating Fundamental Cycles.
@@ -385,11 +390,14 @@ namespace Friendly.Library.QuadraticSieve
                {
                   Union(p1, p2);
 
-                  List<PartialPartialRelation> lstP1 = _relationsByPrime[p1];
-                  lstP1.Add(newRelation);
+                  lock (_lockRelationsByPrime)
+                  {
+                     List<PartialPartialRelation> lstP1 = _relationsByPrime[p1];
+                     lstP1.Add(newRelation);
 
-                  List<PartialPartialRelation> lstP2 = _relationsByPrime[p2];
-                  lstP2.Add(newRelation);
+                     List<PartialPartialRelation> lstP2 = _relationsByPrime[p2];
+                     lstP2.Add(newRelation);
+                  }
                }
             }
             else
@@ -398,12 +406,15 @@ namespace Friendly.Library.QuadraticSieve
                Union(p1, p2);
 
                // Add this Edge 
-               List<PartialPartialRelation> lstP1 = _relationsByPrime[p1];
-               lstP1.Add(newRelation);
+               lock (_lockRelationsByPrime)
+               {
+                  List<PartialPartialRelation> lstP1 = _relationsByPrime[p1];
+                  lstP1.Add(newRelation);
 
-               List<PartialPartialRelation> lstP2 = new List<PartialPartialRelation>();
-               lstP2.Add(newRelation);
-               _relationsByPrime.Add(p2, lstP2);
+                  List<PartialPartialRelation> lstP2 = new List<PartialPartialRelation>();
+                  lstP2.Add(newRelation);
+                  _relationsByPrime.Add(p2, lstP2);
+               }
             }
          }
          else
@@ -413,13 +424,16 @@ namespace Friendly.Library.QuadraticSieve
                // Add this new Vertex to the Spanning Tree containing p2.
                Union(p2, p1);
 
-               // Add this Edge 
-               List<PartialPartialRelation> lstP2 = _relationsByPrime[p2];
-               lstP2.Add(newRelation); 
+               lock (_lockRelationsByPrime)
+               {
+                  // Add this Edge 
+                  List<PartialPartialRelation> lstP2 = _relationsByPrime[p2];
+                  lstP2.Add(newRelation);
 
-               List<PartialPartialRelation> lstP1 = new List<PartialPartialRelation>();
-               lstP1.Add(newRelation);
-               _relationsByPrime.Add(p1, lstP1);
+                  List<PartialPartialRelation> lstP1 = new List<PartialPartialRelation>();
+                  lstP1.Add(newRelation);
+                  _relationsByPrime.Add(p1, lstP1);
+               }
             }
             else
             {
@@ -427,14 +441,17 @@ namespace Friendly.Library.QuadraticSieve
                // Add them as their own Spanning Tree
                Union(p1, p2);
 
-               // Add the new Edge to both Vertices
-               List<PartialPartialRelation> lstP1 = new List<PartialPartialRelation>();
-               lstP1.Add(newRelation);
-               _relationsByPrime.Add(p1, lstP1);
+               lock (_lockRelationsByPrime)
+               {
+                  // Add the new Edge to both Vertices
+                  List<PartialPartialRelation> lstP1 = new List<PartialPartialRelation>();
+                  lstP1.Add(newRelation);
+                  _relationsByPrime.Add(p1, lstP1);
 
-               List<PartialPartialRelation> lstP2 = new List<PartialPartialRelation>();
-               lstP2.Add(newRelation);
-               _relationsByPrime.Add(p2, lstP2);
+                  List<PartialPartialRelation> lstP2 = new List<PartialPartialRelation>();
+                  lstP2.Add(newRelation);
+                  _relationsByPrime.Add(p2, lstP2);
+               }
             }
          }
       }
@@ -443,10 +460,10 @@ namespace Friendly.Library.QuadraticSieve
       /// Adds a cycle
       /// </summary>
       /// <param name="finalEdge">The Edge that closes the Cycle.</param>
-      /// <param name="p1">The start Vertex</param>
-      /// <param name="p2">The end Vertex</param>
-      private void AddCycle(PartialPartialRelation finalEdge, long p1, long p2)
+      private void AddCycle(PartialPartialRelation finalEdge)
       {
+         long p1 = finalEdge.Prime1;
+         long p2 = finalEdge.Prime2;
          BigInteger qOfX = finalEdge.QOfX;
          BigInteger x = finalEdge.X;
          BigBitArray exponentVector = new BigBitArray(finalEdge.ExponentVector);
@@ -464,7 +481,8 @@ namespace Friendly.Library.QuadraticSieve
 
          Relation newRelation = new Relation(qOfX, x, exponentVector,
             twoLargePrimes ? RelationOrigin.TwoLargePrimes : RelationOrigin.OneLargePrime);
-         _relations.Add(newRelation);
+         lock (_lockRelations)
+            _relations.Add(newRelation);
       }
 
       /// <summary>
@@ -494,36 +512,42 @@ namespace Friendly.Library.QuadraticSieve
          {
             long pCurrent = pendingVertices.Dequeue();
 
-            List<PartialPartialRelation> outgoingEdges = _relationsByPrime[pCurrent];
-            foreach (PartialPartialRelation outgoingEdge in outgoingEdges)
+            lock (_lockRelationsByPrime)
             {
-               long pChild = outgoingEdge.Prime1 == pCurrent ? outgoingEdge.Prime2 : outgoingEdge.Prime1;
-
-               if (pChild == p2)
+               List<PartialPartialRelation> outgoingEdges = _relationsByPrime[pCurrent];
+               foreach (PartialPartialRelation outgoingEdge in outgoingEdges)
                {
-                  long parentVertex = pCurrent;
-                  List<PartialPartialRelation> rv = new();
-                  PartialPartialRelation edge = _relationsByPrime[pCurrent]
-                     .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == pChild) || (rel.Prime1 == pChild && rel.Prime2 == pCurrent))
-                     .First();
-                  rv.Add(edge);
-                  while (visitedVertices[pCurrent] != pCurrent)
+                  long pChild = outgoingEdge.Prime1 == pCurrent ? outgoingEdge.Prime2 : outgoingEdge.Prime1;
+
+                  if (pChild == p2)
                   {
-                     parentVertex = visitedVertices[pCurrent];
-                     edge = _relationsByPrime[parentVertex]
-                        .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == parentVertex) || (rel.Prime1 == parentVertex && rel.Prime2 == pCurrent))
-                        .First();
+                     long parentVertex = pCurrent;
+                     List<PartialPartialRelation> rv = new();
+                     PartialPartialRelation edge;
+                     lock (_lockRelationsByPrime)
+                        edge = _relationsByPrime[pCurrent]
+                           .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == pChild) || (rel.Prime1 == pChild && rel.Prime2 == pCurrent))
+                           .First();
                      rv.Add(edge);
-                     pCurrent = parentVertex;
+                     while (visitedVertices[pCurrent] != pCurrent)
+                     {
+                        parentVertex = visitedVertices[pCurrent];
+                        lock (_lockRelationsByPrime)
+                           edge = _relationsByPrime[parentVertex]
+                              .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == parentVertex) || (rel.Prime1 == parentVertex && rel.Prime2 == pCurrent))
+                              .First();
+                        rv.Add(edge);
+                        pCurrent = parentVertex;
+                     }
+
+                     return rv;
                   }
 
-                  return rv;
-               }
-
-               if (!visitedVertices.ContainsKey(pChild))
-               {
-                  visitedVertices.Add(pChild, pCurrent);
-                  pendingVertices.Enqueue(pChild);
+                  if (!visitedVertices.ContainsKey(pChild))
+                  {
+                     visitedVertices.Add(pChild, pCurrent);
+                     pendingVertices.Enqueue(pChild);
+                  }
                }
             }
          }
@@ -540,7 +564,8 @@ namespace Friendly.Library.QuadraticSieve
       {
          get
          {
-            return _relations[index];
+            lock (_lockRelations)
+               return _relations[index];
          }
       }
 
@@ -556,13 +581,18 @@ namespace Friendly.Library.QuadraticSieve
       /// </remarks>
       public void RemoveRelationAt(int index)
       {
-         _relations.RemoveAt(index);
+         lock (_lockRelations)
+            _relations.RemoveAt(index);
       }
 
       /// <inheritdoc />
       public int Count
       {
-         get => _relations.Count;
+         get
+         {
+            lock (_lockRelations)
+               return _relations.Count + (_actionCycle?.InputCount ?? 0);
+         }
       }
 
       public IMatrix GetMatrix(IMatrixFactory matrixFactory)
