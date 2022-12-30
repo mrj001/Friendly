@@ -75,7 +75,10 @@ namespace Friendly.Library.QuadraticSieve
       public const string TypeNodeName = "type";
       private const string LargePrimeNodeName = "maxLargePrime";
       private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
-      private const string MaxQueueLengthNodeName = "maxqueuelength";
+      private const string StatisticsNodeName = "statistics";
+      public const string StatisticNodeName = "statistic";
+      private const string MaxQueueLengthStatName = "maxqueuelength";
+      private const string MaxCycleLengthStatName = "maxcyclelength";
       public const string RelationsNodeName = "relations";
       public const string PartialRelationsNodeName = "partialrelations";
       #endregion
@@ -129,12 +132,21 @@ namespace Friendly.Library.QuadraticSieve
          if (!long.TryParse(twoLargePrimeNode.InnerText, out _maxTwoPrimes))
             throw new ArgumentException($"Unable to parse '{twoLargePrimeNode.InnerText}' for <{TwoLargePrimeNodeName}>");
 
-         XmlNode? maxQueueNode = twoLargePrimeNode.NextSibling;
-         SerializeHelper.ValidateNode(maxQueueNode, MaxQueueLengthNodeName);
-         _maxQueueLength = SerializeHelper.ParseIntNode(maxQueueNode!);
+         // Restore stats that we need to round trip
+         List<Statistic> statistics = new();
+         XmlNode? statisticsNode = twoLargePrimeNode.NextSibling;
+         SerializeHelper.ValidateNode(statisticsNode, StatisticsNodeName);
+         XmlNode? statNode = statisticsNode!.FirstChild;
+         while (statNode is not null)
+         {
+            statistics.Add(new Statistic(statNode));
+            statNode = statNode.NextSibling;
+         }
+         _maxQueueLength = (int)(statistics.Where(s => s.Name == MaxQueueLengthStatName).First().Value);
+         _maxCycleLength = (int)(statistics.Where(s => s.Name == MaxCycleLengthStatName).First().Value);
 
          // Read the full Relations
-         XmlNode? relationsNode = maxQueueNode!.NextSibling;
+         XmlNode? relationsNode = statisticsNode!.NextSibling;
          if (relationsNode is null || relationsNode.LocalName != RelationsNodeName)
             throw new ArgumentException($"Failed to find <{RelationsNodeName}>.");
          _relations = new();
@@ -185,7 +197,6 @@ namespace Friendly.Library.QuadraticSieve
 
          // Set up the background task to process items from the Relations Queue.
          StartBackground();
-         _maxQueueLength = 0;   // TODO: should be saved and restored.
       }
 
       /// <inheritdoc />
@@ -207,7 +218,13 @@ namespace Friendly.Library.QuadraticSieve
 
          SerializeHelper.AddLongNode(doc, rv, LargePrimeNodeName, _maxLargePrime);
          SerializeHelper.AddLongNode(doc, rv, TwoLargePrimeNodeName, _maxTwoPrimes);
-         SerializeHelper.AddIntNode(doc, rv, MaxQueueLengthNodeName, _maxQueueLength);
+
+         XmlNode statsNode = doc.CreateElement(StatisticsNodeName);
+         rv.AppendChild(statsNode);
+         Statistic statistic = new Statistic(MaxQueueLengthStatName, _maxQueueLength);
+         statsNode.AppendChild(statistic.Serialize(doc, StatisticNodeName));
+         statistic = new Statistic(MaxCycleLengthStatName, _maxCycleLength);
+         statsNode.AppendChild(statistic.Serialize(doc, StatisticNodeName));
 
          XmlNode relationsNode = doc.CreateElement(RelationsNodeName);
          rv.AppendChild(relationsNode);
