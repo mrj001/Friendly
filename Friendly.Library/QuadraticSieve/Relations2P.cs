@@ -28,6 +28,7 @@ namespace Friendly.Library.QuadraticSieve
       //private volatile bool _completeTask;
       private int _maxQueueLength;
 
+      private int _maxCycleLength = 0;
 
       /// <summary>
       /// The set of fully factored Relations found during sieving.
@@ -452,6 +453,7 @@ namespace Friendly.Library.QuadraticSieve
          bool twoLargePrimes = finalEdge.Prime1 != 1;
 
          List<PartialPartialRelation> cycle = FindPath(p1, p2);
+         _maxCycleLength = Math.Max(_maxCycleLength, cycle.Count);
          foreach(PartialPartialRelation edge in cycle)
          {
             qOfX *= edge.QOfX;
@@ -593,6 +595,7 @@ namespace Friendly.Library.QuadraticSieve
          rv.Add(new Statistic("Components", _componentCount));
          rv.Add(new Statistic("DictionaryLoad", ((float)_spanningTrees.Count) / _spanningTrees.EnsureCapacity(0)));
          rv.Add(new Statistic("MaxQueueLength", _maxQueueLength));
+         rv.Add(new Statistic("MaxCycleLength", _maxCycleLength));
          return rv.ToArray();
       }
    }
