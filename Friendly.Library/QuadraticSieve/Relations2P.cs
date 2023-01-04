@@ -538,24 +538,19 @@ namespace Friendly.Library.QuadraticSieve
 
                   if (pChild == p2)
                   {
-                     long parentVertex = pCurrent;
                      List<PartialPartialRelation> rv = new();
-                     PartialPartialRelation edge;
-                     lock (_lockRelationsByPrime)
-                        edge = _relationsByPrime[pCurrent]
-                           .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == pChild) || (rel.Prime1 == pChild && rel.Prime2 == pCurrent))
-                           .First();
-                     rv.Add(edge);
-                     while (visitedVertices[pCurrent] != pCurrent)
+                     visitedVertices.Add(pChild, pCurrent);
+                     long parentVertex = pCurrent;
+                     pCurrent = pChild;
+                     do
                      {
-                        parentVertex = visitedVertices[pCurrent];
-                        lock (_lockRelationsByPrime)
-                           edge = _relationsByPrime[parentVertex]
-                              .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == parentVertex) || (rel.Prime1 == parentVertex && rel.Prime2 == pCurrent))
-                              .First();
+                        PartialPartialRelation edge = _relationsByPrime[parentVertex]
+                           .Where(rel => (rel.Prime1 == pCurrent && rel.Prime2 == parentVertex) || (rel.Prime1 == parentVertex && rel.Prime2 == pCurrent))
+                           .First();
                         rv.Add(edge);
                         pCurrent = parentVertex;
-                     }
+                        parentVertex = visitedVertices[pCurrent];
+                     } while (parentVertex != pCurrent);
 
                      return rv;
                   }
