@@ -23,7 +23,7 @@ namespace ProfileQuadraticSieve
 
       public static void Main(string[] args)
       {
-         Console.WriteLine("1. Factoring a 30-digit number.");
+         Console.WriteLine("1. Factoring RSA numbers.");
          Console.WriteLine("2. Factoring a 38-digit number.");
          Console.WriteLine("3. Factor Fermat #7.");
          Console.WriteLine("4. Factor the product of 2 random primes.");
@@ -60,9 +60,7 @@ namespace ProfileQuadraticSieve
          switch (choice)
          {
             case 1:
-               f1 = 500_111_274_667_351;
-               f2 = 299_456_570_077_393;
-               Factor(new Parameters(), f1, f2);
+               DoRSA();
                break;
 
             case 2:
@@ -95,6 +93,30 @@ namespace ProfileQuadraticSieve
 
             default:
                throw new ApplicationException($"Unknown value for {nameof(choice)}: {choice}");
+         }
+      }
+
+      private static void DoRSA()
+      {
+         int choice;
+         string? s;
+         Console.WriteLine("1. RSA-100");
+         Console.Write("Enter number of choice: ");
+         do
+         {
+            s = Console.ReadLine();
+         } while (!int.TryParse(s, out choice));
+
+         switch(choice)
+         {
+            case 1:
+               BigInteger rsa100 = BigInteger.Parse("1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139");
+               Factor(new Parameters(), rsa100);
+               break;
+
+            default:
+               Console.WriteLine($"Invalid Choice: {choice}");
+               return;
          }
       }
 
@@ -471,6 +493,63 @@ namespace ProfileQuadraticSieve
          }
 
          return (rv, polyCount);
+      }
+
+      /// <summary>
+      /// Factors the given number using the Quadratic Sieve.
+      /// </summary>
+      /// <param name="parameters">The parameters to the Quadratic Sieve Algorithm</param>
+      /// <param name="n">The number to factor.</param>
+      private static void Factor(IParameters parameters, BigInteger n)
+      {
+         if (Primes.SieveLimit == 0)
+         {
+            _progressLogger.WriteLine("Sieving...");
+            Primes.Init(2_147_483_648);
+         }
+
+         _progressLogger.WriteLine($"factoring: {n}");
+
+         try
+         {
+            int numDigits = BigIntegerCalculator.GetNumberOfDigits(n);
+            _progressLogger.WriteLine($"The number has {numDigits} digits.");
+
+            StartSaveTimer();
+            Console.CancelKeyPress += HandleCancelSave;
+
+            sw = new();
+            sw.Start();
+            _sieve = new(parameters, n);
+            _sieve.Progress += HandleProgress;
+            (BigInteger f1, BigInteger f2) = _sieve.Factor();
+
+            if (f1 * f2 != n)
+               _progressLogger.WriteLine("Incorrect factorization found");
+            else
+               _progressLogger.WriteLine("Correct Factors found.");
+
+            _progressLogger.WriteLine("Statistics:");
+            Statistic[] stats = _sieve.GetStats();
+            foreach (Statistic stat in stats)
+               _progressLogger.WriteLine(stat.ToString());
+         }
+         catch (AbortException)
+         {
+            Console.WriteLine("Factoring was aborted...");
+         }
+         finally
+         {
+            if (sw is not null)
+            {
+               sw.Stop();
+               sw = null;
+            }
+            _saveTimer?.Dispose();
+            _saveTimer = null;
+            _sieve = null;
+            Console.CancelKeyPress -= HandleCancelSave;
+         }
       }
 
       private static void StartSaveTimer()
