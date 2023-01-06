@@ -476,7 +476,7 @@ namespace Friendly.Library.QuadraticSieve
          int firstPrimeIndex = 2;
          while (_factorBase[firstPrimeIndex].Prime <= smallPrimeLimit)
          {
-            smallPrimeLog += _factorBase[firstPrimeIndex].Log / _factorBase[firstPrimeIndex].Prime;
+            smallPrimeLog += _factorBase[firstPrimeIndex].Log;
             firstPrimeIndex++;
          }
 
