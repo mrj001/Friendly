@@ -32,6 +32,12 @@ namespace Friendly.Library.QuadraticSieve
       void RemoveRelationAt(int index);
 
       /// <summary>
+      /// Performs any actions needed to accept additional sieving after matrix
+      /// reduction failed to find a null vector that factorized the number.
+      /// </summary>
+      void PrepareToResieve();
+
+      /// <summary>
       /// Gets an array of Statistic objects to provide information about the
       /// factoring.
       /// </summary>

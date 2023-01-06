@@ -973,6 +973,12 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
+      public void PrepareToResieve()
+      {
+         StartFactorTask();
+      }
+
+      /// <inheritdoc />
       public void TryAddRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector, BigInteger residual)
       {
          RelationQueueItem item = new RelationQueueItem(QofX, x, exponentVector, residual);

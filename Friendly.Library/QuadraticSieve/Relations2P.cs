@@ -598,6 +598,12 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
+      public void PrepareToResieve()
+      {
+         StartBackground();
+      }
+
+      /// <inheritdoc />
       public int Count
       {
          get

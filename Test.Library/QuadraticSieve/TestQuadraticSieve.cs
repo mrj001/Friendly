@@ -100,7 +100,7 @@ namespace Test.Library.QuadraticSieve
          {
             _parameters = new Parameters();
             _maxDopSpecified = true;
-            _maxDegreeOfParallelism = MaxDegreeOfParallelism();
+            _maxDegreeOfParallelism = maxDegreeOfParallelism;
             if (largePrimeType == LargePrimeType.OneLargePrime)
                _relationsFactory = new FakeRelationsFactory();
             else if (largePrimeType == LargePrimeType.TwoLargePrimes)

@@ -94,6 +94,12 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
+      public void PrepareToResieve()
+      {
+         // Nothing to do here.
+      }
+
+      /// <inheritdoc />
       public int Count { get => _relations.Count; }
 
       private void AddPartialRelation(PartialRelation newPartialRelation)

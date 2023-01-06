@@ -635,13 +635,12 @@ namespace Friendly.Library.QuadraticSieve
       /// </remarks>
       public void PrepareToResieve()
       {
-         // TODO: need to be able to restart enumeration of Polynomials.
-         throw new ApplicationException("No null vector yielded a factorization.");
-         //// Remove the free columns which generated the non-useful null vectors.
-         //List<int> freeColumns = _matrix.FindFreeColumns();
-         //_matrix = null;
-         //for (int j = freeColumns.Count - 1; j >= 0; j--)
-         //   _relations.RemoveRelationAt(j);
+         // Remove the free columns which generated the non-useful null vectors.
+         List<int> freeColumns = _matrix.FindFreeColumns();
+         _matrix = null;
+         for (int j = freeColumns.Count - 1; j >= 0; j--)
+            _relations.RemoveRelationAt(j);
+         _relations.PrepareToResieve();
       }
    }
 }
