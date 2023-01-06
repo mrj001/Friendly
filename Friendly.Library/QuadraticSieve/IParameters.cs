@@ -43,6 +43,12 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <returns></returns>
       IRelationsFactory GetRelationsFactory();
+
+      /// <summary>
+      /// Gets the maximum number of threads to use for Sieving.
+      /// </summary>
+      /// <returns></returns>
+      int MaxDegreeOfParallelism();
    }
 }
 

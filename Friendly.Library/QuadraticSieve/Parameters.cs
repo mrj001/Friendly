@@ -69,6 +69,12 @@ namespace Friendly.Library.QuadraticSieve
          return new RelationsFactory();
       }
 
+      /// <inheritdoc/>
+      public int MaxDegreeOfParallelism()
+      {
+         return Environment.ProcessorCount / 2;
+      }
+
       private class ParameterTableEntry
       {
          public ParameterTableEntry(int numDigits, int factorBaseSize,

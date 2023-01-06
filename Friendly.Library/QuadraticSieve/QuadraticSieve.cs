@@ -484,7 +484,7 @@ namespace Friendly.Library.QuadraticSieve
          if (_relations is Relations)
             _degreeOfParallelism = 1;
          else
-            _degreeOfParallelism = Environment.ProcessorCount / 2;
+            _degreeOfParallelism = _parameters.MaxDegreeOfParallelism();
 
          AdjustBarrierCounts();
 

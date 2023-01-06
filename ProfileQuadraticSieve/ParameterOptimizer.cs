@@ -131,6 +131,12 @@ namespace ProfileQuadraticSieve
          {
             return new RelationsFactory();
          }
+
+         /// <inheritdoc />
+         public int MaxDegreeOfParallelism()
+         {
+            return _parameters.MaxDegreeOfParallelism();
+         }
       }
    }
 }

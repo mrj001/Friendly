@@ -52,24 +52,61 @@ namespace Test.Library.QuadraticSieve
          }
       }
 
+      /// <summary>
+      /// A Fake RelationsFactory that only uses the Triple Large Prime Variation.
+      /// </summary>
+      private class FakeRelationsFactory3P : IRelationsFactory
+      {
+         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor, long maxLargePrime)
+         {
+            return new Relations3P(factorBaseSize, maxFactor, maxLargePrime);
+         }
+
+         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlNode relationsNode)
+         {
+            throw new NotImplementedException();
+         }
+      }
+
       private enum LargePrimeType
       {
          OneLargePrime,
-         TwoLargePrimes
+         TwoLargePrimes,
+         ThreeLargePrimes
       }
 
       private class FakeParameters : IParameters
       {
          private readonly IParameters _parameters;
          private readonly IRelationsFactory _relationsFactory;
+         private readonly bool _maxDopSpecified;
+         private readonly int _maxDegreeOfParallelism;
 
          public FakeParameters(LargePrimeType largePrimeType)
          {
             _parameters = new Parameters();
+            _maxDopSpecified = false;
             if (largePrimeType == LargePrimeType.OneLargePrime)
                _relationsFactory = new FakeRelationsFactory();
             else if (largePrimeType == LargePrimeType.TwoLargePrimes)
                _relationsFactory = new FakeRelationsFactory2P();
+            else if (largePrimeType == LargePrimeType.ThreeLargePrimes)
+               _relationsFactory = new FakeRelationsFactory3P();
+            else
+               throw new ArgumentException();
+         }
+
+         public FakeParameters(LargePrimeType largePrimeType,  int maxDegreeOfParallelism)
+         {
+            _parameters = new Parameters();
+            _maxDopSpecified = true;
+            _maxDegreeOfParallelism = MaxDegreeOfParallelism();
+            if (largePrimeType == LargePrimeType.OneLargePrime)
+               _relationsFactory = new FakeRelationsFactory();
+            else if (largePrimeType == LargePrimeType.TwoLargePrimes)
+               _relationsFactory = new FakeRelationsFactory2P();
+            else if (largePrimeType == LargePrimeType.ThreeLargePrimes)
+               _relationsFactory = new FakeRelationsFactory3P();
             else
                throw new ArgumentException();
          }
@@ -97,6 +134,14 @@ namespace Test.Library.QuadraticSieve
          public IRelationsFactory GetRelationsFactory()
          {
             return _relationsFactory;
+         }
+
+         public int MaxDegreeOfParallelism()
+         {
+            if (_maxDopSpecified)
+               return _maxDegreeOfParallelism;
+            else
+               return _parameters.MaxDegreeOfParallelism();
          }
       }
 
@@ -268,6 +313,48 @@ namespace Test.Library.QuadraticSieve
          IParameters parameters = new FakeParameters(LargePrimeType.TwoLargePrimes);
          InternalFactor2(parameters);
       }
+
+      #region factoring with 3 large primes
+      public static TheoryData<BigInteger, BigInteger> Factor3P_ResieveTestData
+      {
+         get
+         {
+            var rv = new TheoryData<BigInteger, BigInteger>();
+
+            rv.Add(BigInteger.Parse("413348176517"), BigInteger.Parse("744178154147"));
+
+            return rv;
+         }
+      }
+
+      [MemberData(nameof(Factor3P_ResieveTestData))]
+      [Theory]
+      public void Factor3P_Resieve(BigInteger f1, BigInteger f2)
+      {
+         //Primes.Init(2_147_483_648);
+         BigInteger n = f1 * f2;
+         if (f1 > f2)
+         {
+            BigInteger t = f1;
+            f1 = f2;
+            f2 = t;
+         }
+
+         IParameters parameters = new FakeParameters(LargePrimeType.ThreeLargePrimes, 1);
+         Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(parameters, n);
+         (BigInteger g1, BigInteger g2) = sieve.Factor();
+
+         if (g1 > g2)
+         {
+            BigInteger tmp = g1;
+            g1 = g2;
+            g2 = tmp;
+         }
+
+         Assert.Equal(f1, g1);
+         Assert.Equal(f2, g2);
+      }
+      #endregion
 
       public static TheoryData<int, BigInteger, BigInteger> FactorBigTestData
       {
