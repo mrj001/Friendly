@@ -423,12 +423,14 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="relation"></param>
       /// <remarks>
       /// <para>
-      /// This runs in the _actionSingleton Action Block.
+      /// This runs in the _actionSingleton Action Block.  It will also be called
+      /// on the main thread during construction when resuming from a saved
+      /// state.
       /// </para>
       /// </remarks>
       private void AddSingletonRelation(TPRelation relation)
       {
-         int queueLen = _actionSingleton!.InputCount;
+         int queueLen = _actionSingleton?.InputCount ?? 0;
          _maxSingletonQueueLength = Math.Max(queueLen, _maxSingletonQueueLength);
 
          int index = _singletons.BinarySearch(relation, new CompareSingletons());
@@ -477,12 +479,14 @@ namespace Friendly.Library.QuadraticSieve
       /// <exception cref="ApplicationException">Violation of an invariant implies a bug.</exception>
       /// <remarks>
       /// <para>
-      /// This runs in the _actionInsertMainGraph Action Block.
+      /// This runs in the _actionInsertMainGraph Action Block.  It is also
+      /// called on the main thread during construction when resuming from
+      /// saved state.
       /// </para>
       /// </remarks>
       private void AddPartialRelationToMainGraph(TPRelation relation)
       {
-         int queueLen = _actionInsertMainGraph!.InputCount;
+         int queueLen = _actionInsertMainGraph?.InputCount ?? 0;
          _maxInsertQueueLength = Math.Max(queueLen, _maxInsertQueueLength);
 
          // Add to the Hash tables
