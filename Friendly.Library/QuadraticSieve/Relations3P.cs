@@ -108,6 +108,8 @@ namespace Friendly.Library.QuadraticSieve
       //====================================================================
       // BEGIN member data for tracking and promoting singletons
       private readonly List<TPRelation> _singletons;
+
+      private int _singletonRetryIndex = 0;
       // END member data for tracking and promoting singletons.
       //====================================================================
 
@@ -492,6 +494,23 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          CombineOneSingleton(relation);
+
+         // If we don't have very many Singleton relations yet, do not retry
+         // inserting them into the main graph.
+         if (_singletons.Count < 1000)
+            return;
+
+         // Only retry main graph re-insertion so long as no new singleton
+         // relations show up.
+         int retryCount = 0;
+         while ((_actionSingleton?.InputCount ?? int.MaxValue) == 0 && retryCount < 10)
+         {
+            CombineOneSingleton(_singletons[_singletonRetryIndex]);
+            retryCount++;
+            _singletonRetryIndex++;
+            if (_singletonRetryIndex == _singletons.Count)
+               _singletonRetryIndex = 0;
+         }
       }
 
       private class CompareSingletons : IComparer<TPRelation>
