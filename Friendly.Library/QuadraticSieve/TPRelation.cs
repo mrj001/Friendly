@@ -57,42 +57,38 @@ namespace Friendly.Library.QuadraticSieve
          _origin = origin;
       }
 
-      public TPRelation(XmlNode relationNode)
+      public TPRelation(XmlReader rdr)
       {
-         XmlNode? qofxNode = relationNode.FirstChild;
-         if (qofxNode is null || qofxNode.LocalName != QofXNodeName)
-            throw new ArgumentException($"Failed to find <{QofXNodeName}>");
-         _qofX = BigInteger.Parse(qofxNode.InnerText);
+         rdr.ReadStartElement();
 
-         XmlNode? xNode = qofxNode.NextSibling;
-         if (xNode is null || xNode.LocalName != XNodeName)
-            throw new ArgumentException($"Failed to find <{XNodeName}>.");
-         _x = BigInteger.Parse(xNode.InnerText);
+         rdr.ReadStartElement(QofXNodeName);
+         _qofX = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? expVectorNode = xNode.NextSibling;
-         if (expVectorNode is null || expVectorNode.LocalName != ExponentVectorNodeName)
-            throw new ArgumentException($"Failed to find <{ExponentVectorNodeName}>.");
-         _exponentVector = new BigBitArray(expVectorNode);
+         rdr.ReadStartElement(XNodeName);
+         _x = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? primesNode = expVectorNode.NextSibling;
-         if (primesNode is null || primesNode.LocalName != PrimesNodeName)
-            throw new ArgumentException($"Failed to find <{PrimesNodeName}>.");
+         _exponentVector = new BigBitArray(rdr);
+
+         rdr.ReadStartElement(PrimesNodeName);
          List<long> primes = new(3);
-         XmlNode? primeNode = primesNode.FirstChild;
-         while (primeNode is not null)
+         while (rdr.IsStartElement(PrimeNodeName))
          {
-            long p;
-            if (!long.TryParse(primeNode.InnerText, out p))
-               throw new ArgumentException($"Failed to parse '{primeNode.InnerText}' for <{PrimeNodeName}>");
+            rdr.ReadStartElement(PrimeNodeName);
+            long p = SerializeHelper.ParseLongNode(rdr);
+            rdr.ReadEndElement();
             primes.Add(p);
-            primeNode = primeNode.NextSibling;
          }
          _primes = primes.ToArray();
+         rdr.ReadEndElement();
 
-         XmlNode? originNode = primesNode.NextSibling;
-         if (originNode is not null && originNode.LocalName == OriginNodeName)
+         if (rdr.IsStartElement(OriginNodeName))
          {
-            _origin = (RelationOrigin)Enum.Parse(typeof(RelationOrigin), originNode.InnerText);
+            rdr.ReadStartElement(OriginNodeName);
+            string innerText = rdr.ReadContentAsString();
+            _origin = (RelationOrigin)Enum.Parse(typeof(RelationOrigin), innerText);
+            rdr.ReadEndElement();
          }
          else
          {
@@ -111,6 +107,8 @@ namespace Friendly.Library.QuadraticSieve
                   break;
             }
          }
+
+         rdr.ReadEndElement();
       }
 
       /// <inheritdoc />

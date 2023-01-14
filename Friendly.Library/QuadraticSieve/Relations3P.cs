@@ -154,55 +154,40 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
       /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
-      /// <param name="node">The serialized representation to deserialize.</param>
-      public Relations3P(int factorBaseSize, int maxFactor, XmlNode node)
+      /// <param name="rdr">An XML Reader positioned at the &lt;maxLargePrime&gt; node..</param>
+      public Relations3P(int factorBaseSize, int maxFactor, XmlReader rdr)
       {
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
 
-         XmlNode? largePrimeNode = node.FirstChild!.NextSibling;
-         if (largePrimeNode is null || largePrimeNode.LocalName != LargePrimeNodeName)
-            throw new ArgumentException($"Failed to find <{LargePrimeNodeName}>.");
-         if (!long.TryParse(largePrimeNode.InnerText, out _maxLargePrime))
-            throw new ArgumentException($"Unable to parse '{largePrimeNode.InnerText}' for <{LargePrimeNodeName}>");
+         rdr.ReadStartElement(LargePrimeNodeName);
+         _maxLargePrime = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? twoLargePrimeNode = largePrimeNode.NextSibling;
-         if (twoLargePrimeNode is null || twoLargePrimeNode.LocalName != TwoLargePrimeNodeName)
-            throw new ArgumentException($"Failed to find <{TwoLargePrimeNodeName}>.");
-         if (!long.TryParse(twoLargePrimeNode.InnerText, out _maxTwoPrimes))
-            throw new ArgumentException($"Unable to parse '{twoLargePrimeNode.InnerText}' for <{TwoLargePrimeNodeName}>");
+         rdr.ReadStartElement(TwoLargePrimeNodeName);
+         _maxTwoPrimes = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? threeLargePrimeNode = twoLargePrimeNode.NextSibling;
-         if (threeLargePrimeNode is null || threeLargePrimeNode.LocalName != ThreeLargePrimeNodeName)
-            throw new ArgumentException($"Failed to find <{ThreeLargePrimeNodeName}>.");
-         if (!BigInteger.TryParse(threeLargePrimeNode.InnerText, out _maxThreePrimes))
-            throw new ArgumentException($"Unable to parse '{threeLargePrimeNode.InnerText}' for <{ThreeLargePrimeNodeName}>.");
+         rdr.ReadStartElement(ThreeLargePrimeNodeName);
+         _maxThreePrimes = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
          // Restore stats that we need to round trip
          List<Statistic> statistics = new();
-         XmlNode? statisticsNode = threeLargePrimeNode.NextSibling;
-         SerializeHelper.ValidateNode(statisticsNode, StatisticsNodeName);
-         XmlNode? statNode = statisticsNode!.FirstChild;
-         while (statNode is not null)
-         {
-            statistics.Add(new Statistic(statNode));
-            statNode = statNode.NextSibling;
-         }
+         rdr.ReadStartElement(StatisticsNodeName);
+         while (rdr.IsStartElement(StatisticNodeName))
+            statistics.Add(new Statistic(rdr));
+         rdr.ReadEndElement();
          _maxFactorQueueLength = (int)(statistics.Where(s => s.Name == MaxQueueLengthStatName).First().Value);
 
          // Read the full Relations
-         XmlNode? relationsNode = statisticsNode!.NextSibling;
-         if (relationsNode is null || relationsNode.LocalName != RelationsNodeName)
-            throw new ArgumentException($"Failed to find <{RelationsNodeName}>.");
          _relations = new();
-         XmlNode? relationNode = relationsNode.FirstChild;
-         while (relationNode is not null)
-         {
-            _relations.Add(new Relation(relationNode));
-            relationNode = relationNode.NextSibling;
-         }
+         rdr.ReadStartElement(RelationsNodeName);
+         while (rdr.IsStartElement("r"))
+            _relations.Add(new Relation(rdr));
+         rdr.ReadEndElement();
 
-         // Read the Partial relations (1-, 2-, and 3-prime relations)
+         // Initialize the Graph
          _edgeCount = 0;
          _componentCount = 0;
          _components = new Dictionary<long, long>(InitialCapacity);
@@ -210,22 +195,23 @@ namespace Friendly.Library.QuadraticSieve
          _relationsByPrimes = new Dictionary<long, List<TPRelation>>(InitialCapacity);
          _primesByRelation = new Dictionary<TPRelation, TwoRecords>(InitialCapacity);
 
-         XmlNode? tprelationsNode = relationsNode.NextSibling;
-         if (tprelationsNode is null || tprelationsNode.LocalName != PartialRelationsNodeName)
-            throw new ArgumentException($"Failed to find <{PartialRelationsNodeName}>.");
-         XmlNode? tprNode = tprelationsNode.FirstChild;
-         while (tprNode is not null)
+         // Read the Partial relations (1-, 2-, and 3-prime relations)
+         rdr.ReadStartElement(PartialRelationsNodeName);
+         while (rdr.IsStartElement("r"))
          {
-            TPRelation tpr = new TPRelation(tprNode);
+            TPRelation tpr = new TPRelation(rdr);
             if (tpr.Count == 1)
                AddSingletonRelation(tpr);
             else
                AddPartialRelationToMainGraph(tpr);
-            tprNode = tprNode.NextSibling;
          }
+         rdr.ReadEndElement();
+
          CombineRelations();
 
          StartFactorTask();
+
+         rdr.ReadEndElement();
       }
 
       /// <inheritdoc />

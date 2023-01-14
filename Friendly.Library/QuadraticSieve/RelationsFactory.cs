@@ -15,7 +15,7 @@ namespace Friendly.Library.QuadraticSieve
       public IRelations GetRelations(int numDigits, int factorBaseSize,
          int maxFactor, long maxLargePrime)
       {
-         return new Relations3P(factorBaseSize, maxFactor, maxLargePrime);
+         return new Relations2P(factorBaseSize, maxFactor, maxLargePrime);
          //if (numDigits > 59)
          //   return new Relations2P(factorBaseSize, maxFactor, maxLargePrime);
          //else
@@ -24,19 +24,20 @@ namespace Friendly.Library.QuadraticSieve
 
       /// <inheritdoc />
       public IRelations GetRelations(int factorBaseSize, int maxFactor,
-         XmlNode relationsNode)
+         XmlReader rdr)
       {
-         XmlNode typeNode = relationsNode.FirstChild!;
-         SerializeHelper.ValidateNode(typeNode, Relations2P.TypeNodeName);
-         string type = typeNode.InnerText;
+         rdr.ReadStartElement();
+         rdr.ReadStartElement(Relations2P.TypeNodeName);
+         string type = rdr.ReadContentAsString();
+         rdr.ReadEndElement();
 
          switch(type)
          {
             case "Relations2P":
-               return new Relations2P(factorBaseSize, maxFactor, relationsNode);
+               return new Relations2P(factorBaseSize, maxFactor, rdr);
 
             case "Relations3P":
-               return new Relations3P(factorBaseSize, maxFactor, relationsNode);
+               return new Relations3P(factorBaseSize, maxFactor, rdr);
 
             default:
                throw new ArgumentException($"Unrecognized Relations type: '{type}'");

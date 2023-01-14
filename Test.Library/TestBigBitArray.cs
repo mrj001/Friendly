@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Xml;
 using Friendly.Library;
 using Xunit;
@@ -60,13 +61,14 @@ namespace Test.Library
       [MemberData(nameof(ctor_Deserialize_TestData))]
       public void ctor_Deserialize(int expectedCapacity, int expectedSetBit, string xml)
       {
-         XmlDocument doc = new XmlDocument();
+         BigBitArray actual;
+
          using (StringReader sr = new StringReader(xml))
          using (XmlReader xmlr = XmlReader.Create(sr))
-            doc.Load(xmlr);
-         XmlNode node = doc.FirstChild!;
-
-         BigBitArray actual = new BigBitArray(node);
+         {
+            xmlr.Read();
+            actual = new BigBitArray(xmlr);
+         }
 
          Assert.Equal(expectedCapacity, actual.Capacity);
 
@@ -79,7 +81,7 @@ namespace Test.Library
       public void Serialize()
       {
          Random rnd = new Random(123);
-         XmlDocument doc = new XmlDocument();
+         XmlDocument doc;
 
          for (int capacity = 1; capacity <= 10; capacity ++)
          {
@@ -89,8 +91,17 @@ namespace Test.Library
             for (int j = 0; j < 6 * capacity; j++)
                expected.FlipBit(rnd.Next(0, bitCapacity));
 
+            doc = new XmlDocument();
             XmlNode node = expected.Serialize(doc, "myBigBitArray");
-            BigBitArray actual = new BigBitArray(node);
+            doc.AppendChild(node);
+            StringBuilder sb = new();
+            using (StringWriter sw = new StringWriter(sb))
+               doc.Save(sw);
+
+            BigBitArray actual;
+            using (StringReader sr = new StringReader(sb.ToString()))
+            using (XmlReader rdr = XmlReader.Create(sr))
+               actual = new BigBitArray(rdr);
 
             // Assert that they have the same number of set bits;
             Assert.Equal(expected.PopCount(), actual.PopCount());

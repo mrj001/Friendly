@@ -115,47 +115,34 @@ namespace Friendly.Library.QuadraticSieve
          _relationsByPrime.Add(1, new List<PartialPartialRelation>());
       }
 
-      public Relations2P(int factorBaseSize, int maxFactor, XmlNode node)
+      public Relations2P(int factorBaseSize, int maxFactor, XmlReader rdr)
       {
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
 
-         XmlNode? largePrimeNode = node.FirstChild!.NextSibling;
-         if (largePrimeNode is null || largePrimeNode.LocalName != LargePrimeNodeName)
-            throw new ArgumentException($"Failed to find <{LargePrimeNodeName}>.");
-         if (!long.TryParse(largePrimeNode.InnerText, out _maxLargePrime))
-            throw new ArgumentException($"Unable to parse '{largePrimeNode.InnerText}' for <{LargePrimeNodeName}>");
+         rdr.ReadStartElement(LargePrimeNodeName);
+         _maxLargePrime = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? twoLargePrimeNode = largePrimeNode.NextSibling;
-         if (twoLargePrimeNode is null || twoLargePrimeNode.LocalName != TwoLargePrimeNodeName)
-            throw new ArgumentException($"Failed to find <{TwoLargePrimeNodeName}>.");
-         if (!long.TryParse(twoLargePrimeNode.InnerText, out _maxTwoPrimes))
-            throw new ArgumentException($"Unable to parse '{twoLargePrimeNode.InnerText}' for <{TwoLargePrimeNodeName}>");
+         rdr.ReadStartElement(TwoLargePrimeNodeName);
+         _maxTwoPrimes = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();
 
          // Restore stats that we need to round trip
          List<Statistic> statistics = new();
-         XmlNode? statisticsNode = twoLargePrimeNode.NextSibling;
-         SerializeHelper.ValidateNode(statisticsNode, StatisticsNodeName);
-         XmlNode? statNode = statisticsNode!.FirstChild;
-         while (statNode is not null)
-         {
-            statistics.Add(new Statistic(statNode));
-            statNode = statNode.NextSibling;
-         }
+         rdr.ReadStartElement(StatisticsNodeName);
+         while (rdr.IsStartElement(StatisticNodeName))
+            statistics.Add(new Statistic(rdr));
+         rdr.ReadEndElement();
          _maxQueueLength = (int)(statistics.Where(s => s.Name == MaxQueueLengthStatName).First().Value);
          _maxCycleLength = (int)(statistics.Where(s => s.Name == MaxCycleLengthStatName).First().Value);
 
          // Read the full Relations
-         XmlNode? relationsNode = statisticsNode!.NextSibling;
-         if (relationsNode is null || relationsNode.LocalName != RelationsNodeName)
-            throw new ArgumentException($"Failed to find <{RelationsNodeName}>.");
          _relations = new();
-         XmlNode? relationNode = relationsNode.FirstChild;
-         while(relationNode is not null)
-         {
-            _relations.Add(new Relation(relationNode));
-            relationNode = relationNode.NextSibling;
-         }
+         rdr.ReadStartElement(RelationsNodeName);
+         while (rdr.IsStartElement("r"))
+            _relations.Add(new Relation(rdr));
+         rdr.ReadEndElement();
 
          // Create the Graph
          _componentCount = 1;
@@ -165,13 +152,10 @@ namespace Friendly.Library.QuadraticSieve
          _relationsByPrime.Add(1, new List<PartialPartialRelation>());
 
          // Read the Partial Relations, and construct the Graph
-         XmlNode? partialRelationsNode = relationsNode.NextSibling;
-         if (partialRelationsNode is null || partialRelationsNode.LocalName != PartialRelationsNodeName)
-            throw new ArgumentException($"Failed to find <{PartialRelationsNodeName}>.");
-         XmlNode? partialRelationNode = partialRelationsNode.FirstChild;
-         while (partialRelationNode is not null)
+         rdr.ReadStartElement(PartialRelationsNodeName);
+         while (rdr.Read() && rdr.NodeType == XmlNodeType.Element)
          {
-            PartialPartialRelation ppr = new PartialPartialRelation(partialRelationNode);
+            PartialPartialRelation ppr = new PartialPartialRelation(rdr);
 
             // Only Partial Partial Relations that were part of a spanning tree
             // were saved, so no cycle detection required.
@@ -191,12 +175,13 @@ namespace Friendly.Library.QuadraticSieve
                _relationsByPrime.Add(ppr.Prime2, lst);
             }
             lst.Add(ppr);
-
-            partialRelationNode = partialRelationNode.NextSibling;
          }
+         rdr.ReadEndElement();
 
          // Set up the background task to process items from the Relations Queue.
          StartBackground();
+
+         rdr.ReadEndElement();
       }
 
       /// <inheritdoc />

@@ -22,8 +22,8 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
       /// <param name="maxFactor">The largest prime in the Factor Base.</param>
-      /// <param name="relationsNode"></param>
+      /// <param name="rdr"></param>
       /// <returns>An instance of IRelations.</returns>
-      IRelations GetRelations(int factorBaseSize, int maxFactor, XmlNode relationsNode);
+      IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr);
    }
 }

@@ -149,61 +149,53 @@ namespace Friendly.Library.QuadraticSieve
       {
          _parameters = parameters;
 
-         XmlDocument doc = new XmlDocument();
+         XmlReaderSettings settings = new XmlReaderSettings();
+         using (Stream xsd = typeof(QuadraticSieve).Assembly.GetManifestResourceStream("Friendly.Library.Assets.QuadraticSieve.SaveQuadraticSieve.xsd")!)
+            settings.Schemas.Add(XmlSchema.Read(xsd, null)!);
+
          using (Stream strm = new FileStream(filename, FileMode.Open, FileAccess.Read))
          using (GZipStream gz = new GZipStream(strm, CompressionMode.Decompress))
+         using (XmlReader rdr = XmlReader.Create(gz, settings))
          {
-            using (Stream xsd = typeof(QuadraticSieve).Assembly.GetManifestResourceStream("Friendly.Library.Assets.QuadraticSieve.SaveQuadraticSieve.xsd")!)
-               doc.Schemas.Add(XmlSchema.Read(xsd, null)!);
+            rdr.ReadStartElement(QuadraticSieveNodeName);
+            rdr.ReadStartElement(NumberNodeName);
+            _nOrig = SerializeHelper.ParseBigIntegerNode(rdr);
+            rdr.ReadEndElement();
 
-            doc.Load(gz);
+            rdr.ReadStartElement(MultiplierNodeName);
+            _multiplier = SerializeHelper.ParseLongNode(rdr);
+            rdr.ReadEndElement();
+            _n = _multiplier * _nOrig;
+            _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);
+
+            rdr.ReadStartElement(SieveIntervalNodeName);
+            _M = SerializeHelper.ParseIntNode(rdr);
+            rdr.ReadEndElement();
+
+            rdr.ReadStartElement(FactorBaseSizeNodeName);
+            int factorBaseSize = SerializeHelper.ParseIntNode(rdr);
+            rdr.ReadEndElement();
+            _factorBase = FactorBaseCandidate.GetFactorBase((int)_multiplier, _nOrig, factorBaseSize);
+
+            // Restore stats that we need to round trip
+            List<Statistic> statistics = new();
+            rdr.ReadStartElement(StatisticsNodeName);
+            while (rdr.IsStartElement(StatisticNodeName))
+               statistics.Add(new Statistic(rdr));
+            rdr.ReadEndElement();
+
+            _priorFactoringTime = (TimeSpan)(statistics.Where(s => s.Name == StatisticNames.FactoringTime).First().Value);
+            _totalPolynomials = (int)(statistics.Where(s => s.Name == StatisticNames.TotalPolynomials).First().Value);
+
+            _relations = (new RelationsFactory()).GetRelations(factorBaseSize,
+               _factorBase[_factorBase.Count - 1].Prime, rdr);
+
+            _multipolynomial = new MultiPolynomial(_n, _rootN,
+               _factorBase[_factorBase.Count - 1].Prime, _M, rdr);
+            _polynomials = _multipolynomial.GetEnumerator();
+
+            rdr.ReadEndElement();
          }
-
-         XmlNode topNode = doc.FirstChild.NextSibling;
-         SerializeHelper.ValidateNode(topNode, QuadraticSieveNodeName);
-
-         XmlNode nNode = topNode.FirstChild;
-         SerializeHelper.ValidateNode(nNode, NumberNodeName);
-         _nOrig = SerializeHelper.ParseBigIntegerNode(nNode);
-
-         XmlNode multiplierNode = nNode.NextSibling;
-         SerializeHelper.ValidateNode(multiplierNode, MultiplierNodeName);
-         _multiplier = SerializeHelper.ParseLongNode(multiplierNode);
-         _n = _multiplier * _nOrig;
-         _rootN = 1 + BigIntegerCalculator.SquareRoot(_n);
-
-         XmlNode sieveIntervalNode = multiplierNode.NextSibling;
-         SerializeHelper.ValidateNode(sieveIntervalNode, SieveIntervalNodeName);
-         _M = SerializeHelper.ParseIntNode(sieveIntervalNode);
-
-         XmlNode factorBaseSizeNode = sieveIntervalNode.NextSibling;
-         SerializeHelper.ValidateNode(factorBaseSizeNode, FactorBaseSizeNodeName);
-         int factorBaseSize = SerializeHelper.ParseIntNode(factorBaseSizeNode);
-         _factorBase = FactorBaseCandidate.GetFactorBase((int)_multiplier, _nOrig, factorBaseSize);
-
-         // Restore stats that we need to round trip
-         List<Statistic> statistics = new();
-         XmlNode statisticsNode = factorBaseSizeNode.NextSibling;
-         SerializeHelper.ValidateNode(statisticsNode, StatisticsNodeName);
-         XmlNode statNode = statisticsNode.FirstChild;
-         while (statNode is not null)
-         {
-            statistics.Add(new Statistic(statNode));
-            statNode = statNode.NextSibling;
-         }
-         _priorFactoringTime = (TimeSpan)(statistics.Where(s => s.Name == StatisticNames.FactoringTime).First().Value);
-         _totalPolynomials = (int)(statistics.Where(s => s.Name == StatisticNames.TotalPolynomials).First().Value);
-
-         XmlNode relationsNode = statisticsNode.NextSibling;
-         SerializeHelper.ValidateNode(relationsNode, RelationsNodeName);
-         _relations = (new RelationsFactory()).GetRelations(factorBaseSize,
-            _factorBase[_factorBase.Count - 1].Prime, relationsNode);
-
-         XmlNode polynomialsNode = relationsNode.NextSibling;
-         SerializeHelper.ValidateNode(polynomialsNode, PolynomialsNodeName);
-         _multipolynomial = new MultiPolynomial(_n, _rootN,
-            _factorBase[_factorBase.Count - 1].Prime, _M, polynomialsNode);
-         _polynomials = _multipolynomial.GetEnumerator();
       }
 
       /// <inheritdoc />

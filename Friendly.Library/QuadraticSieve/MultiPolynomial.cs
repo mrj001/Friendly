@@ -69,9 +69,9 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="rootkn">The ceiling of the square root of kn.</param>
       /// <param name="maxFactorBase">The largest prime in the Factor Base.</param>
       /// <param name="M">The Sieve Interval</param>
-      /// <param name="node">The XML Node which saved the state of the enumeration.</param>
+      /// <param name="rdr">An XMLReader positioned at the &lt;multipolynomial&gt; node.</param>
       public MultiPolynomial(BigInteger kn, BigInteger rootkn, long maxFactorBase,
-         int M, XmlNode node)
+         int M, XmlReader rdr)
       {
          _restart = true;
          _kn = kn;
@@ -79,22 +79,27 @@ namespace Friendly.Library.QuadraticSieve
          _maxFactorBase = maxFactorBase;
          _M = M;
 
-         XmlNode? currentDNode = node.FirstChild;
-         SerializeHelper.ValidateNode(currentDNode, CurrentDNodeName);
-         _currentD = SerializeHelper.ParseBigIntegerNode(currentDNode!);
+         rdr.ReadStartElement();
 
-         XmlNode? lowerDNode = currentDNode!.NextSibling;
-         SerializeHelper.ValidateNode(lowerDNode, LowerDNodeName);
-         _lowerD = SerializeHelper.ParseBigIntegerNode(lowerDNode!);
+         rdr.ReadStartElement(CurrentDNodeName);
+         _currentD = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? higherDNode = lowerDNode!.NextSibling;
-         SerializeHelper.ValidateNode(higherDNode, HigherDNodeName);
-         _higherD = SerializeHelper.ParseBigIntegerNode(higherDNode!);
+         rdr.ReadStartElement(LowerDNodeName);
+         _lowerD = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? nextDHigherNode = higherDNode!.NextSibling;
-         SerializeHelper.ValidateNode(nextDHigherNode, NextDHigherNodeName);
-         if (!bool.TryParse(nextDHigherNode!.InnerText, out _nextDHigher))
-            throw new ArgumentException($"Failed to parse '{nextDHigherNode.InnerText}' for <{NextDHigherNodeName}>.");
+         rdr.ReadStartElement(HigherDNodeName);
+         _higherD = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
+
+         rdr.ReadStartElement(NextDHigherNodeName);
+         string innerText = rdr.ReadContentAsString();
+         if (!bool.TryParse(innerText, out _nextDHigher))
+            throw new ArgumentException($"Failed to parse '{innerText}' for <{NextDHigherNodeName}>.");
+         rdr.ReadEndElement();
+
+         rdr.ReadEndElement();
       }
 
       public void BeginSerialize()

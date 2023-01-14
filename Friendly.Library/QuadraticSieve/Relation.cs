@@ -90,28 +90,27 @@ namespace Friendly.Library.QuadraticSieve
       /// <summary>
       /// Deserializes a new Relation object from XML.
       /// </summary>
-      /// <param name="relationNode"></param>
-      public Relation(XmlNode relationNode)
+      /// <param name="rdr"></param>
+      public Relation(XmlReader rdr)
       {
-         XmlNode qofxNode = relationNode.FirstChild;
-         if (qofxNode is null || qofxNode.LocalName != QofXNodeName)
-            throw new ArgumentException($"Failed to find <{QofXNodeName}>");
-         _qOfX = BigInteger.Parse(qofxNode.InnerText);
+         rdr.ReadStartElement();
+         rdr.ReadStartElement(QofXNodeName);
+         _qOfX = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode xNode = qofxNode.NextSibling;
-         if (xNode is null || xNode.LocalName != XNodeName)
-            throw new ArgumentException($"Failed to find <{XNodeName}>.");
-         _x = BigInteger.Parse(xNode.InnerText);
+         rdr.ReadStartElement(XNodeName);
+         _x = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode expVectorNode = xNode.NextSibling;
-         if (expVectorNode is null || expVectorNode.LocalName != ExponentVectorNodeName)
-            throw new ArgumentException($"Failed to find <{ExponentVectorNodeName}>.");
-         _exponentVector = new BigBitArray(expVectorNode);
+         _exponentVector = new BigBitArray(rdr);
 
-         XmlNode originNode = expVectorNode.NextSibling;
-         if (originNode is null || originNode.LocalName != OriginNodeName)
-            throw new ArgumentException($"Failed to find <{OriginNodeName}>.");
-         _origin = (RelationOrigin)Enum.Parse(typeof(RelationOrigin), originNode.InnerText);
+         rdr.ReadStartElement(OriginNodeName);
+         string innerText = rdr.ReadContentAsString();
+         _origin = (RelationOrigin)Enum.Parse(typeof(RelationOrigin), innerText);
+         rdr.ReadEndElement();
+
+         // End of Relation.
+         rdr.ReadEndElement();
       }
 
       /// <inheritdoc />

@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.IO;
+using System.Text;
 using System.Xml;
 using Friendly.Library;
 using Friendly.Library.QuadraticSieve;
@@ -28,12 +29,13 @@ namespace Test.Library.QuadraticSieve
       [MemberData(nameof(ctor3_TestData))]
       public void ctor3(long expectedQ, long expectedX, RelationOrigin expectedOrigin, string xml)
       {
-         XmlDocument doc = new XmlDocument();
+         Relation actual;
          using (StringReader sr = new StringReader(xml))
-         using (XmlReader xmlr = XmlReader.Create(sr))
-            doc.Load(xmlr);
-
-         Relation actual = new Relation(doc.FirstChild);
+         using (XmlReader rdr = XmlReader.Create(sr))
+         {
+            rdr.Read();
+            actual = new Relation(rdr);
+         }
 
          Assert.Equal(expectedQ, actual.QOfX);
          Assert.Equal(expectedX, actual.X);
@@ -62,10 +64,21 @@ namespace Test.Library.QuadraticSieve
 
          string nodeName = "mynode";
          XmlNode actualNode = expected.Serialize(doc, nodeName);
+         doc.AppendChild(actualNode);
 
          Assert.Equal(nodeName, actualNode.LocalName);
 
-         Relation actual = new Relation(actualNode);
+         Relation actual;
+         StringBuilder sb = new StringBuilder();
+         using (StringWriter sw = new StringWriter(sb))
+            doc.Save(sw);
+
+         using (StringReader sr = new StringReader(sb.ToString()))
+         using (XmlReader rdr = XmlReader.Create(sr))
+         {
+            rdr.Read();
+            actual = new Relation(rdr);
+         }
 
          Assert.Equal(expected.QOfX, actual.QOfX);
          Assert.Equal(expected.X, actual.X);

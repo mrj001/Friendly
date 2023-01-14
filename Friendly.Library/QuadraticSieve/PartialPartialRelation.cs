@@ -30,36 +30,29 @@ namespace Friendly.Library.QuadraticSieve
          _p2 = p2;
       }
 
-      public PartialPartialRelation(XmlNode relationNode)
+      public PartialPartialRelation(XmlReader rdr)
       {
-         XmlNode? qofxNode = relationNode.FirstChild;
-         if (qofxNode is null || qofxNode.LocalName != QofXNodeName)
-            throw new ArgumentException($"Failed to find <{QofXNodeName}>");
-         _qofX = BigInteger.Parse(qofxNode.InnerText);
+         rdr.ReadStartElement();
 
-         XmlNode? xNode = qofxNode.NextSibling;
-         if (xNode is null || xNode.LocalName != XNodeName)
-            throw new ArgumentException($"Failed to find <{XNodeName}>.");
-         _x = BigInteger.Parse(xNode.InnerText);
+         rdr.ReadStartElement(QofXNodeName);
+         _qofX = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? expVectorNode = xNode.NextSibling;
-         if (expVectorNode is null || expVectorNode.LocalName != ExponentVectorNodeName)
-            throw new ArgumentException($"Failed to find <{ExponentVectorNodeName}>.");
-         _exponentVector = new BigBitArray(expVectorNode);
+         rdr.ReadStartElement(XNodeName);
+         _x = SerializeHelper.ParseBigIntegerNode(rdr);
+         rdr.ReadEndElement();
 
-         XmlNode? primesNode = expVectorNode.NextSibling;
-         if (primesNode is null || primesNode.LocalName != PrimesNodeName)
-            throw new ArgumentException($"Failed to find <{PrimesNodeName}>.");
-         XmlNode? primeNode = primesNode.FirstChild;
-         if (primeNode is null || primeNode.LocalName != PrimeNodeName)
-            throw new ArgumentException($"Failed to find first <{PrimeNodeName}>.");
-         if (!long.TryParse(primeNode.InnerText, out _p1))
-            throw new ArgumentException($"Failed to parse '{primeNode.InnerText}' for <{PrimeNodeName}>");
-         primeNode = primeNode.NextSibling;
-         if (primeNode is null || primeNode.LocalName != PrimeNodeName)
-            throw new ArgumentException($"Failed to find second <{PrimeNodeName}>.");
-         if (!long.TryParse(primeNode.InnerText, out _p2))
-            throw new ArgumentException($"Failed to parse '{primeNode.InnerText}' for <{PrimeNodeName}>");
+         _exponentVector = new BigBitArray(rdr);
+
+         rdr.ReadStartElement(PrimesNodeName);
+         rdr.ReadStartElement(PrimeNodeName);
+         _p1 = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();
+         rdr.ReadStartElement(PrimeNodeName);
+         _p2 = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();  // end of <prime>
+         rdr.ReadEndElement();  // end of <primes>
+         rdr.ReadEndElement();  // end of PartialPartialRelation
       }
 
       /// <inheritdoc />

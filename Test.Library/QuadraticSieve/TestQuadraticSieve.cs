@@ -30,7 +30,7 @@ namespace Test.Library.QuadraticSieve
             return new Relations(factorBaseSize, maxFactor, maxLargePrime);
          }
 
-         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlNode relationsNode)
+         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
          {
             throw new NotImplementedException();
          }
@@ -46,7 +46,7 @@ namespace Test.Library.QuadraticSieve
             return new Relations2P(factorBaseSize, maxFactor, maxLargePrime);
          }
 
-         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlNode relationsNode)
+         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
          {
             throw new NotImplementedException();
          }
@@ -62,7 +62,7 @@ namespace Test.Library.QuadraticSieve
             return new Relations3P(factorBaseSize, maxFactor, maxLargePrime);
          }
 
-         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlNode relationsNode)
+         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
          {
             throw new NotImplementedException();
          }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using System.Xml;
 using Friendly.Library;
 using Friendly.Library.QuadraticSieve;
@@ -41,12 +42,11 @@ namespace Test.Library.QuadraticSieve
       public void CtorXml(long expectedQofX, long expectedX, long[] expectedPrimes,
          RelationOrigin expectedOrigin, string xml)
       {
-         XmlDocument doc = new XmlDocument();
+         TPRelation actual;
+
          using (StringReader sr = new StringReader(xml))
          using (XmlReader xmlr = XmlReader.Create(sr))
-            doc.Load(xmlr);
-
-         TPRelation actual = new(doc.FirstChild!);
+            actual = new(xmlr);
 
          Assert.Equal(expectedQofX, actual.QOfX);
          Assert.Equal(expectedX, actual.X);
@@ -82,8 +82,19 @@ namespace Test.Library.QuadraticSieve
          TPRelation expected = new TPRelation(qofX, x, exponentVector, primes, origin);
          XmlDocument doc = new XmlDocument();
          XmlNode xmlNode = expected.Serialize(doc, "mytestnode");
+         doc.AppendChild(xmlNode);
 
-         TPRelation actual = new(xmlNode);
+         StringBuilder sb = new();
+         using (StringWriter sw = new StringWriter(sb))
+            doc.Save(sw);
+
+         TPRelation actual;
+         using (StringReader sr = new StringReader(sb.ToString()))
+         using (XmlReader rdr = XmlReader.Create(sr))
+         {
+            rdr.Read();
+            actual = new TPRelation(rdr);
+         }
 
          Assert.Equal(expected.QOfX, actual.QOfX);
          Assert.Equal(expected.X, actual.X);

@@ -13,27 +13,30 @@ namespace Friendly.Library.Utility
             throw new ArgumentException($"Failed to find <{name}>.");
       }
 
-      public static int ParseIntNode(XmlNode node)
+      public static int ParseIntNode(XmlReader rdr)
       {
          int rv;
-         if (!int.TryParse(node.InnerText, out rv))
-            throw new ArgumentException($"Failed to parse '{node.InnerText}' for <{node.LocalName}>.");
+         string innerText = rdr.ReadContentAsString();
+         if (!int.TryParse(innerText, out rv))
+            throw new ArgumentException($"Failed to parse '{innerText}' for <{rdr.LocalName}>.");
          return rv;
       }
 
-      public static long ParseLongNode(XmlNode node)
+      public static long ParseLongNode(XmlReader rdr)
       {
          long rv;
-         if (!long.TryParse(node.InnerText, out rv))
-            throw new ArgumentException($"Failed to parse '{node.InnerText}' for <{node.LocalName}>.");
+         string innerText = rdr.ReadContentAsString();
+         if (!long.TryParse(innerText, out rv))
+            throw new ArgumentException($"Failed to parse '{innerText}' for <{rdr.LocalName}>.");
          return rv;
       }
 
-      public static BigInteger ParseBigIntegerNode(XmlNode node)
+      public static BigInteger ParseBigIntegerNode(XmlReader rdr)
       {
          BigInteger rv;
-         if (!BigInteger.TryParse(node.InnerText, out rv))
-            throw new ArgumentException($"Failed to parse '{node.InnerText}' for <{node.LocalName}>.");
+         string innerText = rdr.ReadContentAsString();
+         if (!BigInteger.TryParse(innerText, out rv))
+            throw new ArgumentException($"Failed to parse '{innerText}' for <{rdr.LocalName}>.");
          return rv;
       }
 

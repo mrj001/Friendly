@@ -23,15 +23,17 @@ namespace Friendly.Library.Utility
          _value = value;
       }
 
-      public Statistic(XmlNode node)
+      public Statistic(XmlReader rdr)
       {
-         XmlNode? nameNode = node.FirstChild;
-         SerializeHelper.ValidateNode(nameNode, NameNodeName);
-         _name = nameNode!.InnerText;
+         rdr.ReadStartElement();
 
-         XmlNode? typeNode = nameNode.NextSibling;
-         SerializeHelper.ValidateNode(typeNode, TypeNodeName);
-         string typeName = typeNode!.InnerText;
+         rdr.ReadStartElement(NameNodeName);
+         _name = rdr.ReadContentAsString();
+         rdr.ReadEndElement();
+
+         rdr.ReadStartElement(TypeNodeName);
+         string typeName = rdr.ReadContentAsString();
+         rdr.ReadEndElement();
 
          Type? valueType = null;
          foreach(Assembly a in AppDomain.CurrentDomain.GetAssemblies())
@@ -44,11 +46,14 @@ namespace Friendly.Library.Utility
             }
          }
 
-         XmlNode? valueNode = typeNode.NextSibling;
-         SerializeHelper.ValidateNode(valueNode, ValueNodeName);
+         rdr.ReadStartElement(ValueNodeName);
+         string value = rdr.ReadContentAsString();
+         rdr.ReadEndElement();
 
          MethodInfo? method = valueType?.GetMethod("Parse", new Type[] { typeof(string) });
-         _value = method?.Invoke(null, new object[] { valueNode!.InnerText }) ?? valueNode!.InnerText;
+         _value = method?.Invoke(null, new object[] { value }) ?? value;
+
+         rdr.ReadEndElement();
       }
 
       public string Name { get => _name; }

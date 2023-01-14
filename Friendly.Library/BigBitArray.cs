@@ -54,25 +54,25 @@ namespace Friendly.Library
       /// <summary>
       /// Deserializes a BigBitArray from an XML Node.
       /// </summary>
-      /// <param name="node"></param>
+      /// <param name="rdr"></param>
       /// <exception cref="ArgumentException"></exception>
-      public BigBitArray(XmlNode node)
+      public BigBitArray(XmlReader rdr)
       {
-         XmlNode child = node.FirstChild;
-         if (child is null || child.LocalName != CapacityNode)
-            throw new ArgumentException($"First child node must be <{CapacityNode}>");
-         if (!long.TryParse(child.InnerText, out _capacity))
-            throw new ArgumentException($"Failed to parse capacity: '{child.InnerText}'");
+         rdr.ReadStartElement();
 
-         child = child.NextSibling;
-         if (child is null || child.LocalName != BitsNode)
-            throw new ArgumentException($"Second child node must be <{BitsNode}>.");
+         rdr.ReadStartElement(CapacityNode);
+         _capacity = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();
+
+         rdr.ReadStartElement(BitsNode);
+         string bitsInnerText = rdr.ReadContentAsString();
+         rdr.ReadEndElement();
 
          int nLongs = (int)(_capacity / 64);
          _bits = new ulong[nLongs];
          int shift = 0;
          int index = 0;
-         foreach (char hexDigit in child.InnerText)
+         foreach (char hexDigit in bitsInnerText)
          {
             ulong digit = (ulong)(hexDigit >= '0' && hexDigit <= '9' ? hexDigit - '0' : 10 + hexDigit - 'A');
             _bits[index] |= digit << shift;
@@ -83,6 +83,8 @@ namespace Friendly.Library
                shift = 0;
             }
          }
+
+         rdr.ReadEndElement();
       }
 
       /// <inheritdoc />

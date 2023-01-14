@@ -5,6 +5,7 @@ using System.IO;
 using System.Xml;
 using Xunit;
 using Friendly.Library;
+using System.Text;
 
 namespace Test.Library.QuadraticSieve
 {
@@ -29,12 +30,13 @@ namespace Test.Library.QuadraticSieve
       public void ctor3(long expectedQ, long expectedX, long expectedPrime1,
          long expectedPrime2, string xml)
       {
-         XmlDocument doc = new XmlDocument();
+         PartialPartialRelation actual;
          using (StringReader sr = new StringReader(xml))
          using (XmlReader xmlr = XmlReader.Create(sr))
-            doc.Load(xmlr);
-
-         PartialPartialRelation actual = new PartialPartialRelation(doc.FirstChild!);
+         {
+            xmlr.Read();
+            actual = new PartialPartialRelation(xmlr);
+         }
 
          Assert.Equal(expectedQ, actual.QOfX);
          Assert.Equal(expectedX, actual.X);
@@ -63,8 +65,18 @@ namespace Test.Library.QuadraticSieve
          PartialPartialRelation expected = new(qofX, x, expVector, prime1, prime2);
          XmlDocument doc = new XmlDocument();
          XmlNode node = expected.Serialize(doc, "testing");
+         doc.AppendChild(node);
+         StringBuilder sb = new StringBuilder();
+         using (StringWriter sw = new StringWriter(sb))
+            doc.Save(sw);
 
-         PartialPartialRelation actual = new PartialPartialRelation(node);
+         PartialPartialRelation actual;
+         using (StringReader sr = new StringReader(sb.ToString()))
+         using (XmlReader rdr = XmlReader.Create(sr))
+         {
+            rdr.Read();
+            actual = new PartialPartialRelation(rdr);
+         }
 
          Assert.Equal(expected.QOfX, actual.QOfX);
          Assert.Equal(expected.X, actual.X);
