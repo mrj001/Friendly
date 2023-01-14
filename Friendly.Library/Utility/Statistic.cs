@@ -66,23 +66,15 @@ namespace Friendly.Library.Utility
       }
 
       #region ISerialize
-      public XmlNode Serialize(XmlDocument document, string name)
+      public void Serialize(XmlWriter writer, string name)
       {
-         XmlNode rv = document.CreateElement(name);
+         writer.WriteStartElement(name);
 
-         XmlNode nameNode = document.CreateElement(NameNodeName);
-         nameNode.InnerText = _name;
-         rv.AppendChild(nameNode);
+         writer.WriteElementString(NameNodeName, _name);
+         writer.WriteElementString(TypeNodeName, _value.GetType().ToString());
+         writer.WriteElementString(ValueNodeName, _value.ToString());
 
-         XmlNode typeNode = document.CreateElement(TypeNodeName);
-         typeNode.InnerText = _value.GetType().ToString();
-         rv.AppendChild(typeNode);
-
-         XmlNode valueNode = document.CreateElement(ValueNodeName);
-         valueNode.InnerText = _value.ToString()!;
-         rv.AppendChild(valueNode);
-
-         return rv;
+         writer.WriteEndElement();
       }
 
       public void BeginSerialize()

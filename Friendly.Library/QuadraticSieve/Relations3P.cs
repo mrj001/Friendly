@@ -112,6 +112,7 @@ namespace Friendly.Library.QuadraticSieve
 
       private const int InitialCapacity = 1 << 18;
       public const string TypeNodeName = Relations2P.TypeNodeName;
+      public const string TypeNodeValue = "Relations3P";
       private const string LargePrimeNodeName = "maxLargePrime";
       private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
       private const string ThreeLargePrimeNodeName = "maxThreeLargePrimes";
@@ -222,30 +223,25 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
-      public XmlNode Serialize(XmlDocument doc, string name)
+      public void Serialize(XmlWriter writer, string name)
       {
-         XmlNode rv = doc.CreateElement(name);
+         writer.WriteStartElement(name);
 
-         XmlNode typeNode = doc.CreateElement(TypeNodeName);
-         typeNode.InnerText = "Relations3P";
-         rv.AppendChild(typeNode);
+         writer.WriteElementString(TypeNodeName, TypeNodeValue);
+         writer.WriteElementString(LargePrimeNodeName, _maxLargePrime.ToString());
+         writer.WriteElementString(TwoLargePrimeNodeName, _maxTwoPrimes.ToString());
+         writer.WriteElementString(ThreeLargePrimeNodeName, _maxThreePrimes.ToString());
 
-         SerializeHelper.AddLongNode(doc, rv, LargePrimeNodeName, _maxLargePrime);
-         SerializeHelper.AddLongNode(doc, rv, TwoLargePrimeNodeName, _maxTwoPrimes);
-         SerializeHelper.AddBigIntegerNode(doc, rv, ThreeLargePrimeNodeName, _maxThreePrimes);
-
-         XmlNode statsNode = doc.CreateElement(StatisticsNodeName);
-         rv.AppendChild(statsNode);
+         writer.WriteStartElement(StatisticsNodeName);
          Statistic statistic = new Statistic(MaxQueueLengthStatName, _maxFactorQueueLength);
-         statsNode.AppendChild(statistic.Serialize(doc, StatisticNodeName));
+         statistic.Serialize(writer, StatisticNodeName);
+         writer.WriteEndElement();
 
-         XmlNode relationsNode = doc.CreateElement(RelationsNodeName);
-         rv.AppendChild(relationsNode);
+         writer.WriteStartElement(RelationsNodeName);
          foreach(Relation r in _relations)
-            relationsNode.AppendChild(r.Serialize(doc, "r"));
+            r.Serialize(writer, "r");
+         writer.WriteEndElement();
 
-         XmlNode partialRelationsNode = doc.CreateElement(PartialRelationsNodeName);
-         rv.AppendChild(partialRelationsNode);
          HashSet<TPRelation> uniquePartials = new(2 * _singletons.Count);
          foreach (TPRelation tpr in _singletons)
             uniquePartials.Add(tpr);
@@ -253,10 +249,13 @@ namespace Friendly.Library.QuadraticSieve
             foreach (TPRelation tpr in tr)
                if (!uniquePartials.Contains(tpr))
                   uniquePartials.Add(tpr);
-         foreach (TPRelation tpr in uniquePartials)
-            partialRelationsNode.AppendChild(tpr.Serialize(doc, "r"));
 
-         return rv;
+         writer.WriteStartElement(PartialRelationsNodeName);
+         foreach (TPRelation tpr in uniquePartials)
+            tpr.Serialize(writer, "r");
+         writer.WriteEndElement();
+
+         writer.WriteEndElement();
       }
 
       /// <inheritdoc />

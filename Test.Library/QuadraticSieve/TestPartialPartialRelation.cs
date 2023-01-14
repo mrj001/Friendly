@@ -63,12 +63,11 @@ namespace Test.Library.QuadraticSieve
       {
          BigBitArray expVector = new BigBitArray(64);
          PartialPartialRelation expected = new(qofX, x, expVector, prime1, prime2);
-         XmlDocument doc = new XmlDocument();
-         XmlNode node = expected.Serialize(doc, "testing");
-         doc.AppendChild(node);
+
          StringBuilder sb = new StringBuilder();
          using (StringWriter sw = new StringWriter(sb))
-            doc.Save(sw);
+         using (XmlWriter writer = XmlWriter.Create(sw))
+            expected.Serialize(writer, "testing");
 
          PartialPartialRelation actual;
          using (StringReader sr = new StringReader(sb.ToString()))

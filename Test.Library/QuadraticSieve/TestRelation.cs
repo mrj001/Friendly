@@ -63,15 +63,11 @@ namespace Test.Library.QuadraticSieve
          Relation expected = new Relation(qofx, x, new BigBitArray(64), origin);
 
          string nodeName = "mynode";
-         XmlNode actualNode = expected.Serialize(doc, nodeName);
-         doc.AppendChild(actualNode);
-
-         Assert.Equal(nodeName, actualNode.LocalName);
-
          Relation actual;
          StringBuilder sb = new StringBuilder();
          using (StringWriter sw = new StringWriter(sb))
-            doc.Save(sw);
+         using (XmlWriter writer = XmlWriter.Create(sw))
+            expected.Serialize(writer, nodeName);
 
          using (StringReader sr = new StringReader(sb.ToString()))
          using (XmlReader rdr = XmlReader.Create(sr))

@@ -120,25 +120,16 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
-      public XmlNode Serialize(XmlDocument doc, string name)
+      public void Serialize(XmlWriter writer, string name)
       {
-         XmlNode rv = doc.CreateElement(name);
+         writer.WriteStartElement(name);
 
-         XmlNode qofxNode = doc.CreateElement(QofXNodeName);
-         qofxNode.InnerText = _qOfX.ToString();
-         rv.AppendChild(qofxNode);
+         writer.WriteElementString(QofXNodeName, _qOfX.ToString());
+         writer.WriteElementString(XNodeName, _x.ToString());
+         _exponentVector.Serialize(writer, ExponentVectorNodeName);
+         writer.WriteElementString(OriginNodeName, _origin.ToString());
 
-         XmlNode xNode = doc.CreateElement(XNodeName);
-         xNode.InnerText = _x.ToString();
-         rv.AppendChild(xNode);
-
-         rv.AppendChild(_exponentVector.Serialize(doc, ExponentVectorNodeName));
-
-         XmlNode originNode = doc.CreateElement(OriginNodeName);
-         originNode.InnerText = Enum.GetName(typeof(RelationOrigin), _origin);
-         rv.AppendChild(originNode);
-
-         return rv;
+         writer.WriteEndElement();
       }
 
       /// <inheritdoc />

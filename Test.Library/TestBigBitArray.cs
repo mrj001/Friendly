@@ -91,12 +91,10 @@ namespace Test.Library
             for (int j = 0; j < 6 * capacity; j++)
                expected.FlipBit(rnd.Next(0, bitCapacity));
 
-            doc = new XmlDocument();
-            XmlNode node = expected.Serialize(doc, "myBigBitArray");
-            doc.AppendChild(node);
             StringBuilder sb = new();
             using (StringWriter sw = new StringWriter(sb))
-               doc.Save(sw);
+            using (XmlWriter writer = XmlWriter.Create(sw))
+               expected.Serialize(writer, "myBigBitArray");
 
             BigBitArray actual;
             using (StringReader sr = new StringReader(sb.ToString()))

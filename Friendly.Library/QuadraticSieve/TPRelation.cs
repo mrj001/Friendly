@@ -118,34 +118,22 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
-      public XmlNode Serialize(XmlDocument doc, string name)
+      public void Serialize(XmlWriter writer, string name)
       {
-         XmlNode rv = doc.CreateElement(name);
+         writer.WriteStartElement(name);
 
-         XmlNode qofxNode = doc.CreateElement(QofXNodeName);
-         qofxNode.InnerText = _qofX.ToString();
-         rv.AppendChild(qofxNode);
+         writer.WriteElementString(QofXNodeName, _qofX.ToString());
+         writer.WriteElementString(XNodeName, _x.ToString());
+         _exponentVector.Serialize(writer, ExponentVectorNodeName);
 
-         XmlNode xNode = doc.CreateElement(XNodeName);
-         xNode.InnerText = _x.ToString();
-         rv.AppendChild(xNode);
-
-         rv.AppendChild(_exponentVector.Serialize(doc, ExponentVectorNodeName));
-
-         XmlNode primesNode = doc.CreateElement(PrimesNodeName);
-         rv.AppendChild(primesNode);
+         writer.WriteStartElement(PrimesNodeName);
          foreach(long p in _primes)
-         {
-            XmlNode primeNode = doc.CreateElement(PrimeNodeName);
-            primeNode.InnerText = p.ToString();
-            primesNode.AppendChild(primeNode);
-         }
+            writer.WriteElementString(PrimeNodeName, p.ToString());
+         writer.WriteEndElement();
 
-         XmlNode originNode = doc.CreateElement(OriginNodeName);
-         originNode.InnerText = _origin.ToString();
-         rv.AppendChild(originNode);
+         writer.WriteElementString(OriginNodeName, _origin.ToString());
 
-         return rv;
+         writer.WriteEndElement();
       }
 
       /// <inheritdoc />

@@ -80,13 +80,11 @@ namespace Test.Library.QuadraticSieve
          for (int j = 0; j < 6; j++)
             exponentVector.FlipBit(rnd.Next(0, (int)exponentVector.Capacity));
          TPRelation expected = new TPRelation(qofX, x, exponentVector, primes, origin);
-         XmlDocument doc = new XmlDocument();
-         XmlNode xmlNode = expected.Serialize(doc, "mytestnode");
-         doc.AppendChild(xmlNode);
 
          StringBuilder sb = new();
          using (StringWriter sw = new StringWriter(sb))
-            doc.Save(sw);
+         using (XmlWriter writer = XmlWriter.Create(sw))
+            expected.Serialize(writer, "mytestnode");
 
          TPRelation actual;
          using (StringReader sr = new StringReader(sb.ToString()))

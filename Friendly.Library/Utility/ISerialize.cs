@@ -21,11 +21,9 @@ namespace Friendly.Library.Utility
       /// <summary>
       /// Serializes the implementing object to XML.
       /// </summary>
-      /// <param name="document">The document to which the returned node can be added.</param>
-      /// <param name="name">The name of the new node.</param>
-      /// <returns>An XmlNode containing a representation of the object.  It is
-      /// not added to document.</returns>
-      XmlNode Serialize(XmlDocument document, string name);
+      /// <param name="writer">The XMLWriter to which the object is to write itself.</param>
+      /// <param name="name">The name of the top-level node representing the object.</param>
+      void Serialize(XmlWriter writer, string name);
 
       /// <summary>
       /// Called to begin the serialization process.

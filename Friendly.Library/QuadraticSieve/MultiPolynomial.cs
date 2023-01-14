@@ -107,12 +107,12 @@ namespace Friendly.Library.QuadraticSieve
          _enumerator?.BeginSerialize();
       }
 
-      public XmlNode Serialize(XmlDocument doc, string name)
+      public void Serialize(XmlWriter writer, string name)
       {
          if (_enumerator is not null)
-            return _enumerator.Serialize(doc, name);
+            _enumerator.Serialize(writer, name);
          else
-            return (new Enumerator(_kn, _rootkn, _maxFactorBase, _M)).Serialize(doc, name);
+            (new Enumerator(_kn, _rootkn, _maxFactorBase, _M)).Serialize(writer, name);
       }
 
       public void FinishSerialize(SerializationReason reason)
@@ -221,27 +221,16 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          /// <inheritdoc />
-         public XmlNode Serialize(XmlDocument doc, string name)
+         public void Serialize(XmlWriter writer, string name)
          {
-            XmlNode rv = doc.CreateElement(name);
+            writer.WriteStartElement(name);
 
-            XmlNode currentDNode = doc.CreateElement(CurrentDNodeName);
-            currentDNode.InnerText = _currentD.ToString();
-            rv.AppendChild(currentDNode);
+            writer.WriteElementString(CurrentDNodeName, _currentD.ToString());
+            writer.WriteElementString(LowerDNodeName, _lowerD.ToString());
+            writer.WriteElementString(HigherDNodeName, _higherD.ToString());
+            writer.WriteElementString(NextDHigherNodeName, _nextDHigher ? "true" : "false");
 
-            XmlNode lowerDNode = doc.CreateElement(LowerDNodeName);
-            lowerDNode.InnerText = _lowerD.ToString();
-            rv.AppendChild(lowerDNode);
-
-            XmlNode higherDNode = doc.CreateElement(HigherDNodeName);
-            higherDNode.InnerText = _higherD.ToString();
-            rv.AppendChild(higherDNode);
-
-            XmlNode nextDHigherNode = doc.CreateElement(NextDHigherNodeName);
-            nextDHigherNode.InnerText = _nextDHigher ? "true" : "false";
-            rv.AppendChild(nextDHigherNode);
-
-            return rv;
+            writer.WriteEndElement();
          }
 
          /// <inheritdoc />

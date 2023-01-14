@@ -42,7 +42,7 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
-      public XmlNode Serialize(XmlDocument doc, string name)
+      public void Serialize(XmlWriter writer, string name)
       {
          // The Single Large Prime variation is only used when the numbers
          // being factored are small enough we don't need to save progress.

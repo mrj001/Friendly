@@ -94,15 +94,12 @@ namespace Friendly.Library
       }
 
       /// <inheritdoc />
-      public XmlNode Serialize(XmlDocument doc, string name)
+      public void Serialize(XmlWriter writer, string name)
       {
-         XmlNode rv = doc.CreateElement(name);
+         writer.WriteStartElement(name);
 
-         XmlNode capacity = doc.CreateElement(CapacityNode);
-         capacity.InnerText = _capacity.ToString();
-         rv.AppendChild(capacity);
+         writer.WriteElementString(CapacityNode, _capacity.ToString());
 
-         XmlNode bitsNode = doc.CreateElement(BitsNode);
          StringBuilder sb = new StringBuilder(_bits.Length / 8);
          for (int j = 0; j < _bits.Length; j ++)
          {
@@ -115,10 +112,9 @@ namespace Friendly.Library
                mask <<= 4;
             }
          }
-         bitsNode.InnerText = sb.ToString();
-         rv.AppendChild(bitsNode);
+         writer.WriteElementString(BitsNode, sb.ToString());
 
-         return rv;
+         writer.WriteEndElement();
       }
 
       /// <inheritdoc />

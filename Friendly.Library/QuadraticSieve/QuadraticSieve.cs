@@ -211,24 +211,24 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
-      public XmlNode Serialize(XmlDocument doc, string name)
+      public void Serialize(XmlWriter writer, string name)
       {
-         XmlNode rv = doc.CreateElement(name);
+         writer.WriteStartElement(name);
 
-         SerializeHelper.AddBigIntegerNode(doc, rv, NumberNodeName, _nOrig);
-         SerializeHelper.AddLongNode(doc, rv, MultiplierNodeName, _multiplier);
-         SerializeHelper.AddIntNode(doc, rv, SieveIntervalNodeName, _M);
-         SerializeHelper.AddIntNode(doc, rv, FactorBaseSizeNodeName, _factorBase.Count);
+         writer.WriteElementString(NumberNodeName, _nOrig.ToString());
+         writer.WriteElementString(MultiplierNodeName, _multiplier.ToString());
+         writer.WriteElementString(SieveIntervalNodeName, _M.ToString());
+         writer.WriteElementString(FactorBaseSizeNodeName, _factorBase.Count.ToString());
 
-         XmlNode statisticsNode = doc.CreateElement(StatisticsNodeName);
-         rv.AppendChild(statisticsNode);
+         writer.WriteStartElement(StatisticsNodeName);
          foreach (Statistic j in GetStats())
-            statisticsNode.AppendChild(j.Serialize(doc, StatisticNodeName));
+            j.Serialize(writer, StatisticNodeName);
+         writer.WriteEndElement();
 
-         rv.AppendChild(_relations.Serialize(doc, RelationsNodeName));
-         rv.AppendChild(_multipolynomial.Serialize(doc, PolynomialsNodeName));
+         _relations.Serialize(writer, RelationsNodeName);
+         _multipolynomial.Serialize(writer, PolynomialsNodeName);
 
-         return rv;
+         writer.WriteEndElement();
       }
 
       /// <inheritdoc />
@@ -248,20 +248,19 @@ namespace Friendly.Library.QuadraticSieve
 
       public void SaveState(SerializationReason reason, string filename)
       {
-         XmlDocument doc = new XmlDocument();
-         doc.AppendChild(doc.CreateXmlDeclaration("1.0", "UTF-8", null));
+         XmlSchema schema;
          Assembly assy = this.GetType().Assembly;
          using (Stream xsd = assy.GetManifestResourceStream("Friendly.Library.Assets.QuadraticSieve.SaveQuadraticSieve.xsd")!)
-            doc.Schemas.Add(XmlSchema.Read(xsd, null)!);
+            schema = XmlSchema.Read(xsd, null);
 
          BeginSerialize();
-         doc.AppendChild(Serialize(doc, QuadraticSieveNodeName));
-         doc.Validate(null);
 
          using (Stream fs = new FileStream(filename, FileMode.CreateNew, FileAccess.Write))
          using (GZipStream gz = new GZipStream(fs, CompressionLevel.SmallestSize))
+         using (XmlWriter writer = XmlWriter.Create(gz))
          {
-            doc.Save(gz);
+            this.Serialize(writer, QuadraticSieveNodeName);
+            writer.Flush();
             gz.Flush();
             fs.Flush();
          }
