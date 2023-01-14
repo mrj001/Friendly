@@ -81,7 +81,6 @@ namespace Test.Library
       public void Serialize()
       {
          Random rnd = new Random(123);
-         XmlDocument doc;
 
          for (int capacity = 1; capacity <= 10; capacity ++)
          {
