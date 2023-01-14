@@ -153,7 +153,7 @@ namespace Friendly.Library.QuadraticSieve
 
          // Read the Partial Relations, and construct the Graph
          rdr.ReadStartElement(PartialRelationsNodeName);
-         while (rdr.Read() && rdr.NodeType == XmlNodeType.Element)
+         while (rdr.IsStartElement("r"))
          {
             PartialPartialRelation ppr = new PartialPartialRelation(rdr);
 
