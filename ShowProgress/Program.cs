@@ -49,7 +49,7 @@ public class Program
 
    private static void AdvanceToNode(XmlReader rdr, string name)
    {
-      while (rdr.Read() && (rdr.NodeType != XmlNodeType.Element || rdr.LocalName != name))
+      while (!rdr.IsStartElement(name) && rdr.Read())
          ;
 
       if (rdr.NodeType != XmlNodeType.Element || rdr.LocalName != name)
