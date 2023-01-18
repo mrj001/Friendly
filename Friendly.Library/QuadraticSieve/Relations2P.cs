@@ -35,14 +35,33 @@ namespace Friendly.Library.QuadraticSieve
       private readonly object _lockRelations = new object();
 
       private readonly int _factorBaseSize;
+
+      /// <summary>
+      /// The value of the largest factor in the factor base.
+      /// </summary>
       private readonly int _maxFactor;
+
+      /// <summary>
+      /// The maximum value of any large prime factor that will be considered
+      /// for inclusion in either a Single-Large or Double Large Prime Relation.
+      /// This will be smaller than _maxSinglePrime.  Values in the range of
+      /// _maxLargePrime < r < _maxSinglePrime are considered sufficiently
+      /// unlikely to be matched that they will not be kept.
+      /// </summary>
       private readonly long _maxLargePrime;
 
       /// <summary>
-      /// The maximum value of the residual that will be considered for inclusion
-      /// in a Two Large Primes Relation.
+      /// The theoretical maximum value of any single large prime.  This is equal to
+      /// _maxFactor squared.  Values above this may be composite and may be
+      /// considered for Double Large Primes Relations.
       /// </summary>
-      private readonly long _maxTwoPrimes;
+      private readonly long _maxSinglePrime;
+
+      /// <summary>
+      /// The maximum value of the residual that will be considered for inclusion
+      /// in a Two Large Primes Relation.  This will be the cube of _maxFactor.
+      /// </summary>
+      private readonly long _maxDoublePrime;
 
       /// <summary>
       /// The current count of components within the Graph.
@@ -75,6 +94,7 @@ namespace Friendly.Library.QuadraticSieve
       public const string TypeNodeName = "type";
       public const string TypeNodeValue = "Relations2P";
       private const string LargePrimeNodeName = "maxLargePrime";
+      private const string SingleLargePrimeNodeName = "maxSingleLargePrime";
       private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
       private const string StatisticsNodeName = "statistics";
       public const string StatisticNodeName = "statistic";
@@ -89,9 +109,7 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
       /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
-      /// <param name="maxLargePrime">The maximum value of a residual that will be
-      /// considered for a Relation with a Single Large Prime.</param>
-      public Relations2P(int factorBaseSize, int maxFactor, long maxLargePrime)
+      public Relations2P(int factorBaseSize, int maxFactor)
       {
          // Set up the background task to process items from the Relations Queue.
          StartBackground();
@@ -100,9 +118,10 @@ namespace Friendly.Library.QuadraticSieve
          _relations = new();
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
-         _maxLargePrime = maxLargePrime;
+         _maxLargePrime = 100_000_000;
+         _maxSinglePrime = (long)_maxFactor * _maxFactor;
 
-         _maxTwoPrimes = _maxLargePrime > int.MaxValue ? long.MaxValue : _maxLargePrime * _maxLargePrime;
+         _maxDoublePrime = (long)_maxFactor * _maxFactor * _maxFactor;
 
          // Create the Graph
          // We initialize the Graph with the special "prime" of one.
@@ -125,8 +144,12 @@ namespace Friendly.Library.QuadraticSieve
          _maxLargePrime = SerializeHelper.ParseLongNode(rdr);
          rdr.ReadEndElement();
 
+         rdr.ReadStartElement(SingleLargePrimeNodeName);
+         _maxSinglePrime = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();
+
          rdr.ReadStartElement(TwoLargePrimeNodeName);
-         _maxTwoPrimes = SerializeHelper.ParseLongNode(rdr);
+         _maxDoublePrime = SerializeHelper.ParseLongNode(rdr);
          rdr.ReadEndElement();
 
          // Restore stats that we need to round trip
@@ -200,7 +223,8 @@ namespace Friendly.Library.QuadraticSieve
 
          writer.WriteElementString(TypeNodeName, TypeNodeValue);
          writer.WriteElementString(LargePrimeNodeName, _maxLargePrime.ToString());
-         writer.WriteElementString(TwoLargePrimeNodeName, _maxTwoPrimes.ToString());
+         writer.WriteElementString(SingleLargePrimeNodeName, _maxSinglePrime.ToString());
+         writer.WriteElementString(TwoLargePrimeNodeName, _maxDoublePrime.ToString());
 
          writer.WriteStartElement(StatisticsNodeName);
          Statistic statistic = new Statistic(MaxQueueLengthStatName, _maxQueueLength);
@@ -340,14 +364,30 @@ namespace Friendly.Library.QuadraticSieve
             lock(_lockRelations)
                _relations.Add(new Relation(item.QofX, item.X, item.ExponentVector));
          }
-         else if (item.Residual < _maxLargePrime && item.Residual > _maxFactor)
+         else if (item.Residual < _maxFactor)
          {
+            // We occasionally see residual values that equal the multiplier.
+            // Discard these.
+            return;
+         }
+         else if (item.Residual < _maxSinglePrime && item.Residual > _maxFactor)
+         {
+            // If the Single Large Prime is too large then it won't likely be matched,
+            // discard it.
+            if (item.Residual > _maxLargePrime)
+               return;
+
             AddPartialRelation(item.QofX, item.X, item.ExponentVector, 1, (long)item.Residual);
          }
-         else if (item.Residual < _maxTwoPrimes && !Primes.IsPrime(item.Residual))
+         else if (item.Residual < _maxDoublePrime && !Primes.IsPrime(item.Residual))
          {
             PollardRho rho = new PollardRho();
             (BigInteger p1, BigInteger p2) = rho.Factor(item.Residual);
+
+            // If either factor is too big, discard the Relation
+            if (p1 > _maxLargePrime || p2 > _maxLargePrime)
+               return;
+
             if (p1 != p2)
                AddPartialRelation(item.QofX, item.X, item.ExponentVector, (long)p1, (long)p2);
             else

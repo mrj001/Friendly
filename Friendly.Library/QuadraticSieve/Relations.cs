@@ -24,15 +24,13 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
       /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
-      /// <param name="maxLargePrime">The maximum value of a residual that will be
-      /// considered for the Single Large Prime.</param>
-      public Relations(int factorBaseSize, int maxFactor, long maxLargePrime)
+      public Relations(int factorBaseSize, int maxFactor)
       {
          _relations = new();
          _partialRelations = new();
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
-         _maxLargePrime = maxLargePrime;
+         _maxLargePrime = 10_000_000;
       }
 
       /// <inheritdoc />

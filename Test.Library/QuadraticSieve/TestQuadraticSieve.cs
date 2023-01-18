@@ -25,9 +25,9 @@ namespace Test.Library.QuadraticSieve
       /// </summary>
       private class FakeRelationsFactory : IRelationsFactory
       {
-         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor, long maxLargePrime)
+         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor)
          {
-            return new Relations(factorBaseSize, maxFactor, maxLargePrime);
+            return new Relations(factorBaseSize, maxFactor);
          }
 
          public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
@@ -41,9 +41,9 @@ namespace Test.Library.QuadraticSieve
       /// </summary>
       private class FakeRelationsFactory2P : IRelationsFactory
       {
-         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor, long maxLargePrime)
+         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor)
          {
-            return new Relations2P(factorBaseSize, maxFactor, maxLargePrime);
+            return new Relations2P(factorBaseSize, maxFactor);
          }
 
          public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
@@ -57,9 +57,9 @@ namespace Test.Library.QuadraticSieve
       /// </summary>
       private class FakeRelationsFactory3P : IRelationsFactory
       {
-         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor, long maxLargePrime)
+         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor)
          {
-            return new Relations3P(factorBaseSize, maxFactor, maxLargePrime);
+            return new Relations3P(factorBaseSize, maxFactor);
          }
 
          public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)

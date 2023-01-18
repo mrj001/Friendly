@@ -75,6 +75,7 @@
     <xs:sequence>
       <xs:element name="type" type="xs:string" minOccurs="1" maxOccurs="1" />
       <xs:element name="maxLargePrime" type="xs:long" minOccurs="1" maxOccurs="1" />
+      <xs:element name="maxSingleLargePrime" type="xs:long" minOccurs="1" maxOccurs="1" />
       <xs:element name="maxTwoLargePrimes" type="xs:long" minOccurs="1" maxOccurs="1" />
       <xs:element name="maxThreeLargePrimes" type="BigIntegerType" minOccurs="0" maxOccurs="1" />
       <xs:element name="statistics" type="StatisticsType" minOccurs="1" maxOccurs="1" />

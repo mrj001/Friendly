@@ -26,7 +26,21 @@ namespace Friendly.Library.QuadraticSieve
 
       private readonly int _factorBaseSize;
       private readonly int _maxFactor;
+
+      /// <summary>
+      /// The maximum value that any large prime will be allowed to take on.
+      /// This will be smaller than _maxSinglePrime as when the Single Primes
+      /// get larger the probability of them being useful drops dramatically.
+      /// </summary>
       private readonly long _maxLargePrime;
+
+      /// <summary>
+      /// The square of _maxFactor.  This is the upper limit of a
+      /// residual that could be conceivably used for a Single Large Prime
+      /// Partial relation.  It is the lower limit of the range of
+      /// residuals that could be used for Double Large Prime Partial Relations.
+      /// </summary>
+      private readonly long _maxSinglePrime;
 
       /// <summary>
       /// The maximum value of the residual that will be considered for inclusion
@@ -114,6 +128,7 @@ namespace Friendly.Library.QuadraticSieve
       public const string TypeNodeName = Relations2P.TypeNodeName;
       public const string TypeNodeValue = "Relations3P";
       private const string LargePrimeNodeName = "maxLargePrime";
+      private const string SingleLargePrimeNodeName = "maxSingleLargePrime";
       private const string TwoLargePrimeNodeName = "maxTwoLargePrimes";
       private const string ThreeLargePrimeNodeName = "maxThreeLargePrimes";
       private const string StatisticsNodeName = "statistics";
@@ -127,17 +142,16 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
       /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
-      /// <param name="maxLargePrime">The maximum value of a residual that will be
-      /// considered for a Relation with a Single Large Prime.</param>
-      public Relations3P(int factorBaseSize, int maxFactor, long maxLargePrime)
+      public Relations3P(int factorBaseSize, int maxFactor)
       {
          _relations = new();
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
 
-         _maxLargePrime = maxLargePrime;
-         _maxTwoPrimes = _maxLargePrime > int.MaxValue ? long.MaxValue : _maxLargePrime * _maxLargePrime;
-         _maxThreePrimes = ((BigInteger)_maxTwoPrimes) * _maxLargePrime;
+         _maxLargePrime = 100_000_000;
+         _maxSinglePrime = (long)_maxFactor * _maxFactor;
+         _maxTwoPrimes = _maxSinglePrime * _maxFactor;
+         _maxThreePrimes = ((BigInteger)_maxTwoPrimes) * _maxFactor;
 
          _maxFactorQueueLength = 0;
          StartFactorTask();
@@ -163,6 +177,10 @@ namespace Friendly.Library.QuadraticSieve
 
          rdr.ReadStartElement(LargePrimeNodeName);
          _maxLargePrime = SerializeHelper.ParseLongNode(rdr);
+         rdr.ReadEndElement();
+
+         rdr.ReadStartElement(SingleLargePrimeNodeName);
+         _maxSinglePrime = SerializeHelper.ParseLongNode(rdr);
          rdr.ReadEndElement();
 
          rdr.ReadStartElement(TwoLargePrimeNodeName);
@@ -229,6 +247,7 @@ namespace Friendly.Library.QuadraticSieve
 
          writer.WriteElementString(TypeNodeName, TypeNodeValue);
          writer.WriteElementString(LargePrimeNodeName, _maxLargePrime.ToString());
+         writer.WriteElementString(SingleLargePrimeNodeName, _maxSinglePrime.ToString());
          writer.WriteElementString(TwoLargePrimeNodeName, _maxTwoPrimes.ToString());
          writer.WriteElementString(ThreeLargePrimeNodeName, _maxThreePrimes.ToString());
 
@@ -314,17 +333,32 @@ namespace Friendly.Library.QuadraticSieve
                _relations.Add(newRelation);
             return;
          }
-         else if (item.Residual < _maxLargePrime && item.Residual > _maxFactor)
+         else if (item.Residual < _maxFactor)
          {
+            // We occasionally see residual values that equal the multiplier.
+            // Discard these.
+            return;
+         }
+         else if (item.Residual <= _maxSinglePrime)
+         {
+            // If the Single Large Prime is too large, discard it.
+            if (item.Residual > _maxLargePrime)
+               return;
+
             TPRelation relation = new TPRelation(item.QofX, item.X, item.ExponentVector,
                new long[] { (long)item.Residual });
             _actionSingleton!.Post(relation);
             return;
          }
-         else if (item.Residual < _maxTwoPrimes && !Primes.IsPrime(item.Residual))
+         else if (item.Residual <= _maxTwoPrimes && !Primes.IsPrime(item.Residual))
          {
             PollardRho rho = new PollardRho();
             (BigInteger p1, BigInteger p2) = rho.Factor(item.Residual);
+
+            // If either factor is larger than _maxLargePrime, discard.
+            if (p1 > _maxLargePrime || p2 > _maxLargePrime)
+               return;
+
             if (p1 != p2)
             {
                TPRelation relation = new TPRelation(item.QofX, item.X, item.ExponentVector,
@@ -356,7 +390,7 @@ namespace Friendly.Library.QuadraticSieve
 
             if (f1Prime && f2Prime)
                // Reject:  They're both prime, but one of them must be bigger
-               // than _maxLargePrime
+               // than _maxSinglePrime
                return;
 
             if (f1Prime)
@@ -369,6 +403,11 @@ namespace Friendly.Library.QuadraticSieve
                rho = new PollardRho();
                (f1, f3) = rho.Factor(f1);
             }
+
+            // If any factor is larger than _maxLargePrime, discard the
+            // relation
+            if (f1 > _maxLargePrime || f2 > _maxLargePrime || f3 > _maxLargePrime)
+               return;
 
             // Check if a prime occurs twice
             if (f1 == f2)
