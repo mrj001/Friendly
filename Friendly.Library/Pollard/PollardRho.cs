@@ -41,7 +41,7 @@ namespace Friendly.Library.Pollard
             do
             {
                x = y;
-               for (int i = 0; i < r; i++)
+               for (long i = 0; i < r; i++)
                   y = f(y, n);
                k = 0;
                do
