@@ -127,6 +127,12 @@ namespace ProfileQuadraticSieve
                return _parameters.FindSmallPrimeLimit(n);
          }
 
+         public LargePrimeStrategy FindLargePrimeStrategy(BigInteger n)
+         {
+            // TODO: Add ability to optimize this.
+            return _parameters.FindLargePrimeStrategy(n);
+         }
+
          public IRelationsFactory GetRelationsFactory()
          {
             return new RelationsFactory();

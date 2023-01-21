@@ -39,6 +39,13 @@ namespace Friendly.Library.QuadraticSieve
       int FindSmallPrimeLimit(BigInteger n);
 
       /// <summary>
+      /// Determines the number of Large Primes to use in finding Relations.
+      /// </summary>
+      /// <param name="n">The number being factored.</param>
+      /// <returns>The number of Large Primes to use in finding Relations.</returns>
+      LargePrimeStrategy FindLargePrimeStrategy(BigInteger n);
+
+      /// <summary>
       /// Gets the Relations Factory to use to create the Relations object.
       /// </summary>
       /// <returns></returns>

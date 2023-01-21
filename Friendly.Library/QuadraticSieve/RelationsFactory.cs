@@ -12,14 +12,23 @@ namespace Friendly.Library.QuadraticSieve
       }
 
       /// <inheritdoc />
-      public IRelations GetRelations(int numDigits, int factorBaseSize,
-         int maxFactor)
+      public IRelations GetRelations(LargePrimeStrategy largePrimeStrategy,
+         int numDigits, int factorBaseSize, int maxFactor)
       {
-         return new Relations3P(factorBaseSize, maxFactor);
-         //if (numDigits > 59)
-         //   return new Relations2P(factorBaseSize, maxFactor, maxLargePrime);
-         //else
-         //   return new Relations(factorBaseSize, maxFactor, maxLargePrime);
+         switch(largePrimeStrategy)
+         {
+            case LargePrimeStrategy.OneLargePrime:
+               return new Relations(factorBaseSize, maxFactor);
+
+            case LargePrimeStrategy.TwoLargePrimes:
+               return new Relations2P(factorBaseSize, maxFactor);
+
+            case LargePrimeStrategy.ThreeLargePrimes:
+               return new Relations3P(factorBaseSize, maxFactor);
+
+            default:
+               throw new ArgumentException($"Unrecognized value for LargePrimeStrategy: {largePrimeStrategy}");
+         }
       }
 
       /// <inheritdoc />

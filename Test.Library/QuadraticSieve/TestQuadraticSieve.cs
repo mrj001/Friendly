@@ -19,60 +19,34 @@ namespace Test.Library.QuadraticSieve
 {
    public class TestQuadraticSieve
    {
-      // TODO: Should be mocked.
       /// <summary>
-      /// A fake Relations Factory that ONLY uses the Single Large Prime Variaion.
+      /// A fake Relations Factory that uses the specified Large Prime Variaion.
       /// </summary>
       private class FakeRelationsFactory : IRelationsFactory
       {
-         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor)
+         public IRelations GetRelations(LargePrimeStrategy largePrimeStrategy,
+            int numDigits, int factorBaseSize, int maxFactor)
          {
-            return new Relations(factorBaseSize, maxFactor);
+            switch(largePrimeStrategy)
+            {
+               case LargePrimeStrategy.OneLargePrime:
+                  return new Relations(factorBaseSize, maxFactor);
+
+               case LargePrimeStrategy.TwoLargePrimes:
+                  return new Relations2P(factorBaseSize, maxFactor);
+
+               case LargePrimeStrategy.ThreeLargePrimes:
+                  return new Relations3P(factorBaseSize, maxFactor);
+
+               default:
+                  throw new ApplicationException("Unknown value for LargePrimeStrategy");
+            }
          }
 
          public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
          {
             throw new NotImplementedException();
          }
-      }
-
-      /// <summary>
-      /// A fake Relations Factory that ONLY uses the Double Large Prime Variation.
-      /// </summary>
-      private class FakeRelationsFactory2P : IRelationsFactory
-      {
-         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor)
-         {
-            return new Relations2P(factorBaseSize, maxFactor);
-         }
-
-         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
-         {
-            throw new NotImplementedException();
-         }
-      }
-
-      /// <summary>
-      /// A Fake RelationsFactory that only uses the Triple Large Prime Variation.
-      /// </summary>
-      private class FakeRelationsFactory3P : IRelationsFactory
-      {
-         public IRelations GetRelations(int numDigits, int factorBaseSize, int maxFactor)
-         {
-            return new Relations3P(factorBaseSize, maxFactor);
-         }
-
-         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
-         {
-            throw new NotImplementedException();
-         }
-      }
-
-      private enum LargePrimeType
-      {
-         OneLargePrime,
-         TwoLargePrimes,
-         ThreeLargePrimes
       }
 
       private class FakeParameters : IParameters
@@ -81,34 +55,23 @@ namespace Test.Library.QuadraticSieve
          private readonly IRelationsFactory _relationsFactory;
          private readonly bool _maxDopSpecified;
          private readonly int _maxDegreeOfParallelism;
+         private readonly LargePrimeStrategy _largePrimeStrategy;
 
-         public FakeParameters(LargePrimeType largePrimeType)
+         public FakeParameters(LargePrimeStrategy largePrimeStrategy)
          {
             _parameters = new Parameters();
             _maxDopSpecified = false;
-            if (largePrimeType == LargePrimeType.OneLargePrime)
-               _relationsFactory = new FakeRelationsFactory();
-            else if (largePrimeType == LargePrimeType.TwoLargePrimes)
-               _relationsFactory = new FakeRelationsFactory2P();
-            else if (largePrimeType == LargePrimeType.ThreeLargePrimes)
-               _relationsFactory = new FakeRelationsFactory3P();
-            else
-               throw new ArgumentException();
+            _largePrimeStrategy = largePrimeStrategy;
+            _relationsFactory = new FakeRelationsFactory();
          }
 
-         public FakeParameters(LargePrimeType largePrimeType,  int maxDegreeOfParallelism)
+         public FakeParameters(LargePrimeStrategy largePrimeStrategy,  int maxDegreeOfParallelism)
          {
             _parameters = new Parameters();
             _maxDopSpecified = true;
             _maxDegreeOfParallelism = maxDegreeOfParallelism;
-            if (largePrimeType == LargePrimeType.OneLargePrime)
-               _relationsFactory = new FakeRelationsFactory();
-            else if (largePrimeType == LargePrimeType.TwoLargePrimes)
-               _relationsFactory = new FakeRelationsFactory2P();
-            else if (largePrimeType == LargePrimeType.ThreeLargePrimes)
-               _relationsFactory = new FakeRelationsFactory3P();
-            else
-               throw new ArgumentException();
+            _largePrimeStrategy = largePrimeStrategy;
+            _relationsFactory = new FakeRelationsFactory();
          }
 
          public double FindLargePrimeTolerance(BigInteger n)
@@ -129,6 +92,11 @@ namespace Test.Library.QuadraticSieve
          public int FindSmallPrimeLimit(BigInteger n)
          {
             return _parameters.FindSmallPrimeLimit(n);
+         }
+
+         public LargePrimeStrategy FindLargePrimeStrategy(BigInteger n)
+         {
+            return _largePrimeStrategy;
          }
 
          public IRelationsFactory GetRelationsFactory()
@@ -229,7 +197,7 @@ namespace Test.Library.QuadraticSieve
       [MemberData(nameof(FactorTestData))]
       public void Factor(long f1, long f2)
       {
-         IParameters parameters = new FakeParameters(LargePrimeType.OneLargePrime);
+         IParameters parameters = new FakeParameters(LargePrimeStrategy.OneLargePrime);
          InternalFactor(parameters, f1, f2);
       }
 
@@ -242,7 +210,7 @@ namespace Test.Library.QuadraticSieve
       [MemberData(nameof(FactorTestData))]
       public void Factor2P(long f1, long f2)
       {
-         IParameters parameters = new FakeParameters(LargePrimeType.TwoLargePrimes);
+         IParameters parameters = new FakeParameters(LargePrimeStrategy.TwoLargePrimes);
          InternalFactor(parameters, f1, f2);
       }
 
@@ -300,7 +268,7 @@ namespace Test.Library.QuadraticSieve
       [Fact]
       public void Factor2()
       {
-         IParameters parameters = new FakeParameters(LargePrimeType.OneLargePrime);
+         IParameters parameters = new FakeParameters(LargePrimeStrategy.OneLargePrime);
          InternalFactor2(parameters);
       }
 
@@ -310,7 +278,7 @@ namespace Test.Library.QuadraticSieve
       [Fact]
       public void Factor2_2P()
       {
-         IParameters parameters = new FakeParameters(LargePrimeType.TwoLargePrimes);
+         IParameters parameters = new FakeParameters(LargePrimeStrategy.TwoLargePrimes);
          InternalFactor2(parameters);
       }
 
@@ -340,7 +308,7 @@ namespace Test.Library.QuadraticSieve
             f2 = t;
          }
 
-         IParameters parameters = new FakeParameters(LargePrimeType.ThreeLargePrimes, 1);
+         IParameters parameters = new FakeParameters(LargePrimeStrategy.ThreeLargePrimes, 1);
          Friendly.Library.QuadraticSieve.QuadraticSieve sieve = new Friendly.Library.QuadraticSieve.QuadraticSieve(parameters, n);
          (BigInteger g1, BigInteger g2) = sieve.Factor();
 
@@ -409,7 +377,7 @@ namespace Test.Library.QuadraticSieve
       public void FactorBig1P(int serial, BigInteger f1, BigInteger f2)
 #pragma warning restore xUnit1026 // Theory methods should use all of their parameters
       {
-         IParameters parameters = new FakeParameters(LargePrimeType.OneLargePrime);
+         IParameters parameters = new FakeParameters(LargePrimeStrategy.OneLargePrime);
          InternalFactorBig(parameters, f1, f2);
       }
 
@@ -419,7 +387,7 @@ namespace Test.Library.QuadraticSieve
       public void FactorBig2P(int serial, BigInteger f1, BigInteger f2)
 #pragma warning restore xUnit1026 // Theory methods should use all of their parameters
       {
-         IParameters parameters = new FakeParameters(LargePrimeType.TwoLargePrimes);
+         IParameters parameters = new FakeParameters(LargePrimeStrategy.TwoLargePrimes);
          InternalFactorBig(parameters, f1, f2);
       }
    }
