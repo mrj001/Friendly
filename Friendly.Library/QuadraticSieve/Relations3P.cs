@@ -134,6 +134,9 @@ namespace Friendly.Library.QuadraticSieve
       private const string StatisticsNodeName = "statistics";
       private const string StatisticNodeName = "statistic";
       private const string MaxQueueLengthStatName = "maxqueuelength";
+      private const string MaxFactorQueueLengthStatName = "maxfactorqueuelength";
+      private const string MaxSingletonQueueLengthStatName = "maxsingletonqueuelength";
+      private const string MaxInsertQueueLengthStatName = "maxinsertqueuelength";
       private const string RelationsNodeName = "relations";
       private const string PartialRelationsNodeName = "partialrelations";
 
@@ -197,7 +200,10 @@ namespace Friendly.Library.QuadraticSieve
          while (rdr.IsStartElement(StatisticNodeName))
             statistics.Add(new Statistic(rdr));
          rdr.ReadEndElement();
-         _maxFactorQueueLength = (int)(statistics.Where(s => s.Name == MaxQueueLengthStatName).First().Value);
+         _maxInputQueueLength = (int)(statistics.Where(s => s.Name == MaxQueueLengthStatName).First().Value);
+         _maxFactorQueueLength = (int)(statistics.Where(s => s.Name == MaxFactorQueueLengthStatName).First().Value);
+         _maxSingletonQueueLength = (int)(statistics.Where(s => s.Name == MaxSingletonQueueLengthStatName).First().Value);
+         _maxInsertQueueLength = (int)(statistics.Where(s => s.Name == MaxInsertQueueLengthStatName).First().Value);
 
          // Read the full Relations
          _relations = new();
@@ -252,7 +258,13 @@ namespace Friendly.Library.QuadraticSieve
          writer.WriteElementString(ThreeLargePrimeNodeName, _maxThreePrimes.ToString());
 
          writer.WriteStartElement(StatisticsNodeName);
-         Statistic statistic = new Statistic(MaxQueueLengthStatName, _maxFactorQueueLength);
+         Statistic statistic = new Statistic(MaxQueueLengthStatName, _maxInputQueueLength);
+         statistic.Serialize(writer, StatisticNodeName);
+         statistic = new Statistic(MaxFactorQueueLengthStatName, _maxFactorQueueLength);
+         statistic.Serialize(writer, StatisticNodeName);
+         statistic = new Statistic(MaxSingletonQueueLengthStatName, _maxSingletonQueueLength);
+         statistic.Serialize(writer, StatisticNodeName);
+         statistic = new Statistic(MaxInsertQueueLengthStatName, _maxInsertQueueLength);
          statistic.Serialize(writer, StatisticNodeName);
          writer.WriteEndElement();
 
@@ -1012,7 +1024,7 @@ namespace Friendly.Library.QuadraticSieve
          RelationQueueItem item = new RelationQueueItem(QofX, x, exponentVector, residual);
          _queueInput!.Post(item);
          int queueLen = _queueInput!.Count;
-         _maxFactorQueueLength = Math.Max(queueLen, _maxFactorQueueLength);
+         _maxInputQueueLength = Math.Max(queueLen, _maxInputQueueLength);
       }
    }
 }
