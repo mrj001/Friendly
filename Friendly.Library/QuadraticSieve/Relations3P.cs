@@ -567,10 +567,8 @@ namespace Friendly.Library.QuadraticSieve
                break;
 
             case 2:
-               Union(1, relation[0]);
-               Union(1, relation[1]);
                Union(relation[0], relation[1]);
-               _edgeCount += 3;
+               _edgeCount ++;
                break;
 
             case 3:
@@ -817,7 +815,7 @@ namespace Friendly.Library.QuadraticSieve
             //   C + R - P
             // just as in the Two Large Primes case.
 
-            return _relations.Count; // + _componentCount + _primesByRelation.Count - _relationsByPrimes.Count;
+            return _relations.Count + _componentCount + _edgeCount - _relationsByPrimes.Count;
          }
       }
 
@@ -1014,6 +1012,7 @@ namespace Friendly.Library.QuadraticSieve
          rv.Add(new Statistic(StatisticNames.TwoLargePrimes, counts[2]));
          rv.Add(new Statistic(StatisticNames.ThreeLargePrimes, counts[3]));
          rv.Add(new Statistic("Components", _componentCount));
+         rv.Add(new Statistic("Edges", _edgeCount));
          rv.Add(new Statistic("ComponentsLoad", ((float)_componentCount) / _components.EnsureCapacity(0)));
          rv.Add(new Statistic("RelationsByPrimesLoad", ((float)_relationsByPrimes.Count) / _relationsByPrimes.EnsureCapacity(0)));
          rv.Add(new Statistic("PrimesByRelationLoad", ((float)_primesByRelation.Count) / _primesByRelation.EnsureCapacity(0)));
