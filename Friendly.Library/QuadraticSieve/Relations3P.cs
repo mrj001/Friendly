@@ -77,31 +77,11 @@ namespace Friendly.Library.QuadraticSieve
 
       //====================================================================
       // BEGIN member data for dataflow blocks
-      /// <summary>
-      /// This is the "Input Queue"
-      /// </summary>
-      /// <remarks>
-      /// <para>
-      /// Incoming Relations from the Sieve are placed into this Queue.
-      /// </para>
-      /// </remarks>
-      private BufferBlock<RelationQueueItem>? _queueInput;
-      private int _maxInputQueueLength = 0;
-
-      /// <summary>
-      /// This Action Block is responsible for factoring residuals,
-      /// creating TPRelation objects, and posting them to the next appropriate
-      /// Action Block.
-      /// </summary>
-      private ActionBlock<RelationQueueItem>? _actionFactor;
-      private int _maxFactorQueueLength = 0;
-
       private ActionBlock<TPRelation>? _actionSingleton;
       private int _maxSingletonQueueLength = 0;
 
       private ActionBlock<TPRelation>? _actionInsertMainGraph;
       private int _maxInsertQueueLength = 0;
-
       // END member data for dataflow blocks
       //====================================================================
 
@@ -158,8 +138,7 @@ namespace Friendly.Library.QuadraticSieve
          _maxTwoPrimes = _maxSinglePrime * _maxFactor;
          _maxThreePrimes = ((BigInteger)_maxTwoPrimes) * _maxFactor;
 
-         _maxFactorQueueLength = 0;
-         StartFactorTask();
+         StartBackgroundTasks();
 
          _edgeCount = 0;
          _componentCount = 0;
@@ -202,8 +181,6 @@ namespace Friendly.Library.QuadraticSieve
          while (rdr.IsStartElement(StatisticNodeName))
             statistics.Add(new Statistic(rdr));
          rdr.ReadEndElement();
-         _maxInputQueueLength = (int)(statistics.Where(s => s.Name == MaxQueueLengthStatName).First().Value);
-         _maxFactorQueueLength = (int)(statistics.Where(s => s.Name == MaxFactorQueueLengthStatName).First().Value);
          _maxSingletonQueueLength = (int)(statistics.Where(s => s.Name == MaxSingletonQueueLengthStatName).First().Value);
          _maxInsertQueueLength = (int)(statistics.Where(s => s.Name == MaxInsertQueueLengthStatName).First().Value);
 
@@ -236,7 +213,7 @@ namespace Friendly.Library.QuadraticSieve
 
          CombineRelations();
 
-         StartFactorTask();
+         StartBackgroundTasks();
 
          rdr.ReadEndElement();
       }
@@ -245,7 +222,7 @@ namespace Friendly.Library.QuadraticSieve
       public void BeginSerialize()
       {
          // Shutdown the Factoring task so it is safe to serialize this object.
-         StopFactorTask();
+         StopBackgroundTasks();
       }
 
       /// <inheritdoc />
@@ -260,11 +237,7 @@ namespace Friendly.Library.QuadraticSieve
          writer.WriteElementString(ThreeLargePrimeNodeName, _maxThreePrimes.ToString());
 
          writer.WriteStartElement(StatisticsNodeName);
-         Statistic statistic = new Statistic(MaxQueueLengthStatName, _maxInputQueueLength);
-         statistic.Serialize(writer, StatisticNodeName);
-         statistic = new Statistic(MaxFactorQueueLengthStatName, _maxFactorQueueLength);
-         statistic.Serialize(writer, StatisticNodeName);
-         statistic = new Statistic(MaxSingletonQueueLengthStatName, _maxSingletonQueueLength);
+         Statistic statistic = new Statistic(MaxSingletonQueueLengthStatName, _maxSingletonQueueLength);
          statistic.Serialize(writer, StatisticNodeName);
          statistic = new Statistic(MaxInsertQueueLengthStatName, _maxInsertQueueLength);
          statistic.Serialize(writer, StatisticNodeName);
@@ -295,79 +268,72 @@ namespace Friendly.Library.QuadraticSieve
       public void FinishSerialize(SerializationReason reason)
       {
          if (reason == SerializationReason.SaveState)
-            StartFactorTask();
+            StartBackgroundTasks();
       }
 
-      #region Factoring of incoming residuals
-      private void StartFactorTask()
+      #region Control of Background Tasks
+      private void StartBackgroundTasks()
       {
-         _queueInput = new BufferBlock<RelationQueueItem>();
-         _actionFactor = new ActionBlock<RelationQueueItem>(rqi => FactorRelation(rqi));
          _actionSingleton = new ActionBlock<TPRelation>(tpr => AddSingletonRelation(tpr));
          _actionInsertMainGraph = new ActionBlock<TPRelation>(tpr => AddPartialRelationToMainGraph(tpr));
-
-         _queueInput.LinkTo(_actionFactor);
-         _queueInput.Completion.ContinueWith(delegate { _actionFactor.Complete(); } );
-
-         _actionFactor.Completion.ContinueWith(delegate { _actionSingleton.Complete(); });
-
-         _actionSingleton.Completion.ContinueWith(delegate { _actionInsertMainGraph.Complete(); });
       }
 
-      private void StopFactorTask()
+      private void StopBackgroundTasks()
       {
-         _queueInput?.Complete();
+         _actionSingleton?.Complete();
+         _actionSingleton?.Completion.Wait();
+         _actionInsertMainGraph?.Complete();
          _actionInsertMainGraph?.Completion.Wait();
-         _queueInput = null;
-         _actionFactor = null;
          _actionSingleton = null;
          _actionInsertMainGraph = null;
       }
+      #endregion
 
+      #region Factoring of incoming residuals
       /// <summary>
       /// Factors residuals and creates TPRelation objects.
       /// </summary>
-      /// <param name="item"></param>
+      /// <param name="QofX"></param>
+      /// <param name="x"></param>
+      /// <param name="exponentVector"></param>
+      /// <param name="residual"></param>
       /// <exception cref="ApplicationException">The failure of an invariant implies a bug.</exception>
       /// <remarks>
       /// <para>
-      /// This method runs in the _actionFactor's Task.
+      /// This method runs in a Sieving Task.
       /// </para>
       /// </remarks>
-      private void FactorRelation(RelationQueueItem item)
+      private void FactorRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector, BigInteger residual)
       {
-         int queueLen = _actionFactor!.InputCount;
-         _maxFactorQueueLength = Math.Max(queueLen, _maxFactorQueueLength);
-
-         if (item.Residual == BigInteger.One)
+         if (residual == BigInteger.One)
          {
             // Add a fully factored Relation.
-            Relation newRelation = new Relation(item.QofX, item.X, item.ExponentVector);
+            Relation newRelation = new Relation(QofX, x, exponentVector);
             lock (_lockRelations)
                _relations.Add(newRelation);
             return;
          }
-         else if (item.Residual < _maxFactor)
+         else if (residual < _maxFactor)
          {
             // We occasionally see residual values that equal the multiplier.
             // Discard these.
             return;
          }
-         else if (item.Residual <= _maxSinglePrime)
+         else if (residual <= _maxSinglePrime)
          {
             // If the Single Large Prime is too large, discard it.
-            if (item.Residual > _maxLargePrime)
+            if (residual > _maxLargePrime)
                return;
 
-            TPRelation relation = new TPRelation(item.QofX, item.X, item.ExponentVector,
-               new long[] { (long)item.Residual });
+            TPRelation relation = new TPRelation(QofX, x, exponentVector,
+               new long[] { (long)residual });
             _actionSingleton!.Post(relation);
             return;
          }
-         else if (item.Residual <= _maxTwoPrimes && !Primes.IsPrime(item.Residual))
+         else if (residual <= _maxTwoPrimes && !Primes.IsPrime(residual))
          {
             PollardRho rho = new PollardRho();
-            (BigInteger p1, BigInteger p2) = rho.Factor(item.Residual);
+            (BigInteger p1, BigInteger p2) = rho.Factor(residual);
 
             // If either factor is larger than _maxLargePrime, discard.
             if (p1 > _maxLargePrime || p2 > _maxLargePrime)
@@ -375,23 +341,23 @@ namespace Friendly.Library.QuadraticSieve
 
             if (p1 != p2)
             {
-               TPRelation relation = new TPRelation(item.QofX, item.X, item.ExponentVector,
+               TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)p1, (long)p2 });
                _actionInsertMainGraph!.Post(relation);
                return;
             }
             else
             {
-               Relation newRelation = new Relation(item.QofX, item.X, item.ExponentVector, RelationOrigin.TwoLargePrimes);
+               Relation newRelation = new Relation(QofX, x, exponentVector, RelationOrigin.TwoLargePrimes);
                lock(_lockRelations)
                   _relations.Add(newRelation);
                return;
             }
          }
-         else if (item.Residual < _maxThreePrimes && !Primes.IsPrime(item.Residual))
+         else if (residual < _maxThreePrimes && !Primes.IsPrime(residual))
          {
             PollardRho rho = new PollardRho();
-            (BigInteger f1, BigInteger f2) = rho.Factor(item.Residual);
+            (BigInteger f1, BigInteger f2) = rho.Factor(residual);
             BigInteger f3;
             bool f1Prime = Primes.IsPrime(f1);
             bool f2Prime = Primes.IsPrime(f2);
@@ -426,28 +392,28 @@ namespace Friendly.Library.QuadraticSieve
             // Check if a prime occurs twice
             if (f1 == f2)
             {
-               TPRelation relation = new TPRelation(item.QofX, item.X, item.ExponentVector,
+               TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f3 }, RelationOrigin.ThreeLargePrimes);
                _actionInsertMainGraph!.Post(relation);
                return;
             }
             else if (f1 == f3)
             {
-               TPRelation relation = new TPRelation(item.QofX, item.X, item.ExponentVector,
+               TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f2 }, RelationOrigin.ThreeLargePrimes);
                _actionInsertMainGraph!.Post(relation);
                return;
             }
             else if (f2 == f3)
             {
-               TPRelation relation = new TPRelation(item.QofX, item.X, item.ExponentVector,
+               TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f1 }, RelationOrigin.ThreeLargePrimes);
                _actionInsertMainGraph!.Post(relation);
                return;
             }
             else
             {
-               TPRelation relation = new TPRelation(item.QofX, item.X, item.ExponentVector,
+               TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f1, (long)f2, (long)f3 });
                _actionInsertMainGraph!.Post(relation);
                return;
@@ -824,7 +790,7 @@ namespace Friendly.Library.QuadraticSieve
       {
          // Finish the Factoring Queue.  This may result in slightly more
          // Relations than counted when finishing Sieving.
-         StopFactorTask();
+         StopBackgroundTasks();
 
          CombineRelations();
 
@@ -1016,8 +982,6 @@ namespace Friendly.Library.QuadraticSieve
          rv.Add(new Statistic("ComponentsLoad", ((float)_componentCount) / _components.EnsureCapacity(0)));
          rv.Add(new Statistic("RelationsByPrimesLoad", ((float)_relationsByPrimes.Count) / _relationsByPrimes.EnsureCapacity(0)));
          rv.Add(new Statistic("PrimesByRelationLoad", ((float)_primesByRelation.Count) / _primesByRelation.EnsureCapacity(0)));
-         rv.Add(new Statistic("MaxInputQueueLength", _maxInputQueueLength));
-         rv.Add(new Statistic("MaxFactorQueueLength", _maxFactorQueueLength));
          rv.Add(new Statistic("MaxSingletonQueueLength", _maxSingletonQueueLength));
          rv.Add(new Statistic("MaxInsertQueueLength", _maxInsertQueueLength));
 
@@ -1033,16 +997,13 @@ namespace Friendly.Library.QuadraticSieve
       /// <inheritdoc />
       public void PrepareToResieve()
       {
-         StartFactorTask();
+         StartBackgroundTasks();
       }
 
       /// <inheritdoc />
       public void TryAddRelation(BigInteger QofX, BigInteger x, BigBitArray exponentVector, BigInteger residual)
       {
-         RelationQueueItem item = new RelationQueueItem(QofX, x, exponentVector, residual);
-         _queueInput!.Post(item);
-         int queueLen = _queueInput!.Count;
-         _maxInputQueueLength = Math.Max(queueLen, _maxInputQueueLength);
+         FactorRelation(QofX, x, exponentVector, residual);
       }
    }
 }
