@@ -54,56 +54,25 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       private readonly BigInteger _maxThreePrimes;
 
-      /// <summary>
-      /// The current count of components within the Graph.
-      /// </summary>
+      //====================================================================
+      // BEGIN member data for cycle counting
+      private int _count;
+      private int _nextCountThreshold;
+      private readonly int _incrementCountThreshold;
       private int _componentCount;
-
       private int _edgeCount;
-
-      /// <summary>
-      /// This Dictionary maps each prime (the key) to the component containing
-      /// it.
-      /// </summary>
-      /// <remarks>
-      /// <para>
-      /// A Union-Find algorithm is used to merge components.  The "root"
-      /// of the tree is essentially chosen arbitrarily (the first Vertex found
-      /// for that component).  The Key is any prime within the Graph.  The
-      /// Value is the Vertex (Prime) chosen to be the root of that Component.
-      /// </para>
-      /// </remarks>
-      private readonly Dictionary<long, long> _components;
-
-      //====================================================================
-      // BEGIN member data for dataflow blocks
-      private ActionBlock<TPRelation>? _actionSingleton;
-      private int _maxSingletonQueueLength = 0;
-
-      private ActionBlock<TPRelation>? _actionInsertMainGraph;
-      private int _maxInsertQueueLength = 0;
-      // END member data for dataflow blocks
+      private readonly object _lockCount = new object();
+      private Task? _taskCount = null;
+      // END member data for cycle counting
       //====================================================================
 
       //====================================================================
-      // BEGIN member data for tracking and promoting singletons
-      private readonly List<TPRelation> _singletons;
-
-      private int _singletonRetryIndex = 0;
-      // END member data for tracking and promoting singletons.
-      //====================================================================
-
-      //====================================================================
-      // BEGIN member data for the "Main Graph"
-      /// <summary>
-      /// This stores lists of TPRelation objects keyed by one of the primes
-      /// contained in it.  Each TPRelation is entered once for each prime it
-      /// contains.
-      /// </summary>
-      private Dictionary<long, List<TPRelation>> _relationsByPrimes;
-
-      private Dictionary<TPRelation, TwoRecords> _primesByRelation;
-      // END member data for the "Main Graph"
+      // BEGIN member data for tracking partial relations
+      private readonly List<TPRelation> _singletons = new();
+      private readonly List<TPRelation> _doubles = new();
+      private readonly List<TPRelation> _triples = new();
+      private readonly object _lockPartials = new object();
+      // END member data for tracking partial relations
       //====================================================================
 
       private const int InitialCapacity = 1 << 18;
@@ -115,10 +84,6 @@ namespace Friendly.Library.QuadraticSieve
       private const string ThreeLargePrimeNodeName = "maxThreeLargePrimes";
       private const string StatisticsNodeName = "statistics";
       private const string StatisticNodeName = "statistic";
-      private const string MaxQueueLengthStatName = "maxqueuelength";
-      private const string MaxFactorQueueLengthStatName = "maxfactorqueuelength";
-      private const string MaxSingletonQueueLengthStatName = "maxsingletonqueuelength";
-      private const string MaxInsertQueueLengthStatName = "maxinsertqueuelength";
       private const string RelationsNodeName = "relations";
       private const string PartialRelationsNodeName = "partialrelations";
 
@@ -138,14 +103,11 @@ namespace Friendly.Library.QuadraticSieve
          _maxTwoPrimes = _maxSinglePrime * _maxFactor;
          _maxThreePrimes = ((BigInteger)_maxTwoPrimes) * _maxFactor;
 
-         StartBackgroundTasks();
+         _count = 0;
+         _incrementCountThreshold = _factorBaseSize / 10;
+         _nextCountThreshold = _incrementCountThreshold;
 
-         _edgeCount = 0;
-         _componentCount = 0;
-         _components = new Dictionary<long, long>(InitialCapacity);
-         _singletons = new List<TPRelation>(InitialCapacity);
-         _relationsByPrimes = new Dictionary<long, List<TPRelation>>(InitialCapacity);
-         _primesByRelation = new Dictionary<TPRelation, TwoRecords>(InitialCapacity);
+         StartBackgroundTasks();
       }
 
       /// <summary>
@@ -175,14 +137,16 @@ namespace Friendly.Library.QuadraticSieve
          _maxThreePrimes = SerializeHelper.ParseBigIntegerNode(rdr);
          rdr.ReadEndElement();
 
+         _count = 0;
+         _incrementCountThreshold = _factorBaseSize / 10;
+         _nextCountThreshold = _incrementCountThreshold;
+
          // Restore stats that we need to round trip
          List<Statistic> statistics = new();
          rdr.ReadStartElement(StatisticsNodeName);
          while (rdr.IsStartElement(StatisticNodeName))
             statistics.Add(new Statistic(rdr));
          rdr.ReadEndElement();
-         _maxSingletonQueueLength = (int)(statistics.Where(s => s.Name == MaxSingletonQueueLengthStatName).First().Value);
-         _maxInsertQueueLength = (int)(statistics.Where(s => s.Name == MaxInsertQueueLengthStatName).First().Value);
 
          // Read the full Relations
          _relations = new();
@@ -191,27 +155,21 @@ namespace Friendly.Library.QuadraticSieve
             _relations.Add(new Relation(rdr));
          rdr.ReadEndElement();
 
-         // Initialize the Graph
-         _edgeCount = 0;
-         _componentCount = 0;
-         _components = new Dictionary<long, long>(InitialCapacity);
-         _singletons = new List<TPRelation>(InitialCapacity);
-         _relationsByPrimes = new Dictionary<long, List<TPRelation>>(InitialCapacity);
-         _primesByRelation = new Dictionary<TPRelation, TwoRecords>(InitialCapacity);
-
          // Read the Partial relations (1-, 2-, and 3-prime relations)
+         // NOTE: _singletons was sorted prior to writing to the save file, so
+         //     it is sorted when read back.
          rdr.ReadStartElement(PartialRelationsNodeName);
          while (rdr.IsStartElement("r"))
          {
             TPRelation tpr = new TPRelation(rdr);
             if (tpr.Count == 1)
-               AddSingletonRelation(tpr);
+               _singletons.Add(tpr);
+            else if (tpr.Count == 2)
+               _doubles.Add(tpr);
             else
-               AddPartialRelationToMainGraph(tpr);
+               _triples.Add(tpr);
          }
          rdr.ReadEndElement();
-
-         CombineRelations();
 
          StartBackgroundTasks();
 
@@ -237,10 +195,6 @@ namespace Friendly.Library.QuadraticSieve
          writer.WriteElementString(ThreeLargePrimeNodeName, _maxThreePrimes.ToString());
 
          writer.WriteStartElement(StatisticsNodeName);
-         Statistic statistic = new Statistic(MaxSingletonQueueLengthStatName, _maxSingletonQueueLength);
-         statistic.Serialize(writer, StatisticNodeName);
-         statistic = new Statistic(MaxInsertQueueLengthStatName, _maxInsertQueueLength);
-         statistic.Serialize(writer, StatisticNodeName);
          writer.WriteEndElement();
 
          writer.WriteStartElement(RelationsNodeName);
@@ -248,16 +202,12 @@ namespace Friendly.Library.QuadraticSieve
             r.Serialize(writer, "r");
          writer.WriteEndElement();
 
-         HashSet<TPRelation> uniquePartials = new(2 * _singletons.Count);
-         foreach (TPRelation tpr in _singletons)
-            uniquePartials.Add(tpr);
-         foreach (TwoRecords tr in _primesByRelation.Values)
-            foreach (TPRelation tpr in tr)
-               if (!uniquePartials.Contains(tpr))
-                  uniquePartials.Add(tpr);
-
          writer.WriteStartElement(PartialRelationsNodeName);
-         foreach (TPRelation tpr in uniquePartials)
+         foreach (TPRelation tpr in _singletons)
+            tpr.Serialize(writer, "r");
+         foreach (TPRelation tpr in _doubles)
+            tpr.Serialize(writer, "r");
+         foreach (TPRelation tpr in _triples)
             tpr.Serialize(writer, "r");
          writer.WriteEndElement();
 
@@ -274,18 +224,14 @@ namespace Friendly.Library.QuadraticSieve
       #region Control of Background Tasks
       private void StartBackgroundTasks()
       {
-         _actionSingleton = new ActionBlock<TPRelation>(tpr => AddSingletonRelation(tpr));
-         _actionInsertMainGraph = new ActionBlock<TPRelation>(tpr => AddPartialRelationToMainGraph(tpr));
+         // We do not start the _taskCount here.
       }
 
       private void StopBackgroundTasks()
       {
-         _actionSingleton?.Complete();
-         _actionSingleton?.Completion.Wait();
-         _actionInsertMainGraph?.Complete();
-         _actionInsertMainGraph?.Completion.Wait();
-         _actionSingleton = null;
-         _actionInsertMainGraph = null;
+         _taskCount?.Wait();
+         _taskCount?.Dispose();
+         _taskCount = null;
       }
       #endregion
 
@@ -327,7 +273,7 @@ namespace Friendly.Library.QuadraticSieve
 
             TPRelation relation = new TPRelation(QofX, x, exponentVector,
                new long[] { (long)residual });
-            _actionSingleton!.Post(relation);
+            AddSingletonRelation(relation);
             return;
          }
          else if (residual <= _maxTwoPrimes && !Primes.IsPrime(residual))
@@ -343,7 +289,7 @@ namespace Friendly.Library.QuadraticSieve
             {
                TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)p1, (long)p2 });
-               _actionInsertMainGraph!.Post(relation);
+               _doubles.Add(relation);
                return;
             }
             else
@@ -394,28 +340,31 @@ namespace Friendly.Library.QuadraticSieve
             {
                TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f3 }, RelationOrigin.ThreeLargePrimes);
-               _actionInsertMainGraph!.Post(relation);
+               lock(_lockPartials)
+                  _singletons.Add(relation);
                return;
             }
             else if (f1 == f3)
             {
                TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f2 }, RelationOrigin.ThreeLargePrimes);
-               _actionInsertMainGraph!.Post(relation);
+               lock (_lockPartials)
+                  _singletons.Add(relation);
                return;
             }
             else if (f2 == f3)
             {
                TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f1 }, RelationOrigin.ThreeLargePrimes);
-               _actionInsertMainGraph!.Post(relation);
+               lock (_lockPartials)
+                  _singletons.Add(relation);
                return;
             }
             else
             {
                TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f1, (long)f2, (long)f3 });
-               _actionInsertMainGraph!.Post(relation);
+               _triples.Add(relation);
                return;
             }
          }
@@ -434,16 +383,18 @@ namespace Friendly.Library.QuadraticSieve
       /// </remarks>
       private void AddSingletonRelation(TPRelation relation)
       {
-         int queueLen = _actionSingleton?.InputCount ?? 0;
-         _maxSingletonQueueLength = Math.Max(queueLen, _maxSingletonQueueLength);
+         int index;
 
-         int index = _singletons.BinarySearch(relation, new CompareSingletons());
+         lock (_lockPartials)
+            index = _singletons.BinarySearch(relation, new CompareSingletons());
 
          if (index >= 0)
          {
             // The new Singleton matches an existing one, so create a full
             // relation.
-            TPRelation otherRelation = _singletons[index];
+            TPRelation otherRelation;
+            lock (_lockPartials)
+               otherRelation = _singletons[index];
             BigInteger qOfX = relation.QOfX * otherRelation.QOfX;
             BigInteger x = relation.X * otherRelation.X;
             BigBitArray exponentVector = new BigBitArray(relation.ExponentVector);
@@ -456,26 +407,8 @@ namespace Friendly.Library.QuadraticSieve
          {
             // The new Singleton is not present in the list of Singletons; add it.
             index ^= ~0;
-            _singletons.Insert(index, relation);
-         }
-
-         CombineOneSingleton(relation);
-
-         // If we don't have very many Singleton relations yet, do not retry
-         // inserting them into the main graph.
-         if (_singletons.Count < 1000)
-            return;
-
-         // Only retry main graph re-insertion so long as no new singleton
-         // relations show up.
-         int retryCount = 0;
-         while ((_actionSingleton?.InputCount ?? int.MaxValue) == 0 && retryCount < 10)
-         {
-            CombineOneSingleton(_singletons[_singletonRetryIndex]);
-            retryCount++;
-            _singletonRetryIndex++;
-            if (_singletonRetryIndex == _singletons.Count)
-               _singletonRetryIndex = 0;
+            lock (_lockPartials)
+               _singletons.Insert(index, relation);
          }
       }
 
@@ -493,75 +426,133 @@ namespace Friendly.Library.QuadraticSieve
          }
       }
 
-      /// <summary>
-      /// Adds a Partial Relation to the Main Graph.
-      /// </summary>
-      /// <param name="relation"></param>
-      /// <exception cref="ApplicationException">Violation of an invariant implies a bug.</exception>
-      /// <remarks>
-      /// <para>
-      /// This runs in the _actionInsertMainGraph Action Block.  It is also
-      /// called on the main thread during construction when resuming from
-      /// saved state.
-      /// </para>
-      /// </remarks>
-      private void AddPartialRelationToMainGraph(TPRelation relation)
+      private void CountCycles()
       {
-         int queueLen = _actionInsertMainGraph?.InputCount ?? 0;
-         _maxInsertQueueLength = Math.Max(queueLen, _maxInsertQueueLength);
+         List<TPRelation> tmpList;
+         List<TPRelation> singletons;
+         List<TPRelation> doubles;
+         List<TPRelation> triples;
+         int sz;
 
-         // Add to the Hash tables
-         foreach (long p in relation)
+         lock (_lockPartials)
          {
-            List<TPRelation>? lstRelations;
-            if (!_relationsByPrimes.TryGetValue(p, out lstRelations))
+            singletons = new List<TPRelation>(_singletons.Count);
+            singletons.AddRange(_singletons);
+            doubles = new List<TPRelation>(_doubles.Count);
+            doubles.AddRange(_doubles);
+            triples = new List<TPRelation>(_triples.Count);
+            triples.AddRange(_triples);
+         }
+
+         bool changes;
+         int usefulPrimeCount;
+
+         do
+         {
+            changes = false;
+
+            sz = singletons.Count + doubles.Count + triples.Count;
+            Dictionary<long, int> usefulPrimes = new Dictionary<long, int>(sz);
+
+            // Count primes
+            // singletons was constructed to contain only unique primes.
+            foreach (TPRelation tpr in singletons)
+               usefulPrimes.Add(tpr[0], 1);
+            foreach (TPRelation tpr in doubles)
             {
-               lstRelations = new();
-               _relationsByPrimes.Add(p, lstRelations);
+               CountPrime(usefulPrimes, tpr[0]);
+               CountPrime(usefulPrimes, tpr[1]);
             }
-            lstRelations.Add(relation);
-         }
+            foreach (TPRelation tpr in triples)
+            {
+               CountPrime(usefulPrimes, tpr[0]);
+               CountPrime(usefulPrimes, tpr[1]);
+               CountPrime(usefulPrimes, tpr[2]);
+            }
 
-         _primesByRelation.Add(relation, new TwoRecords(relation));
+            // Build new Lists containing only "useful" primes
+            tmpList = new List<TPRelation>(singletons.Count);
+            tmpList.AddRange(singletons.Where(x => usefulPrimes[x[0]] > 1));
+            changes |= (tmpList.Count != singletons.Count);
+            singletons = tmpList;
 
-         // Add the edges, so we can count Components.
-         switch(relation.Count)
+            tmpList = new List<TPRelation>(doubles.Count);
+            tmpList.AddRange(doubles.Where(x => usefulPrimes[x[0]] > 1 && usefulPrimes[x[1]] > 1));
+            changes |= (tmpList.Count != doubles.Count);
+            doubles = tmpList;
+
+            tmpList = new List<TPRelation>(triples.Count);
+            tmpList.AddRange(triples.Where(x => usefulPrimes[x[0]] > 1 && usefulPrimes[x[1]] > 1 && usefulPrimes[x[2]] > 1));
+            changes |= (tmpList.Count != triples.Count);
+            triples = tmpList;
+
+            usefulPrimeCount = usefulPrimes.Count;
+         } while (changes);
+
+         // Count components
+         sz = singletons.Count + doubles.Count + triples.Count;
+         Dictionary<long, long> components = new(sz);
+         int componentCount = 0;
+         int edgeCount = 0;
+         components.Add(1, 1);
+
+         foreach(TPRelation tpr in singletons)
+            Union(1, tpr[0], components, ref componentCount);
+         edgeCount = 3 * singletons.Count;
+
+         foreach(TPRelation tpr in doubles)
          {
-            case 1:
-               Union(1, relation[0]);
-               _edgeCount++;
-               break;
-
-            case 2:
-               Union(relation[0], relation[1]);
-               _edgeCount ++;
-               break;
-
-            case 3:
-               Union(relation[0], relation[1]);
-               Union(relation[0], relation[2]);
-               Union(relation[1], relation[2]);
-               _edgeCount += 3;
-               break;
-
-            default:
-               throw new ApplicationException();
+            Union(1, tpr[0], components, ref componentCount);
+            Union(1, tpr[1], components, ref componentCount);
+            Union(tpr[0], tpr[1], components, ref componentCount);
+            edgeCount += 3;
          }
+
+         foreach (TPRelation tpr in triples)
+         {
+            Union(tpr[0], tpr[1], components, ref componentCount);
+            Union(tpr[0], tpr[2], components, ref componentCount);
+            Union(tpr[1], tpr[2], components, ref componentCount);
+            edgeCount += 3;
+         }
+
+         int count = componentCount + edgeCount - usefulPrimeCount
+            - 2 * (singletons.Count + doubles.Count + triples.Count);
+         if (count < 0)
+            throw new ApplicationException();
+
+         lock(_lockCount)
+         {
+            _count = count;
+            _nextCountThreshold += _incrementCountThreshold;
+            _componentCount = componentCount;
+            _edgeCount = edgeCount;
+         }
+      }
+
+      private static void CountPrime(Dictionary<long, int> usefulPrimes, long prime)
+      {
+         if (usefulPrimes.ContainsKey(prime))
+            usefulPrimes[prime]++;
+         else
+            usefulPrimes.Add(prime, 1);
       }
 
       /// <summary>
       /// Finds the "root" of the current set (component) of vertices.
       /// </summary>
       /// <param name="prime">The prime to find the root of.</param>
+      /// <param name="components"></param>
+      /// <param name="componentCount"></param>
       /// <returns>The prime which is serving as the root of the given prime's component.</returns>
-      private long Find(long prime)
+      private static long Find(long prime, Dictionary<long, long> components, ref int componentCount)
       {
          // Is this prime already in the Graph?
-         if (!_components.ContainsKey(prime))
+         if (!components.ContainsKey(prime))
          {
             // Add the new component as its own root.
-            _componentCount++;
-            _components.Add(prime, prime);
+            componentCount++;
+            components.Add(prime, prime);
             return prime;
          }
 
@@ -569,15 +560,15 @@ namespace Friendly.Library.QuadraticSieve
          // ancestors.
          List<long> ancestors = new();
          long r = prime;
-         while (_components[r] != r)
+         while (components[r] != r)
          {
             ancestors.Add(r);
-            r = _components[r];
+            r = components[r];
          }
 
          // Update all intermediate ancestors to point to the root.
          foreach (long p in ancestors)
-            _components[p] = r;
+            components[p] = r;
 
          return r;
       }
@@ -587,10 +578,12 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="p1">A prime representing the first component.</param>
       /// <param name="p2">A prime representing the second component.</param>
-      private void Union(long p1, long p2)
+      /// <param name="components"></param>
+      /// <param name="componentCount"></param>
+      private static void Union(long p1, long p2, Dictionary<long, long> components, ref int componentCount)
       {
-         long r1 = Find(p1);
-         long r2 = Find(p2);
+         long r1 = Find(p1, components, ref componentCount);
+         long r2 = Find(p2, components, ref componentCount);
 
          // Are they already part of the same component?
          if (r1 == r2)
@@ -611,8 +604,8 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          // Merge the r2 component into the r1 component.
-         _components[r2] = r1;
-         _componentCount--;
+         components[r2] = r1;
+         componentCount--;
       }
       #endregion
 
@@ -781,15 +774,39 @@ namespace Friendly.Library.QuadraticSieve
             //   C + R - P
             // just as in the Two Large Primes case.
 
-            return _relations.Count + _componentCount + _edgeCount - _relationsByPrimes.Count;
+            // Is it time to count again?
+            int partialsCount;
+            lock (_lockPartials)
+               partialsCount = _singletons.Count + _doubles.Count + _triples.Count;
+            if (partialsCount > _nextCountThreshold)
+            {
+               _taskCount = Task.Run(CountCycles);
+               _taskCount.ContinueWith((task) =>
+               {
+                  _taskCount?.Wait();   // bizarre, but we get intermittent
+                                        // InvalidOperation exceptions from
+                                        // Dispose due to _taskCount not being
+                                        // completed!
+                  _taskCount?.Dispose();
+                  _taskCount = null;
+               });
+            }
+
+            int rv;
+            lock (_lockRelations)
+               rv = _relations.Count;
+            lock (_lockCount)
+               rv += _count;
+
+            return rv;
          }
       }
 
       /// <inheritdoc />
       public IMatrix GetMatrix(IMatrixFactory matrixFactory)
       {
-         // Finish the Factoring Queue.  This may result in slightly more
-         // Relations than counted when finishing Sieving.
+         // This may result in slightly more Relations than counted when
+         // finishing Sieving.
          StopBackgroundTasks();
 
          CombineRelations();
@@ -818,23 +835,23 @@ namespace Friendly.Library.QuadraticSieve
       /// </para>
       /// <para>
       /// Note that Relations of the form (1, p, p) were combined into full
-      /// Relations during Sieving, and not entered into the Graph.
+      /// Relations during Sieving, and not entered into the lists.
       /// </para>
       /// <para>
-      /// For Relations of the form (1, 1, p), the first was kept in the Graph.
+      /// For Relations of the form (1, 1, p), the first was kept in the _singletons.
       /// Subsequent matching Relations were combined and entered into _relations.
-      /// </para>
-      /// <para>
-      /// The Hash Tables relations-by-primes and primes-by-relations were
-      /// constructed during sieving.
       /// </para>
       /// </remarks>
       private void CombineRelations()
       {
+         Dictionary<long, List<TPRelation>> relationsByPrimes;
+         Dictionary<TPRelation, TwoRecords> primesByRelation;
+         BuildHashTables(out relationsByPrimes, out primesByRelation);
+
          // We only need to make one pass through the Singletons table as
          // all possible matches with them will be made in one pass.
          foreach (TPRelation singleton in _singletons)
-            CombineOneSingleton(singleton);
+            CombineOneSingleton(singleton, relationsByPrimes, primesByRelation);
 
          bool noChanges = false;
          while (!noChanges)
@@ -842,9 +859,41 @@ namespace Friendly.Library.QuadraticSieve
             noChanges = true;
 
             // linear sweep through pbr table
-            foreach (TPRelation r0 in _primesByRelation.Keys)
-               if (CombineOneRelation(r0))
+            foreach (TPRelation r0 in primesByRelation.Keys)
+               if (CombineOneRelation(r0, relationsByPrimes, primesByRelation))
                   noChanges = false;
+         }
+      }
+
+      private void BuildHashTables(out Dictionary<long, List<TPRelation>> relationsByPrimes,
+         out Dictionary<TPRelation, TwoRecords> primesByRelation)
+      {
+         int sz = 5 * (_doubles.Count + _triples.Count) / 4;
+         relationsByPrimes = new(sz);
+         primesByRelation = new(sz);
+
+         AddRelationsToDictionaries(_doubles, relationsByPrimes, primesByRelation);
+         AddRelationsToDictionaries(_triples, relationsByPrimes, primesByRelation);
+      }
+
+      private void AddRelationsToDictionaries(List<TPRelation> relations,
+         Dictionary<long, List<TPRelation>> relationsByPrimes,
+         Dictionary<TPRelation, TwoRecords> primesByRelation)
+      {
+         foreach(TPRelation relation in relations)
+         {
+            foreach (long p in relation)
+            {
+               List<TPRelation>? lstRelations;
+               if (!relationsByPrimes.TryGetValue(p, out lstRelations))
+               {
+                  lstRelations = new();
+                  relationsByPrimes.Add(p, lstRelations);
+               }
+               lstRelations.Add(relation);
+            }
+
+            primesByRelation.Add(relation, new TwoRecords(relation));
          }
       }
 
@@ -853,11 +902,13 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="r0"></param>
       /// <returns>true if changes were made; false otherwise.</returns>
-      private bool CombineOneRelation(TPRelation r0)
+      private bool CombineOneRelation(TPRelation r0,
+         Dictionary<long, List<TPRelation>> relationsByPrimes,
+         Dictionary<TPRelation, TwoRecords> primesByRelation)
       {
          bool rv = false;
          List<TPRelation> removeFromList = new();
-         TwoRecords tr0 = _primesByRelation[r0];
+         TwoRecords tr0 = primesByRelation[r0];
 
          // Ref. D contains the phrase "If the relation r0 is a 'par'".
          // Here this is interpreted not as the Relation r0, but rather as
@@ -866,7 +917,7 @@ namespace Friendly.Library.QuadraticSieve
             return false;
 
          long unmatchedPrime0 = tr0.GetUnmatchedPrime();
-         foreach (TPRelation ri in _relationsByPrimes[unmatchedPrime0])
+         foreach (TPRelation ri in relationsByPrimes[unmatchedPrime0])
          {
             // We must not try to combine r0 with itself.
             if (ri == r0)
@@ -874,7 +925,7 @@ namespace Friendly.Library.QuadraticSieve
 
             // Here, we interpret the phrase "if the relation ri is a 'par'"
             // as "if the chain associated with ri has an unmatched prime count of 1".
-            TwoRecords tri = _primesByRelation[ri];
+            TwoRecords tri = primesByRelation[ri];
             if (tri.UnmatchedPrimeCount == 1)
             {
                long unmatchedPrime1 = tri.GetUnmatchedPrime();
@@ -900,14 +951,14 @@ namespace Friendly.Library.QuadraticSieve
          }
 
          // Mark r0 for deletion from primes-by-relations
-         _primesByRelation.Remove(r0);
+         primesByRelation.Remove(r0);
 
          // Delete r0 from the list keyed by unmatchedPrime0
-         _relationsByPrimes[unmatchedPrime0].Remove(r0);
+         relationsByPrimes[unmatchedPrime0].Remove(r0);
 
          // Remove any ri that were combined with r0
          foreach (TPRelation remove in removeFromList)
-            _relationsByPrimes[unmatchedPrime0].Remove(remove);
+            relationsByPrimes[unmatchedPrime0].Remove(remove);
 
          return rv;
       }
@@ -917,21 +968,23 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="r0"></param>
       /// <returns>true if changes were made; false otherwise.</returns>
-      private bool CombineOneSingleton(TPRelation r0)
+      private bool CombineOneSingleton(TPRelation r0,
+         Dictionary<long, List<TPRelation>> relationsByPrimes,
+         Dictionary<TPRelation, TwoRecords> primesByRelation)
       {
          bool rv = false;
          List<TPRelation> removeFromList = new();
          List<TPRelation>? relations;
          long unmatchedPrime0 = r0[0];
 
-         if (!_relationsByPrimes.TryGetValue(unmatchedPrime0, out relations))
+         if (!relationsByPrimes.TryGetValue(unmatchedPrime0, out relations))
             return false;
 
          foreach (TPRelation ri in relations)
          {
             // Here, we interpret the phrase "if the relation ri is a 'par'"
             // as "if the chain associated with ri has an unmatched prime count of 1".
-            TwoRecords tri = _primesByRelation[ri];
+            TwoRecords tri = primesByRelation[ri];
             if (tri.UnmatchedPrimeCount == 1)
             {
                long unmatchedPrime1 = tri.GetUnmatchedPrime();
@@ -979,11 +1032,6 @@ namespace Friendly.Library.QuadraticSieve
          rv.Add(new Statistic(StatisticNames.ThreeLargePrimes, counts[3]));
          rv.Add(new Statistic("Components", _componentCount));
          rv.Add(new Statistic("Edges", _edgeCount));
-         rv.Add(new Statistic("ComponentsLoad", ((float)_componentCount) / _components.EnsureCapacity(0)));
-         rv.Add(new Statistic("RelationsByPrimesLoad", ((float)_relationsByPrimes.Count) / _relationsByPrimes.EnsureCapacity(0)));
-         rv.Add(new Statistic("PrimesByRelationLoad", ((float)_primesByRelation.Count) / _primesByRelation.EnsureCapacity(0)));
-         rv.Add(new Statistic("MaxSingletonQueueLength", _maxSingletonQueueLength));
-         rv.Add(new Statistic("MaxInsertQueueLength", _maxInsertQueueLength));
 
          return rv.ToArray();
       }

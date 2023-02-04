@@ -32,10 +32,10 @@ namespace Friendly.Library.QuadraticSieve
          new ParameterTableEntry(72,  8_500, 500_000, 2.35, 17, LargePrimeStrategy.TwoLargePrimes),
          new ParameterTableEntry(78, 13_750, 600_000, 2.35, 17, LargePrimeStrategy.TwoLargePrimes),
          // wild guesses below here.
-         new ParameterTableEntry(84,  15_000,   700_000, 2.35, 17, LargePrimeStrategy.TwoLargePrimes),
-         new ParameterTableEntry(90,  20_000,   800_000, 2.35, 17, LargePrimeStrategy.TwoLargePrimes),
-         new ParameterTableEntry(96,  25_000,   900_000, 2.35, 17, LargePrimeStrategy.TwoLargePrimes),
-         new ParameterTableEntry(102, 30_000, 1_000_000, 2.35, 17, LargePrimeStrategy.TwoLargePrimes)
+         new ParameterTableEntry(84,  15_000,   700_000, 3.2, 17, LargePrimeStrategy.ThreeLargePrimes),
+         new ParameterTableEntry(90,  20_000,   800_000, 3.2, 17, LargePrimeStrategy.ThreeLargePrimes),
+         new ParameterTableEntry(96,  25_000,   900_000, 3.2, 17, LargePrimeStrategy.ThreeLargePrimes),
+         new ParameterTableEntry(102, 30_000, 1_000_000, 3.2, 17, LargePrimeStrategy.ThreeLargePrimes)
       };
 
       private int GetIndex(int numDigits)
