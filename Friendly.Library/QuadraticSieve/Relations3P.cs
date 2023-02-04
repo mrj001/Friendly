@@ -489,10 +489,17 @@ namespace Friendly.Library.QuadraticSieve
             usefulPrimeCount = usefulPrimes.Count;
          } while (changes);
 
-         // Count components
          sz = singletons.Count + doubles.Count + triples.Count;
+         if (sz == 0)
+         {
+            lock(_lockCount)
+               _nextCountThreshold += _incrementCountThreshold;
+            return;
+         }
+
+         // Count components
          Dictionary<long, long> components = new(sz);
-         int componentCount = 0;
+         int componentCount = 1;
          int edgeCount = 0;
          components.Add(1, 1);
 
@@ -505,19 +512,21 @@ namespace Friendly.Library.QuadraticSieve
             Union(1, tpr[0], components, ref componentCount);
             Union(1, tpr[1], components, ref componentCount);
             Union(tpr[0], tpr[1], components, ref componentCount);
-            edgeCount += 3;
          }
+         edgeCount += 3 * doubles.Count;
 
          foreach (TPRelation tpr in triples)
          {
             Union(tpr[0], tpr[1], components, ref componentCount);
             Union(tpr[0], tpr[2], components, ref componentCount);
             Union(tpr[1], tpr[2], components, ref componentCount);
-            edgeCount += 3;
          }
+         edgeCount += 3 * triples.Count;
 
-         int count = componentCount + edgeCount - usefulPrimeCount
-            - 2 * (singletons.Count + doubles.Count + triples.Count);
+         // The formula from Ref. D can be simplified as follows:
+         //int count = componentCount + edgeCount - usefulPrimeCount
+         //   - 2 * (singletons.Count + doubles.Count + triples.Count);
+         int count = componentCount + sz - usefulPrimeCount;
          if (count < 0)
             throw new ApplicationException();
 
