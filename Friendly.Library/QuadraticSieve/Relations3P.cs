@@ -501,11 +501,7 @@ namespace Friendly.Library.QuadraticSieve
 
          sz = singletons.Count + doubles.Count + triples.Count;
          if (sz == 0)
-         {
-            lock(_lockCount)
-               _nextCountThreshold += _incrementCountThreshold;
             return;
-         }
 
          // "Count" components & edges
          int componentCount = 1;
@@ -521,7 +517,6 @@ namespace Friendly.Library.QuadraticSieve
          lock(_lockCount)
          {
             _count = count;
-            _nextCountThreshold += _incrementCountThreshold;
             _componentCount = componentCount;
             _edgeCount = edgeCount;
          }
@@ -775,15 +770,20 @@ namespace Friendly.Library.QuadraticSieve
             int partialsCount;
             lock (_lockPartials)
                partialsCount = _singletons.Count + _doubles.Count + _triples.Count;
-            if (partialsCount > _nextCountThreshold)
+
+            bool executeCount = false;
+            lock(_lockCount)
+            {
+               executeCount = (partialsCount >= _nextCountThreshold);
+               if (executeCount)
+                  _nextCountThreshold += _incrementCountThreshold;
+            }
+
+            if (executeCount)
             {
                _taskCount = Task.Run(CountCycles);
                _taskCount.ContinueWith((task) =>
                {
-                  _taskCount?.Wait();   // bizarre, but we get intermittent
-                                        // InvalidOperation exceptions from
-                                        // Dispose due to _taskCount not being
-                                        // completed!
                   _taskCount?.Dispose();
                   _taskCount = null;
                }).ContinueWith((task) =>
