@@ -153,10 +153,17 @@ namespace Friendly.Library.QuadraticSieve
 
          // Restore stats that we need to round trip
          List<Statistic> statistics = new();
-         rdr.ReadStartElement(StatisticsNodeName);
-         while (rdr.IsStartElement(StatisticNodeName))
-            statistics.Add(new Statistic(rdr));
-         rdr.ReadEndElement();
+         if (!rdr.IsEmptyElement)
+         {
+            rdr.ReadStartElement(StatisticsNodeName);
+            while (rdr.IsStartElement(StatisticNodeName))
+               statistics.Add(new Statistic(rdr));
+            rdr.ReadEndElement();
+         }
+         else
+         {
+            rdr.Read();
+         }
 
          // Read the full Relations
          _relations = new();
