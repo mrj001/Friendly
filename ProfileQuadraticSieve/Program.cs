@@ -583,7 +583,7 @@ namespace ProfileQuadraticSieve
 
       private static void StartSaveTimer()
       {
-         _saveTimer = new Timer(HandleScheduledSave, null, TimeSpan.FromHours(2), TimeSpan.FromHours(2));
+         _saveTimer = new Timer(HandleScheduledSave, null, TimeSpan.FromHours(4), TimeSpan.FromHours(4));
       }
 
       private static void HandleScheduledSave(object? state)
