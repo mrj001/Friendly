@@ -308,9 +308,11 @@ namespace ProfileQuadraticSieve
             Primes.Init(2_147_483_648);
          }
 
+         ILog? relationsLogger = CreateRelationsLogger();
+
          try
          {
-            _sieve = new QuadraticSieve(new Parameters(), filename);
+            _sieve = new QuadraticSieve(new Parameters(), filename, relationsLogger);
             Console.CancelKeyPress += HandleCancelSave;
             StartSaveTimer();
             _sieve.Progress += HandleProgress;
@@ -329,6 +331,10 @@ namespace ProfileQuadraticSieve
          }
          finally
          {
+            relationsLogger?.Flush();
+            (relationsLogger as IDisposable)?.Dispose();
+            relationsLogger = null;
+
             _saveTimer?.Dispose();
             _saveTimer = null;
             _sieve = null;
@@ -357,7 +363,7 @@ namespace ProfileQuadraticSieve
                f1 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2 + (numDigits & 1));
                f2 = BigIntegerCalculator.RandomPrime(rng, numDigits / 2);
             } while (BigIntegerCalculator.GetNumberOfDigits(f1 * f2) < numDigits);
-            (seconds, polyCount) = Factor(parameters, f1, f2);
+            (seconds, polyCount) = Factor(parameters, f1, f2, true);
             totalSeconds += seconds;
             minSeconds = Math.Min(seconds, minSeconds);
             maxSeconds = Math.Max(seconds, maxSeconds);
@@ -413,13 +419,15 @@ namespace ProfileQuadraticSieve
       /// <param name="logger"></param>
       /// <param name="f1"></param>
       /// <param name="f2"></param>
+      /// <param name="logRelationsProgress">true to log progress for relations.</param>
       /// <returns>
       /// <list type="number">
       /// <item>The number of seconds taken to factor the product.</item>
       /// <item>The number of polynomials used to factor the product.</item>
       /// </list>
       /// </returns>
-      private static (double, int) Factor(IParameters parameters, BigInteger f1, BigInteger f2)
+      private static (double, int) Factor(IParameters parameters,
+         BigInteger f1, BigInteger f2, bool logRelationsProgress = false)
       {
          double rv = -1;
          int polyCount = 0;
@@ -440,6 +448,8 @@ namespace ProfileQuadraticSieve
          _progressLogger.WriteLine($"f1 = {f1}");
          _progressLogger.WriteLine($"f2 = {f2}");
 
+         ILog? relationsLog = logRelationsProgress ? CreateRelationsLogger() : null;
+
          try
          {
             BigInteger n = f1 * f2;
@@ -451,7 +461,7 @@ namespace ProfileQuadraticSieve
 
             sw = new();
             sw.Start();
-            _sieve = new(parameters, n);
+            _sieve = new QuadraticSieve(parameters, n, relationsLog);
             _sieve.Progress += HandleProgress;
             (BigInteger g1, BigInteger g2) = _sieve.Factor();
 
@@ -480,6 +490,13 @@ namespace ProfileQuadraticSieve
          }
          finally
          {
+            if (relationsLog is not null)
+            {
+               relationsLog.Flush();
+               (relationsLog as IDisposable)?.Dispose();
+               relationsLog = null;
+            }
+
             if (sw is not null)
             {
                sw.Stop();
@@ -509,6 +526,7 @@ namespace ProfileQuadraticSieve
          }
 
          _progressLogger.WriteLine($"factoring: {n}");
+         ILog? relationsLogger = CreateRelationsLogger();
 
          try
          {
@@ -520,7 +538,7 @@ namespace ProfileQuadraticSieve
 
             sw = new();
             sw.Start();
-            _sieve = new(parameters, n);
+            _sieve = new QuadraticSieve(parameters, n, relationsLogger);
             _sieve.Progress += HandleProgress;
             (BigInteger f1, BigInteger f2) = _sieve.Factor();
 
@@ -540,6 +558,12 @@ namespace ProfileQuadraticSieve
          }
          finally
          {
+            if (relationsLogger is not null)
+            {
+               relationsLogger.Flush();
+               (relationsLogger as IDisposable)?.Dispose();
+               relationsLogger = null;
+            }
             if (sw is not null)
             {
                sw.Stop();
@@ -550,6 +574,11 @@ namespace ProfileQuadraticSieve
             _sieve = null;
             Console.CancelKeyPress -= HandleCancelSave;
          }
+      }
+
+      private static ILog CreateRelationsLogger()
+      {
+         return new FileLogger("RelationsProgress.csv");
       }
 
       private static void StartSaveTimer()

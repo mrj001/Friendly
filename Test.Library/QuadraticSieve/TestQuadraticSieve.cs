@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Xml;
 using Friendly.Library;
+using Friendly.Library.Logging;
 using Friendly.Library.QuadraticSieve;
 using Xunit;
 
@@ -25,7 +26,7 @@ namespace Test.Library.QuadraticSieve
       private class FakeRelationsFactory : IRelationsFactory
       {
          public IRelations GetRelations(LargePrimeStrategy largePrimeStrategy,
-            int numDigits, int factorBaseSize, int maxFactor)
+            int numDigits, int factorBaseSize, int maxFactor, ILog? log)
          {
             switch(largePrimeStrategy)
             {
@@ -36,14 +37,14 @@ namespace Test.Library.QuadraticSieve
                   return new Relations2P(factorBaseSize, maxFactor);
 
                case LargePrimeStrategy.ThreeLargePrimes:
-                  return new Relations3P(factorBaseSize, maxFactor);
+                  return new Relations3P(factorBaseSize, maxFactor, log);
 
                default:
                   throw new ApplicationException("Unknown value for LargePrimeStrategy");
             }
          }
 
-         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr)
+         public IRelations GetRelations(int factorBaseSize, int maxFactor, XmlReader rdr, ILog? log)
          {
             throw new NotImplementedException();
          }

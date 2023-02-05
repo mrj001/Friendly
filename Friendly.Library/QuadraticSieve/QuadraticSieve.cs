@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Schema;
 using Friendly.Library;
+using Friendly.Library.Logging;
 using Friendly.Library.Utility;
 
 //====================================================================
@@ -69,6 +70,7 @@ namespace Friendly.Library.QuadraticSieve
       private FactorBase _factorBase;
 
       private IRelations _relations;
+      private readonly ILog _relationsLog;
 
       private IMatrix _matrix;
       private IMatrixFactory _matrixFactory = new MatrixFactory();
@@ -121,7 +123,17 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="parameters">An IParameters instance to supply the
       /// algorithm's parameters.</param>
       /// <param name="n">The number to be factored by this Quadratic Sieve.</param>
-      public QuadraticSieve(IParameters parameters, BigInteger n)
+      public QuadraticSieve(IParameters parameters, BigInteger n) : this(parameters, n, null)
+      {
+      }
+
+      /// <summary>
+      /// Initializes an instance of the Quadratic Sieve algorithm.
+      /// </summary>
+      /// <param name="parameters">An IParameters instance to supply the
+      /// algorithm's parameters.</param>
+      /// <param name="n">The number to be factored by this Quadratic Sieve.</param>
+      public QuadraticSieve(IParameters parameters, BigInteger n, ILog relationsLog)
       {
          _parameters = parameters;
          _nOrig = n;
@@ -131,6 +143,7 @@ namespace Friendly.Library.QuadraticSieve
 
          _factorBase = null;
          _relations = null;
+         _relationsLog = relationsLog;
          _matrix = null;
 
          _polynomials = null;
@@ -145,7 +158,8 @@ namespace Friendly.Library.QuadraticSieve
       /// algorithm's parameters.</param>
       /// <param name="filename">The path to the file containing the state
       /// information.</param>
-      public QuadraticSieve(IParameters parameters, string filename)
+      /// <param name="relationsLog">A log for tracking relations statistics.</param>
+      public QuadraticSieve(IParameters parameters, string filename, ILog relationsLog)
       {
          _parameters = parameters;
 
@@ -188,7 +202,7 @@ namespace Friendly.Library.QuadraticSieve
             _totalPolynomials = (int)(statistics.Where(s => s.Name == StatisticNames.TotalPolynomials).First().Value);
 
             _relations = (new RelationsFactory()).GetRelations(factorBaseSize,
-               _factorBase[_factorBase.Count - 1].Prime, rdr);
+               _factorBase[_factorBase.Count - 1].Prime, rdr, relationsLog);
 
             _multipolynomial = new MultiPolynomial(_n, _rootN,
                _factorBase[_factorBase.Count - 1].Prime, _M, rdr);
@@ -323,7 +337,7 @@ namespace Friendly.Library.QuadraticSieve
             int pmax = _factorBase[_factorBase.Count - 1].Prime;
             _relations = _parameters.GetRelationsFactory().GetRelations(
                _parameters.FindLargePrimeStrategy(_nOrig), numDigits, _factorBase.Count,
-               pmax);
+               pmax, _relationsLog);
 
             _M = _parameters.FindSieveInterval(_nOrig);
             _multipolynomial = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);
@@ -421,7 +435,7 @@ namespace Friendly.Library.QuadraticSieve
          int pmax = _factorBase[_factorBase.Count - 1].Prime;
          _relations = _parameters.GetRelationsFactory().GetRelations(
             _parameters.FindLargePrimeStrategy(_nOrig), numDigits,
-            _factorBase.Count, pmax);
+            _factorBase.Count, pmax, _relationsLog);
 
          _M = _parameters.FindSieveInterval(_nOrig);
          _multipolynomial = new MultiPolynomial(_n, _rootN, _factorBase.MaxPrime, _M);

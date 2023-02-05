@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Xml;
+using Friendly.Library.Logging;
 using Friendly.Library.Pollard;
 using Friendly.Library.Utility;
 
@@ -18,6 +19,8 @@ namespace Friendly.Library.QuadraticSieve
 {
    public class Relations3P : IRelations
    {
+      private readonly ILog? _log;
+
       /// <summary>
       /// The set of fully factored Relations found during sieving and combining.
       /// </summary>
@@ -92,8 +95,12 @@ namespace Friendly.Library.QuadraticSieve
       /// </summary>
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
       /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
-      public Relations3P(int factorBaseSize, int maxFactor)
+      /// <param name="log">optional logger</param>
+      public Relations3P(int factorBaseSize, int maxFactor, ILog? log)
       {
+         _log = log;
+         _log?.WriteLine("Relations\tCyclesCount\tSingletons\tDoubles\tTriples");
+
          _relations = new();
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
@@ -116,8 +123,11 @@ namespace Friendly.Library.QuadraticSieve
       /// <param name="factorBaseSize">The number of primes in the Factor Base.</param>
       /// <param name="maxFactor">The value of the largest prime in the Factor Base.</param>
       /// <param name="rdr">An XML Reader positioned at the &lt;maxLargePrime&gt; node..</param>
-      public Relations3P(int factorBaseSize, int maxFactor, XmlReader rdr)
+      /// <param name="log">optional logger</param>
+      public Relations3P(int factorBaseSize, int maxFactor, XmlReader rdr, ILog? log)
       {
+         _log = log;
+
          _factorBaseSize = factorBaseSize;
          _maxFactor = maxFactor;
 
@@ -776,6 +786,24 @@ namespace Friendly.Library.QuadraticSieve
                                         // completed!
                   _taskCount?.Dispose();
                   _taskCount = null;
+               }).ContinueWith((task) =>
+               {
+                  if (_log is null)
+                     return;
+
+                  int relationsCount, cycleCount, singletonCount, doublesCount, triplesCount;
+                  lock (_lockRelations)
+                     relationsCount = _relations.Count;
+                  lock (_lockCount)
+                     cycleCount = _count;
+                  lock(_lockPartials)
+                  {
+                     singletonCount = _singletons.Count;
+                     doublesCount = _doubles.Count;
+                     triplesCount = _triples.Count;
+                  }
+                  lock(_log)
+                     _log.WriteLine($"{relationsCount}\t{cycleCount}\t{singletonCount}\t{doublesCount}\t{triplesCount}");
                });
             }
 
