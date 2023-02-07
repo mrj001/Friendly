@@ -783,7 +783,7 @@ namespace Friendly.Library.QuadraticSieve
             {
                executeCount = (partialsCount >= _nextCountThreshold);
                if (executeCount)
-                  _nextCountThreshold += _incrementCountThreshold;
+                  _nextCountThreshold += (1 + partialsCount / _incrementCountThreshold) * _incrementCountThreshold;
             }
 
             if (executeCount)
