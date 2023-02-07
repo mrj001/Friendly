@@ -1054,6 +1054,7 @@ namespace Friendly.Library.QuadraticSieve
          rv.Add(new Statistic(StatisticNames.ThreeLargePrimes, counts[3]));
          rv.Add(new Statistic("Components", _componentCount));
          rv.Add(new Statistic("Edges", _edgeCount));
+         rv.Add(new Statistic("CycleCount", _count));
 
          return rv.ToArray();
       }
