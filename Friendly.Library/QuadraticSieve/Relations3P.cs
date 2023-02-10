@@ -791,10 +791,13 @@ namespace Friendly.Library.QuadraticSieve
                _taskCount = Task.Run(CountCycles);
                _taskCount.ContinueWith((task) =>
                {
+                  if (_taskCount.IsFaulted)
+                     throw _taskCount.Exception?.InnerExceptions[0]
+                        ?? new ApplicationException("Count task faulted with null Exeption property.");
+
                   _taskCount?.Dispose();
                   _taskCount = null;
-               }).ContinueWith((task) =>
-               {
+
                   if (_log is null)
                      return;
 
