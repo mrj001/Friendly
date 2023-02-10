@@ -33,11 +33,12 @@ namespace Friendly.Library.Pollard
          long m = 100;
          BigInteger x, y, ys, q, G;
 
-         y = x0;
          c = 1;
 
          do
          {
+            y = x0;
+            q = BigInteger.One;
             do
             {
                x = y;
@@ -47,7 +48,6 @@ namespace Friendly.Library.Pollard
                do
                {
                   ys = y;
-                  q = BigInteger.One;
                   for (long i = 0, iul = Math.Min(m, r - k); i < iul; i++)
                   {
                      y = f(y, n);
