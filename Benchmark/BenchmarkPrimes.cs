@@ -8,8 +8,8 @@ namespace Benchmark
    // Q: what maps to OverheadWarmup?  To OverheadActual? To WorkloadResult (in AfterActualRun)
    // Q: what value is there in "AfterActualRun"?
    // warmupCount maps to "WorkloadWarmup" in the output.
-   // targetCount maps to "WorkloadActual" in the output.
-   [SimpleJob(RunStrategy.Throughput, warmupCount: 1, targetCount: 6, invocationCount: 1)]
+   // iterationCount maps to "WorkloadActual" in the output.
+   [SimpleJob(RunStrategy.Throughput, warmupCount: 1, iterationCount: 6, invocationCount: 1)]
    public class BenchmarkPrimes
    {
       public BenchmarkPrimes()

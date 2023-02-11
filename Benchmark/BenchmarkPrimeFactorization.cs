@@ -9,7 +9,7 @@ using Friendly.Library;
 
 namespace Benchmark
 {
-   [SimpleJob(RunStrategy.Throughput, warmupCount: 1, targetCount: 6, invocationCount: 1)]
+   [SimpleJob(RunStrategy.Throughput, warmupCount: 1, iterationCount: 6, invocationCount: 1)]
    public class BenchmarkPrimeFactorization
    {
       public BenchmarkPrimeFactorization()
