@@ -358,24 +358,21 @@ namespace Friendly.Library.QuadraticSieve
             {
                TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f3 }, RelationOrigin.ThreeLargePrimes);
-               lock(_lockPartials)
-                  _singletons.Add(relation);
+               AddSingletonRelation(relation);
                return;
             }
             else if (f1 == f3)
             {
                TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f2 }, RelationOrigin.ThreeLargePrimes);
-               lock (_lockPartials)
-                  _singletons.Add(relation);
+               AddSingletonRelation(relation);
                return;
             }
             else if (f2 == f3)
             {
                TPRelation relation = new TPRelation(QofX, x, exponentVector,
                   new long[] { (long)f1 }, RelationOrigin.ThreeLargePrimes);
-               lock (_lockPartials)
-                  _singletons.Add(relation);
+               AddSingletonRelation(relation);
                return;
             }
             else
